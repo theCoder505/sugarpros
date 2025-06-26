@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat UI</title>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <script defer>
+    function toggleUnreadFilter() {
+      const allChats = document.querySelectorAll(".chat-item");
+      allChats.forEach(chat => {
+        if (!chat.classList.contains("unread")) {
+          chat.classList.toggle("hidden");
+        }
+      });
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100 p-4">
+  
+</body>
+
+</html>

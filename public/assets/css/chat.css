@@ -1,0 +1,166 @@
+.chats_nav {
+    background: #c6edfa !important;
+}
+
+.provider_name .designation {
+    display: none;
+}
+
+.active_chatlist {
+    border: 2px solid #d5d5d5;
+    background: #f0f0f0;
+}
+
+.chating_section {
+    height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-list-container {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.message-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.all_chats {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+}
+
+.typing-indicator .bubble {
+    width: 5px;
+    height: 5px;
+    background: #bdbdbd;
+    border-radius: 50%;
+    display: inline-block;
+    opacity: 0.7;
+    animation: typing-bounce 1.2s infinite;
+}
+
+.typing-indicator .bubble:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator .bubble:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing-bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.7;
+    }
+
+    40% {
+        transform: translateY(-7px);
+        opacity: 1;
+    }
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.floating-icon {
+    animation: float 3s ease-in-out infinite;
+}
+
+.chat_message {
+    max-width: 400px;
+}
+
+.emoji_options {
+    max-width: 450px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+strong {
+    font-weight: bold;
+}
+
+em {
+    font-style: italic;
+}
+
+
+
+/* isreceived */
+
+.time_activated {
+    border: 1px solid #333;
+}
+
+
+
+
+/* Activity indicator styles */
+.activity_status {
+    transition: all 0.3s ease;
+}
+
+.online-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10B981;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    border: 2px solid white;
+}
+
+.offline-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #6B7280;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    border: 2px solid white;
+}
+
+.users_list {
+    max-height: calc(100vh - 370px);
+}
+
+
+@media (max-width: 600px) {
+    .make_hide {
+        display: none !important;
+    }
+
+    .message-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: calc(100vh - 50px);
+        width: 100%;
+    }
+}

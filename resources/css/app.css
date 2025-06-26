@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer components {
+    .message_tab{
+        @apply bg-[#E0E0E0] rounded-[21px] py-2;
+    }
+
+    .active_tab{
+        @apply text-[15px] bg-[#FF6400] font-semibold rounded-[21px] py-2 text-white hover:bg-opacity-90;
+    }
+}

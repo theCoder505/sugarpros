@@ -1,0 +1,151 @@
+Setup things below:
+
+login access:
+Email: SugarPros1234@gmail.com
+password: @Sugarpros1!
+
+
+Create root password: @Sugarpros1#
+Your VPS hostname: srv866573.hstgr.cloud
+✓✓ SSH access: ssh root@31.97.14.107
+
+
+User: root
+User password: SugarPros@369
+database name: sugarpros
+
+git cloned to sugarpros
+
+php composer.phar 
+
+
+database import to VPS:
+mysql -u root -p sugarpros < /tmp/sugar_pros_db.sql
+mysql -u root -p -e "USE sugarpros; SELECT * FROM users LIMIT 5;" // to see a database table 
+
+
+
+
+After database import: 
+sudo chgrp -R www-data /var/www/sugarpros
+ls -la
+
+sudo chmod -R 775 /var/www/sugarpros/storage/
+for virtual config file: cd /etc/apache2/sites-available/
+sudo nano sugarpros.com.conf
+
+
+
+<VirtualHost *:80>
+    ServerName srv866573.hstgr.cloud
+    ServerAdmin SugarPros1234@gmail.com
+    DocumentRoot /var/www/sugarpros/public
+
+    <Directory /var/www/sugarpros>
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog ${APACHE_LOG_DIR}/sugarpros_error.log
+    CustomLog ${APACHE_LOG_DIR}/sugarpros_access.log combined
+</VirtualHost>
+
+
+sudo a2dissite 000-default.conf
+sudo a2ensite sugarpros.com.conf
+sudo a2enmod rewrite
+sudo service apache2 restart
+php artisan key:generate --ansi
+
+
+--------- Setting Up the Live Chat WebSocket In VPS ------------
+ssh root@31.97.14.107
+
+# Install Node.js (LTS version)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Verify installation
+node -v
+npm -v
+
+sudo npm install -g pm2
+npm init -y
+npm install express ws http
+
+
+
+
+# Start with PM2 (persistent)
+pm2 start server.js --name "websocket-server"
+
+# Enable PM2 startup
+pm2 save
+pm2 startup
+
+sudo ufw allow 3000
+sudo ufw enable
+
+sudo apt install nginx
+
+
+
+sudo nano /etc/nginx/sites-available/websocket
+server {
+    listen 80;
+    server_name 31.97.14.107;
+
+    # WebSocket configuration
+    location /ws/ {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        
+        # Increase timeout for long-lived connections
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
+    # Optional: Add these for better WebSocket performance
+    proxy_buffering off;
+    proxy_buffer_size 16k;
+    proxy_busy_buffers_size 24k;
+    proxy_buffers 64 4k;
+}
+
+
+
+
+
+# Create symbolic link
+sudo ln -s /etc/nginx/sites-available/websocket /etc/nginx/sites-enabled/
+
+# Test configuration
+sudo nginx -t
+
+sudo systemctl restart nginx
+pm2 logs websocket-server || All done here Holas!
+
+
+
+--------------- For SSL Certificate To the VPS: ----------------
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d yourdomain.com
+
+Then: socket = new WebSocket(`wss://yourdomain.com/ws/?userId=${userId}`);
+
+
+
+Website Link: http://31.97.14.107
+
+Doctor:
+alfredos@gmail.com
+EkWeb@7867
+
+patient:
+maxwell@gmail.com
+EkWeb@7867
+
