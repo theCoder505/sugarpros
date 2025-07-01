@@ -1,7 +1,7 @@
 <header class="w-full bg-white">
     <div class="flex items-center justify-between px-4 py-3 mx-auto max-w-7xl">
         <div class="flex items-center space-x-2">
-            <a href="/admin/dashboard">
+            <a href="/" target="_blank">
                 <img src="/assets/image/logo.png" alt="SugarPros Logo" class="w-auto h-11" />
             </a>
         </div>
@@ -41,6 +41,18 @@
                     </div>
                     <a href="/admin/account"
                         class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Admin Account</a>
+                    <a href="/admin/services"
+                        class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Services</a>
+                    <a href="/admin/reviews"
+                        class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Reviews</a>
+                    <a href="/admin/categories"
+                        class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Categories</a>
+                    <a href="/admin/blogs"
+                        class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Blogs</a>
+                    <a href="/admin/add-new-blog"
+                        class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Add Blog</a>
+                    <a href="/admin/all-blogs"
+                        class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">FAQs</a>
                     <a href="/admin/settings"
                         class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Website Settings</a>
                     <a href="/admin/logout" class="block px-2 py-2 text-red-600 rounded hover:bg-slate-100 transition">Logout</a>

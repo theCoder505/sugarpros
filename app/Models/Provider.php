@@ -26,6 +26,7 @@ class Provider extends Authenticatable
         'forget_otp',
         'password',
         'profile_picture',
+        'about_me',
         'language',
         'last_logged_in',
     ];

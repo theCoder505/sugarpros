@@ -23,7 +23,7 @@
                 <h1 class="mb-2 text-[40px] text-[#133A59]">Pricing
                 </h1>
                 <div class="flex items-center justify-center text-[15px] text-gray-500">
-                    <a href="#" class="hover:text-[#133A59]">Home</a>
+                    <a href="/" class="hover:text-[#133A59]">Home</a>
                     <span class="mx-2">/</span>
                     <span>Pricing</span>
                 </div>

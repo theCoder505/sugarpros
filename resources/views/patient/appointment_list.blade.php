@@ -177,7 +177,7 @@
                                 </div>
                             </div>
                         @else
-                            <div class="absolute w-full left-0 bottom-0 p-4">
+                            <div class="relative lg:absolute w-full left-0 bottom-0 p-4">
                                 <div
                                     class="text-center bg-[#DBEAFE] px-3 sm:px-4 py-4 rounded-[42px] mt-3 text-lg sm:text-sm font-semibold text-blue-500">
                                     <i class="fas fa-exclamation-triangle"></i> Meeting not scheduled yet!

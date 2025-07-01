@@ -23,7 +23,7 @@
                 <h1 class="mb-2 text-[40px] text-[#133A59]">FAQs
                 </h1>
                 <div class="flex items-center justify-center text-[15px] text-gray-500">
-                    <a href="#" class="hover:text-[#133A59]">Home</a>
+                    <a href="/" class="hover:text-[#133A59]">Home</a>
                     <span class="mx-2">/</span>
                     <span>FAQs</span>
                 </div>
@@ -40,99 +40,7 @@
 
 
 
-    <section class="px-6 py-12 bg-white md:px-20">
-        <div class="mb-12 text-center">
-            <span class="text-[16px] text-font_color uppercase bg-[#FF650033]/20 py-2  rounded-3xl px-4">
-                FAQS
-            </span>
-            <h2 class="text-[45px] font-semibold mt-4 text-font_color">Frequently asked questions.</h2>
-        </div>
-
-        <div class="space-y-2" id="faq-container">
-            <div class="pt-4 pb-4 border-b">
-                <button
-                    class="flex items-center justify-between w-full text-base font-semibold text-left text-font_color toggle-faq">
-                    <span class="text-[22px]"><span class="mr-2">01</span>How is SugarPros
-                        different from other
-                        telemedicine diabetes services?</span>
-                    <span class="text-2xl transition-transform duration-200 icon">+</span>
-                </button>
-                <div class="faq-content hidden mt-4 text-[18px] text-gray-600">
-                    <p class="mb-2">We provide <strong>endocrinologist-led care</strong> (not general practitioners)
-                        with:</p>
-                    <ul class="ml-6 space-y-1 list-disc text-slate-600">
-                        <li>3–5× longer appointment times</li>
-                        <li>AI-powered care</li>
-                        <li>Remote Appointment</li>
-                        <li>Chatbot and telemedicine</li>
-                        <li class="text-slate-400">Transparent pricing with no surprise bills</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="pt-4 pb-4 border-b">
-                <button
-                    class="flex items-center justify-between w-full text-base font-semibold text-left text-font_color toggle-faq">
-                    <span class="text-[22px]"><span class="mr-2">02</span>What insurance do you
-                        accept?</span>
-                    <span class="text-2xl transition-transform duration-200 icon">+</span>
-                </button>
-                <div class="faq-content hidden mt-4 text-[18px] text-gray-600">
-                    <p>We accept most major insurance providers. Please contact support for a full list.</p>
-                </div>
-            </div>
-
-            <div class="pt-4 pb-4 border-b">
-                <button
-                    class="flex items-center justify-between w-full text-base font-semibold text-left text-font_color toggle-faq">
-                    <span class="text-[22px]"><span class="mr-2">03</span>How quickly can I get
-                        an
-                        appointment?</span>
-                    <span class="text-2xl transition-transform duration-200 icon">+</span>
-                </button>
-                <div class="faq-content hidden mt-4 text-[18px] text-gray-600">
-                    <p>Appointments are usually available within 24–48 hours.</p>
-                </div>
-            </div>
-            <div class="pt-4 pb-4 border-b">
-                <button
-                    class="flex items-center justify-between w-full text-base font-semibold text-left text-font_color toggle-faq">
-                    <span class="text-[22px]"><span class="mr-2">04</span>How does the CGM
-                        program work?
-                    </span>
-                    <span class="text-2xl transition-transform duration-200 icon">+</span>
-                </button>
-                <div class="faq-content hidden mt-4 text-[18px] text-gray-600">
-                    <p>Appointments are usually available within 24–48 hours.</p>
-                </div>
-            </div>
-            <div class="pt-4 pb-4 border-b">
-                <button
-                    class="flex items-center justify-between w-full text-base font-semibold text-left text-font_color toggle-faq">
-                    <span class="text-[22px]"><span class="mr-2">05</span>Can you help with
-                        diabetes-related mental health issues?
-                    </span>
-                    <span class="text-2xl transition-transform duration-200 icon">+</span>
-                </button>
-                <div class="faq-content hidden mt-4 text-[18px] text-gray-600">
-                    <p>Appointments are usually available within 24–48 hours.</p>
-                </div>
-            </div>
-            <div class="pt-4 pb-4 border-b">
-                <button
-                    class="flex items-center justify-between w-full text-base font-semibold text-left text-font_color toggle-faq">
-                    <span class="text-[22px]"><span class="mr-2">06</span>What if I need
-                        in-person care?
-                    </span>
-                    <span class="text-2xl transition-transform duration-200 icon">+</span>
-                </button>
-                <div class="faq-content hidden mt-4 text-[18px] text-gray-600">
-                    <p>Appointments are usually available within 24–48 hours.</p>
-                </div>
-            </div>
-
-        </div>
-    </section>
+    @include('includes.faq')
 
 
 

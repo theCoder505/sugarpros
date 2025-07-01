@@ -9,12 +9,12 @@
     <!-- Toastr CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"
-    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    
-    {{-- @vite('resources/css/app.css') --}}
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+    @vite('resources/css/app.css')
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{asset('assets/css/tailwind.css')}}">
-    <link rel="stylesheet" href="{{ asset('assets/css/index.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/tailwind.css') }}">
+    {{-- <link rel="stylesheet" href="{{ asset('assets/css/index.css') }}"> --}}
 
     @yield('link')
     @yield('style')
@@ -55,6 +55,16 @@
         @endif
     </script>
 
+
+    <script>
+        $(window).on('scroll', function() {
+            if ($(this).scrollTop() > 150) {
+                $(".headerpage").addClass('bg-white').addClass('fixed').removeClass('relative').removeClass('bg-[#133A59]/10').removeClass('lg:bg-[unset]');
+            } else {
+                $(".headerpage").removeClass('bg-white').removeClass('fixed').addClass('relative').addClass('bg-[#133A59]/10').addClass('lg:bg-[unset]');
+            }
+        });
+    </script>
 
     @yield('script')
 </body>

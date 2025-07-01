@@ -23,6 +23,6 @@ class SugarprosAIChat extends Model
 
     public function firstMessage()
     {
-        return $this->hasOne(SugarprosAIChat::class, 'chatuid', 'chatuid')->oldest();
+        return $this->hasOne(SugarprosAIChat::class, 'chatuid', 'chatuid')->oldest('created_at');
     }
 }

@@ -40,7 +40,7 @@
                     <span class="unreads">
                         @php
                             use App\Models\Notification;
-                            $unreadCount = Notification::where('user_id', Auth::user()->id)
+                            $unreadCount = Notification::where('user_id', Auth::user()->patient_id)
                                 ->where('read_status', 0)
                                 ->count();
                         @endphp

@@ -32,8 +32,14 @@ class Settings extends Model
         'DEXCOM_REDIRECT_URI',
         'meeting_web_root_url',
         'CLAIM_MD_CLIENT_ID',
+        'CLAIM_MD_API_KEY',
         'CLAIM_MD_ENV',
         'FATSECRET_KEY',
         'FATSECRET_SECRET',
+        'contact_phone',
+        'fb_url',
+        'twitter_url',
+        'instagram_url',
+        'linkedin_url',
     ];
 }

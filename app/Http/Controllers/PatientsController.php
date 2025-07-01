@@ -42,6 +42,7 @@ class PatientsController extends Controller
         ]);
 
         $userID = Auth::user()->id;
+        $patient_id = Auth::user()->patient_id;
         $licensePath = null;
 
         // Handle file upload
@@ -95,7 +96,7 @@ class PatientsController extends Controller
 
 
         Notification::insert([
-            'user_id' => $userID,
+            'user_id' => $patient_id,
             'notification' => $return_text,
         ]);
 
@@ -217,7 +218,7 @@ class PatientsController extends Controller
 
             // Insert notification
             Notification::create([
-                'user_id' => $booked_by,
+                'user_id' => $patient_id,
                 'notification' => 'You have booked an appointment at ' . date('g:i A', strtotime($time)) . ' on ' . date('j F, Y', strtotime($date)),
             ]);
 
@@ -309,6 +310,7 @@ class PatientsController extends Controller
     public function updateProfilePicture(Request $request)
     {
         $userID = Auth::user()->id;
+        $patient_id = Auth::user()->patient_id;
         $profilePicture = User::where('id', $userID)->value('profile_picture');
 
         if ($request->hasFile('profilepicture')) {
@@ -325,7 +327,7 @@ class PatientsController extends Controller
         ]);
 
         Notification::insert([
-            'user_id' => $userID,
+            'user_id' => $patient_id,
             'notification' => 'Profile picture updated.',
         ]);
 
@@ -339,6 +341,7 @@ class PatientsController extends Controller
     public function updateAccountDetails(Request $request)
     {
         $userID = Auth::user()->id;
+        $patient_id = Auth::user()->patient_id;
 
         $licensePath = null;
 
@@ -376,7 +379,7 @@ class PatientsController extends Controller
         ]);
 
         Notification::insert([
-            'user_id' => $userID,
+            'user_id' => $patient_id,
             'notification' => 'Account page updated.',
         ]);
 
@@ -392,7 +395,8 @@ class PatientsController extends Controller
     public function deleteNotification($notification_id)
     {
         $userID = Auth::user()->id;
-        $delete_notification = Notification::where('user_id', $userID)->where('user_type', 'patient')->where('id', $notification_id)->delete();
+        $patient_id = Auth::user()->patient_id;
+        $delete_notification = Notification::where('user_id', $patient_id)->where('user_type', 'patient')->where('id', $notification_id)->delete();
         return back()->with('info', 'Notification Deleted Successfully!');
     }
 

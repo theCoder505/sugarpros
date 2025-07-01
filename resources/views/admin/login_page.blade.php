@@ -22,19 +22,32 @@
                 </div>
                 <h2 class="text-2xl font-bold text-gray-800">Admin Login</h2>
             </div>
-            <form method="POST" action="{{ route('admin.login') }}">
+
+            @php
+                if (session('error')) {
+                    $email = session('email');
+                    $password = session('password');
+                } else {
+                    $email = '';
+                    $password = '';
+                }
+            @endphp
+
+
+            <form method="POST" action="/admin/verify-admin-credentials">
                 @csrf
                 <div class="mb-4">
                     <label class="block text-gray-700 font-semibold mb-2" for="email">Email</label>
-                    <input id="email" name="email" type="email" required autofocus
+                    <input id="email" name="email" value="{{ $email }}" type="email" required autofocus
                         class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                 </div>
                 <div class="mb-6">
                     <label class="block text-gray-700 font-semibold mb-2" for="password">Password</label>
                     <div class="relative">
-                        <input id="password" name="password" type="password" required
+                        <input id="password" name="password" value="{{ $password }}" type="password" required
                             class="w-full px-4 py-2 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                        <i class="fas fa-eye togglingIcon absolute right-4 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500" onclick="showPassword(this)"></i>
+                        <i class="fas fa-eye togglingIcon absolute right-4 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500"
+                            onclick="showPassword(this)"></i>
                     </div>
                 </div>
                 <div class="flex items-center justify-between mb-4">
@@ -55,7 +68,7 @@
 
 @section('script')
     <script>
-        function showPassword(passedThis){
+        function showPassword(passedThis) {
             var passwordField = document.getElementById('password');
             if (passwordField.type === 'password') {
                 passwordField.type = 'text';

@@ -234,7 +234,7 @@ class CredentialsController extends Controller
 
                     $userID = User::where('email', $email)->value('id');
                     Notification::insert([
-                        'user_id' => $userID,
+                        'user_id' => $inique_patient_id,
                         'notification' => 'Account creation successful.',
                     ]);
 
@@ -325,9 +325,9 @@ class CredentialsController extends Controller
                     ->subject("Account retrive OTP, for forget password request.");
             });
 
-            $userID = User::where('email', $email)->value('id');
+            $patient_id = User::where('email', $email)->value('patient_id');
             Notification::insert([
-                'user_id' => $userID,
+                'user_id' => $patient_id,
                 'notification' => 'OTP sent to your login email as forget password requested.',
             ]);
 
@@ -528,9 +528,9 @@ class CredentialsController extends Controller
                     'password' => bcrypt($password),
                 ]);
 
-                $userID = User::where('email', $email)->where('forget_otp', $otp)->value('id');
+                $patient_id = User::where('email', $email)->where('forget_otp', $otp)->value('patient_id');
                 $notifications = Notification::insert([
-                    'user_id' => $userID,
+                    'user_id' => $patient_id,
                     'notification' => 'Account retrived by forget password method.',
                 ]);
 
@@ -552,11 +552,12 @@ class CredentialsController extends Controller
     public function DeleteUsersAccount()
     {
         $userID = Auth::user()->id;
+        $patient_id = Auth::user()->patient_id;
         $userEmail = Auth::user()->email;
         SignupTrial::where('email', $userEmail)->delete();
         UserDetails::where('user_id', $userID)->delete();
         Appointment::where('booked_by', $userID)->delete();
-        Notification::where('user_id', $userID)->where('user_type', 'patient')->delete();
+        Notification::where('user_id', $patient_id)->where('user_type', 'patient')->delete();
         User::where('id', $userID)->delete();
         Auth::logout();
         return redirect('/sign-up')->with('info', 'You have deleted your account completely!');
@@ -603,7 +604,7 @@ class CredentialsController extends Controller
             });
 
             Notification::insert([
-                'user_id' => Auth::user()->id,
+                'user_id' => Auth::user()->patient_id,
                 'notification' => 'A 6 digit OTP sent to your account email address for changing email from settings page.'
             ]);
 
@@ -676,7 +677,7 @@ class CredentialsController extends Controller
                     $update_email = User::where('email', $email)->update(['email' => $new_email]);
 
                     Notification::insert([
-                        'user_id' => Auth::user()->id,
+                        'user_id' => Auth::user()->patient_id,
                         'notification' => 'Account email changed from settings page, successfully!',
                     ]);
 
@@ -733,7 +734,7 @@ class CredentialsController extends Controller
             });
 
             Notification::insert([
-                'user_id' => Auth::user()->id,
+                'user_id' => Auth::user()->patient_id,
                 'notification' => 'A 6 digit OTP sent to your account email address for changing password from settings page.'
             ]);
 
@@ -914,7 +915,7 @@ class CredentialsController extends Controller
         ]);
 
         Notification::insert([
-            'user_id' => Auth::user()->id,
+            'user_id' => Auth::user()->patient_id,
             'notification' => 'Account password changed from settings page, successfully!',
         ]);
 
@@ -940,12 +941,13 @@ class CredentialsController extends Controller
     public function changeLanguagePreferrence(Request $request)
     {
         $userID = Auth::user()->id;
+        $patient_id = Auth::user()->patient_id;
         $language = $request['language'];
 
         User::where('id', $userID)->update(['language' => $language]);
 
         Notification::insert([
-            'user_id'  => $userID,
+            'user_id'  => $patient_id,
             'notification'  => 'Language updated to ' . $language,
         ]);
 
@@ -959,12 +961,13 @@ class CredentialsController extends Controller
     public function hippaConsentPreferrence(Request $request)
     {
         $userID = Auth::user()->id;
+        $patient_id = Auth::user()->patient_id;
         $hippa_consent = $request['consent'];
 
         User::where('id', $userID)->update(['hippa_consent' => $hippa_consent]);
 
         Notification::insert([
-            'user_id'  => $userID,
+            'user_id'  => $patient_id,
             'notification'  => 'HIPAA Consent Updated to ' . ($hippa_consent ? 'consented' : 'not consented'),
         ]);
 

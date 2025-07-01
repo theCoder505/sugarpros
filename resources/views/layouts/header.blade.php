@@ -1,4 +1,4 @@
-<header class="bg-[#133A59]/10 lg:bg-[unset] relative z-20">
+<header class="pb-4 relative w-full z-20 bg-[#133A59]/10 lg:bg-[unset] headerpage">
     <div class="px-4 mx-auto max-w-[1420px] sm:px-6 lg:px-8 relative z-20">
         <div class="flex items-center justify-between h-16">
             <!-- Logo -->
@@ -15,7 +15,7 @@
                 <a href="{{ route('service') }}" class="hover:text-button Services">Our Services</a>
                 <a href="{{ route('reviews') }}" class="hover:text-button Reviews">Patient Reviews</a>
                 <a href="{{ route('pricing') }}" class="hover:text-button Pricing">Pricing</a>
-                <a href="{{ route('blog') }}" class="hover:text-button Blog">Blog</a>
+                <a href="/our-blogs" class="hover:text-button Blog">Blog</a>
                 <a href="{{ route('faq') }}" class="hover:text-button FAQs">FAQs</a>
             </nav>
 

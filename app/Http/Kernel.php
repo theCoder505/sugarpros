@@ -40,7 +40,7 @@ class Kernel extends HttpKernel
 
         'api' => [
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
+            \Illuminate\Routing\Middleware\ThrottleRequests::class . ':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
@@ -69,5 +69,6 @@ class Kernel extends HttpKernel
         'check_if_provider_or_admin' => \App\Http\Middleware\ProviderOrAdmin::class,
         'admin_loggedin' => \App\Http\Middleware\AdminCredentials::class,
         'check_dexcom' => \App\Http\Middleware\CheckDexcomToken::class,
+        'claimmd_csp' => \App\Http\Middleware\ClaimMDCSP::class,
     ];
 }

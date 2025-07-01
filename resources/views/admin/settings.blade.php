@@ -124,10 +124,35 @@
                     <div class="settings-header">
                         <h2 class="text-lg font-semibold text-gray-800">Contact Information</h2>
                     </div>
-                    <div class="settings-body grid grid-cols-1 gap-6">
+                    <div class="settings-body grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Contact Phone Number</label>
+                            <input type="text" name="contact_phone" value="{{ $settings->contact_phone ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
                             <input type="email" name="contact_email" value="{{ $settings->contact_email ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Facebook URL</label>
+                            <input type="text" name="fb_url" value="{{ $settings->fb_url ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Twitter URL</label>
+                            <input type="text" name="twitter_url" value="{{ $settings->twitter_url ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Instagram URL</label>
+                            <input type="text" name="instagram_url" value="{{ $settings->instagram_url ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Linkedin URL</label>
+                            <input type="text" name="linkedin_url" value="{{ $settings->linkedin_url ?? '' }}"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                     </div>
@@ -223,6 +248,7 @@
                         </div>
                     </div>
                 </div>
+
 
                 <div class="flex justify-end">
                     <button type="submit"

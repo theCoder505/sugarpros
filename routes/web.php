@@ -2,14 +2,18 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminCredentialsController;
+use App\Http\Controllers\BlogsController;
 use App\Http\Controllers\CredentialsController;
 use App\Http\Controllers\DexcomController;
 use App\Http\Controllers\FatSecretController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PatientClaimsMDController;
 use App\Http\Controllers\PatientsController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\ProviderWorks;
 use App\Http\Controllers\Settings;
+use App\Http\Controllers\WebPagesSetupController;
+use App\Http\Middleware\AdminCredentials;
 use App\Models\Provider;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
@@ -32,9 +36,9 @@ Route::get('/reviews', [HomeController::class, 'reviews'])->name('reviews');
 
 Route::get('/pricing', [HomeController::class, 'pricing'])->name('pricing');
 
-Route::get('/blog', [HomeController::class, 'blog'])->name('blog');
+Route::get('/privacy-policy', [HomeController::class, 'privacyPolicy'])->name('privacyPolicy');
 
-Route::get('/blog-details', [HomeController::class, 'blog_details'])->name('blog_details');
+Route::get('/terms-and-conditions', [HomeController::class, 'TermsConditions'])->name('TermsConditions');
 
 Route::get('/faq', [HomeController::class, 'faq'])->name('faq');
 
@@ -49,17 +53,24 @@ Route::get('/logout', [CredentialsController::class, 'logout'])->name('logout');
 
 
 
+
+// Blogs Section 
+Route::get('/our-blogs', [BlogsController::class, 'blog'])->name('blog');
+
+Route::get('/blogs/{id}/{category}/{title}', [BlogsController::class, 'blog_details'])->name('blog_details');
+
+
+
 // patients portal 
 Route::get('/basic', [HomeController::class, 'basic'])->name('basic'); //checks in the page
 
+Route::get('/privacy', [HomeController::class, 'privacy'])->name('privacy');
 
-Route::get('/privacy', [HomeController::class, 'privacy'])->name('privacy')->middleware('patient_loggedin');
+Route::get('/compliance', [HomeController::class, 'compliance'])->name('compliance');
 
-Route::get('/compliance', [HomeController::class, 'compliance'])->name('compliance')->middleware('patient_loggedin');
+Route::get('/financial-responsibility-aggreement', [HomeController::class, 'financialRespAggreement'])->name('financialRespAggreement');
 
-Route::get('/financial-responsibility-aggreement', [HomeController::class, 'financialRespAggreement'])->name('financialRespAggreement')->middleware('patient_loggedin');
-
-Route::get('/agreement-for-self-payment', [HomeController::class, 'agreementSelfPayment'])->name('agreementSelfPayment')->middleware('patient_loggedin');
+Route::get('/agreement-for-self-payment', [HomeController::class, 'agreementSelfPayment'])->name('agreementSelfPayment');
 
 
 
@@ -97,6 +108,11 @@ Route::post('/fetch-related-chats', [HomeController::class, 'fetchRelatedChats']
 Route::get('/settings', [HomeController::class, 'settings'])->name('settings')->middleware('patient_loggedin', 'check_if_forms_filled');
 
 Route::get('/notifications', [HomeController::class, 'notifications'])->name('notifications')->middleware('patient_loggedin', 'check_if_forms_filled');
+
+// Reviews 
+Route::get('/all-reviews', [HomeController::class, 'showAllReviews']);
+
+Route::post('/add-review', [HomeController::class, 'reviewWebsite'])->middleware('patient_loggedin', 'check_if_forms_filled');
 
 
 
@@ -430,8 +446,6 @@ Route::get('/provider/ai-chat', [ProviderController::class, 'ai_chat'])->name('p
 
 Route::get('/provider/dexcom', [ProviderController::class, 'dexcom'])->name('provider.dexcom')->middleware('check_if_provider');
 
-Route::get('/provider/patient-claims-biller', [ProviderController::class, 'patientClaimsBiller'])->name('provider.biller')->middleware('check_if_provider');
-
 
 // new works 
 Route::get('/provider/notetaker', [ProviderController::class, 'noteTakerPage'])->middleware('check_if_provider');
@@ -466,6 +480,45 @@ Route::post('/provider/clear-chat-session', [ProviderController::class, 'provide
 
 
 
+// Patient Claims Biller For Provider 
+Route::options('/provider/claim-md/{any}', function () {
+    return response('', 204)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+})->where('any', '.*');
+
+// ClaimMD Routes
+Route::middleware(['check_if_provider'])->group(function () {
+    // Main interface
+    Route::get('/provider/patient-claims-biller', [PatientClaimsMDController::class, 'patientClaimsBiller']);
+    Route::get('/provider/patient-claims-biller', [ProviderController::class, 'patientClaimsBiller'])->name('provider.biller');
+
+    // SDK proxy
+    Route::match(['get', 'post'], '/provider/claim-md/proxy', [PatientClaimsMDController::class, 'claimMdProxy'])
+        ->withoutMiddleware(['verify.csrf']);
+
+    // API proxy
+    Route::post('/provider/claim-md/api/{endpoint}', [PatientClaimsMDController::class, 'claimMdApi'])
+        ->where('endpoint', '.*');
+
+    // File operations
+    Route::post('/provider/claim-md/upload', [PatientClaimsMDController::class, 'uploadClaimFile']);
+    Route::post('/provider/claim-md/uploadlist', [PatientClaimsMDController::class, 'getUploadList']);
+    Route::post('/provider/claim-md/deletefile', [PatientClaimsMDController::class, 'deleteUploadedFile']);
+    Route::post('/provider/claim-md/viewfile', [PatientClaimsMDController::class, 'viewUploadedFile']);
+    Route::get('/provider/claim-md/downloadfile', [PatientClaimsMDController::class, 'downloadFile'])->name('claim-md-provider.download');
+});
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -473,12 +526,14 @@ Route::post('/provider/clear-chat-session', [ProviderController::class, 'provide
 // super dashboard
 Route::get('/admin/login', [AdminCredentialsController::class, 'showLoginForm'])->name('adminlogin');
 
-Route::post('/admin/verify-admin-credentials', [AdminCredentialsController::class, 'verifyAdminCredentials'])->name('admin.login');
+Route::post('/admin/verify-admin-credentials', [AdminCredentialsController::class, 'verifyAdminCredentials']);
 
 Route::get('/admin/logout', [AdminCredentialsController::class, 'logoutAdmin'])->name('admin.logout');
 
 
-Route::get('/admin/dashboard', [AdminController::class, 'super'])->name('super')->middleware('admin_loggedin');
+Route::get('/admin/dashboard', [AdminController::class, 'adminDashboard'])->name('super')->middleware('admin_loggedin');
+
+Route::get('/admin/get-user-chart-data', [AdminController::class, 'getUserChartData'])->name('admin.getUserChartData')->middleware('admin_loggedin');
 
 Route::get('/admin/providers', [AdminController::class, 'allProviders'])->middleware('admin_loggedin');
 
@@ -515,6 +570,33 @@ Route::post('/admin/add-country-code', [AdminController::class, 'addCountryCode'
 Route::post('/admin/add-language', [AdminController::class, 'addLanguage'])->middleware('admin_loggedin');
 
 
+
+
+
+
+Route::get('/admin/account', [AdminCredentialsController::class, 'adminAccount'])->middleware('admin_loggedin');
+
+Route::post('/admin/accout-email-verification', [AdminCredentialsController::class, 'checkIfEmailExists']);
+
+Route::post('/admin/accout-otp-verification', [AdminCredentialsController::class, 'verifyOTPOnEmailChange']);
+
+Route::post('/admin/accout-email-change', [AdminCredentialsController::class, 'finalEmailCheckAndChange']);
+
+
+
+Route::post('/admin/account-password-verification', [AdminCredentialsController::class, 'checkIfEmailExistsForPassword']);
+
+Route::post('/admin/account-password-otp-verification', [AdminCredentialsController::class, 'verifyOTPOnPasswordChange']);
+
+Route::post('/admin/account-password-change', [AdminCredentialsController::class, 'finalPasswordCheckAndChange']);
+
+
+
+
+
+
+
+
 Route::get('/admin/remove-street/{address}', [AdminController::class, 'removeStreet'])->middleware('admin_loggedin');
 
 Route::get('/admin/remove-city/{address}', [AdminController::class, 'removeCity'])->middleware('admin_loggedin');
@@ -536,11 +618,112 @@ Route::post('/admin/chatgpt-response', [AdminController::class, 'adminChatgptRes
 Route::post('/admin/clear-chat-session', [AdminController::class, 'adminClearChatSession'])->name('adminClearChatSession')->middleware('admin_loggedin');
 
 
+// admin manage pages
 Route::get('/admin/settings', [Settings::class, 'settingsPage'])->middleware('admin_loggedin');
 
 Route::put('/admin/update-settings', [Settings::class, 'updateSettingsPage'])->middleware('admin_loggedin');
 
-Route::get('/admin/patient-claims-biller', [AdminController::class, 'patientClaimsBiller'])->middleware('admin_loggedin');
+
+
+
+
+
+
+
+
+
+// CORS Preflight
+Route::options('/admin/claim-md/{any}', function () {
+    return response('', 204)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+})->where('any', '.*');
+
+// ClaimMD Routes
+Route::middleware(['admin_loggedin'])->group(function () {
+    // Main interface
+    Route::get('/admin/patient-claims-biller', [PatientClaimsMDController::class, 'patientClaimsBiller']);
+
+    // SDK proxy
+    Route::match(['get', 'post'], '/admin/claim-md/proxy', [PatientClaimsMDController::class, 'claimMdProxy'])
+        ->withoutMiddleware(['verify.csrf']);
+
+    // API proxy
+    Route::post('/admin/claim-md/api/{endpoint}', [PatientClaimsMDController::class, 'claimMdApi'])
+        ->where('endpoint', '.*');
+
+    // File operations
+    Route::post('/admin/claim-md/upload', [PatientClaimsMDController::class, 'uploadClaimFile']);
+    Route::post('/admin/claim-md/uploadlist', [PatientClaimsMDController::class, 'getUploadList']);
+    Route::post('/admin/claim-md/deletefile', [PatientClaimsMDController::class, 'deleteUploadedFile']);
+    Route::post('/admin/claim-md/viewfile', [PatientClaimsMDController::class, 'viewUploadedFile']);
+    Route::get('/admin/claim-md/downloadfile', [PatientClaimsMDController::class, 'downloadFile'])->name('claim-md.download');
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+Route::get('/admin/faqs', [WebPagesSetupController::class, 'faqManagement'])->middleware('admin_loggedin');
+
+Route::post('/admin/add-new-faq', [WebPagesSetupController::class, 'addNewFaq'])->middleware('admin_loggedin');
+
+Route::post('/admin/update-faq', [WebPagesSetupController::class, 'updaeFaq'])->middleware('admin_loggedin');
+
+Route::get('/admin/delete-faq/{faqID}', [WebPagesSetupController::class, 'deleteFaq'])->middleware('admin_loggedin');
+
+
+Route::get('/admin/reviews', [WebPagesSetupController::class, 'reviewsManagement'])->middleware('admin_loggedin');
+
+Route::get('/admin/update-review/{reviewID}/{status}', [WebPagesSetupController::class, 'updateReviewStatus'])->middleware('admin_loggedin');
+
+Route::get('/admin/delete-review/{reviewID}', [WebPagesSetupController::class, 'removeReview'])->middleware('admin_loggedin');
+
+
+Route::get('/admin/services', [WebPagesSetupController::class, 'servicesManagement'])->middleware('admin_loggedin');
+
+Route::post('/admin/add-new-service', [WebPagesSetupController::class, 'addNewService'])->middleware('admin_loggedin');
+
+Route::post('/admin/update-service', [WebPagesSetupController::class, 'updateService'])->middleware('admin_loggedin');
+
+Route::get('/admin/delete-service/{serviceID}', [WebPagesSetupController::class, 'deleteService'])->middleware('admin_loggedin');
+
+
+
+
+
+Route::get('/admin/categories', [BlogsController::class, 'categories'])->middleware('admin_loggedin');
+
+Route::post('/admin/add-new-category', [BlogsController::class, 'category_store'])->name('category.store')->middleware('admin_loggedin');
+
+Route::post('/admin/update-category', [BlogsController::class, 'updateCategory'])->name('category.update')->middleware('admin_loggedin');
+
+Route::get('/admin/delete-category/{cat_id}', [BlogsController::class, 'removeCategory'])->name('category.remove')->middleware('admin_loggedin');
+
+
+
+
+// Blogs section 
+Route::get('/admin/blogs', [BlogsController::class, 'allBlogs'])->middleware('admin_loggedin');
+
+Route::get('/admin/add-new-blog', [BlogsController::class, 'addBlogPage'])->middleware('admin_loggedin');
+
+Route::get('/admin/get-blog/{id}', [BlogsController::class, 'getBlog'])->middleware('admin_loggedin');
+
+Route::post('/admin/add-new-blog', [BlogsController::class, 'addNewBlog'])->middleware('admin_loggedin');
+
+Route::post('/admin/update-blog', [BlogsController::class, 'updateBlog'])->middleware('admin_loggedin');
+
+Route::post('/admin/delete-blog/{blog_id}', [BlogsController::class, 'deleteBlog'])->middleware('admin_loggedin');
 
 
 
@@ -565,6 +748,3 @@ Route::get('/clear', function () {
     Artisan::call('optimize');
     return "Cleared!";
 });
-
-
-

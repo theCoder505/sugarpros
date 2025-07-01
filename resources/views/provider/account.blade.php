@@ -165,6 +165,59 @@
                     </div>
 
 
+
+                    <div class="md:max-w-full my-4">
+                        <p class="block text-[20px] font-medium text-[#000] mb-1">
+                            About Yourself <small class="text-sm text-blue-400">(Add three to five points about
+                                yourself)</small>
+                        </p>
+
+                        <div id="about-me-fields" class="space-y-2">
+                            @php
+                                $aboutMe = old(
+                                    'about_me',
+                                    isset(Auth::guard('provider')->user()->about_me)
+                                        ? (is_array(Auth::guard('provider')->user()->about_me)
+                                            ? Auth::guard('provider')->user()->about_me
+                                            : json_decode(Auth::guard('provider')->user()->about_me, true))
+                                        : [],
+                                );
+                                $aboutMe = is_array($aboutMe) ? $aboutMe : [];
+                                $count = count($aboutMe);
+                                $count = $count > 0 ? $count : 1;
+                            @endphp
+                            @for ($i = 0; $i < $count; $i++)
+                                <div class="flex items-center space-x-2 about-me-row">
+                                    <input type="text" name="about_me[]" value="{{ $aboutMe[$i] ?? '' }}"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none"
+                                        placeholder="Enter a point about yourself" maxlength="255" />
+                                    <button type="button"
+                                        class="remove-about-me bg-red-100 text-red-500 px-2 py-1 rounded hover:bg-red-200"
+                                        title="Remove" style="display: none;">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                </div>
+                            @endfor
+                        </div>
+
+                        @php
+                            if ($count < 5) {
+                                $hideaddbutton = '';
+                            } else {
+                                $hideaddbutton = 'hidden';
+                            }
+                        @endphp
+
+                        <div class="mt-2">
+                            <button type="button" id="add-about-me"
+                                class="bg-blue-100 text-blue-600 px-3 py-1 rounded hover:bg-blue-200 {{ $hideaddbutton }}">
+                                <i class="fas fa-plus"></i> Add Point
+                            </button>
+                        </div>
+
+                    </div>
+
+
                     <button type="submit"
                         class="max-w-[150px] bg-[#2889AA] hover:bg-opacity-90  text-white px-4 py-2  text-sm rounded-lg transition duration-200 float-right">
                         Save Changes
@@ -209,6 +262,46 @@
                     };
                     reader.readAsDataURL(file);
                 }
+            });
+        });
+
+
+
+
+
+
+        $(function() {
+            function updateRemoveButtons() {
+                let rows = $('#about-me-fields .about-me-row');
+                rows.find('.remove-about-me').toggle(rows.length > 1);
+            }
+
+            updateRemoveButtons();
+
+            $('#add-about-me').on('click', function() {
+                let rows = $('#about-me-fields .about-me-row').length;
+                if (rows < 5) {
+                    let newRow = `<div class="flex items-center space-x-2 about-me-row">
+                                        <input type="text" name="about_me[]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none" placeholder="Enter a point about yourself" maxlength="255" />
+                                        <button type="button" class="remove-about-me bg-red-100 text-red-500 px-2 py-1 rounded hover:bg-red-200" title="Remove">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                    </div>`;
+                    $('#about-me-fields').append(newRow);
+                    updateRemoveButtons();
+                } else {
+                    toastr.warning('Can\'t add more than five about points!');
+                }
+
+                if (rows == 4) {
+                    $("#add-about-me").addClass('hidden');
+                }
+            });
+
+            $('#about-me-fields').on('click', '.remove-about-me', function() {
+                $(this).closest('.about-me-row').remove();
+                $("#add-about-me").removeClass('hidden');
+                updateRemoveButtons();
             });
         });
     </script>

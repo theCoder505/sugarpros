@@ -21,6 +21,7 @@ use App\Models\VirtualNotes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class ProviderController extends Controller
@@ -693,7 +694,9 @@ class ProviderController extends Controller
         $email = $request['email'];
         $prefix_code = $request['prefix_code'];
         $phone_number = $request['phone_number'];
+        $about_me = $request['about_me'];
         $language = $request['language'];
+
 
         $update = Provider::where('provider_id', $userID)->update([
             'first_name' => $first_name,
@@ -701,6 +704,7 @@ class ProviderController extends Controller
             'email' => $email,
             'prefix_code' => $prefix_code,
             'mobile' => $phone_number,
+            'about_me' => $about_me,
             'language' => $language,
         ]);
 
@@ -1794,11 +1798,30 @@ class ProviderController extends Controller
     }
 
 
+
+
     public function patientClaimsBiller()
     {
-        $CLAIM_MD_CLIENT_ID = Settings::where('id', 1)->value('CLAIM_MD_CLIENT_ID');
-        $CLAIM_MD_ENV = Settings::where('id', 1)->value('CLAIM_MD_ENV');
-        return view('provider.patient_biller', compact('CLAIM_MD_CLIENT_ID', 'CLAIM_MD_ENV'));
+        try {
+            $credentials = [
+                'CLAIM_MD_CLIENT_ID' => Settings::value('CLAIM_MD_CLIENT_ID'),
+                'CLAIM_MD_API_KEY' => Settings::value('CLAIM_MD_API_KEY'),
+                'CLAIM_MD_ENV' => Settings::value('CLAIM_MD_ENV')
+            ];
+
+            if (
+                empty($credentials['CLAIM_MD_CLIENT_ID']) ||
+                empty($credentials['CLAIM_MD_API_KEY']) ||
+                empty($credentials['CLAIM_MD_ENV'])
+            ) {
+                throw new \Exception("Claim MD credentials are not fully configured");
+            }
+
+            return view('provider.patient_biller', $credentials);
+        } catch (\Exception $e) {
+            Log::error("PatientClaimsBiller Error: " . $e->getMessage());
+            return back()->with('error', $e->getMessage());
+        }
     }
 
 
@@ -2087,7 +2110,8 @@ class ProviderController extends Controller
 
 
 
-    public function addNotesOnNotetaker(Request $request){
+    public function addNotesOnNotetaker(Request $request)
+    {
         $provider_id = Auth::guard('provider')->user()->provider_id;
         $notetaker_id = $request['notetaker_id'];
         $note = $request['note'];
@@ -2106,7 +2130,8 @@ class ProviderController extends Controller
 
 
 
-    public function removeNoteData($appointment_uid){
+    public function removeNoteData($appointment_uid)
+    {
         $provider_id = Auth::guard('provider')->user()->provider_id;
         $note_uid = Notetaker::where('provider_id', $provider_id)->where('appointment_id', $appointment_uid)->value('note_uid');
 
@@ -2150,11 +2175,9 @@ class ProviderController extends Controller
         // Get unique chat sessions with their first message
         $chatSessions = SugarprosAIChat::where('message_of_uid', $provider_id)
             ->select('chatuid')
-            ->distinct()
-            ->with(['firstMessage' => function ($query) {
-                $query->orderBy('created_at', 'asc')->limit(1);
-            }])
-            ->orderBy('created_at', 'desc')
+            ->groupBy('chatuid')  // Changed from distinct() to groupBy()
+            ->with('firstMessage')
+            ->orderByRaw('MAX(created_at) DESC')  // Order by the latest message in each chat
             ->get();
 
         // Get messages for the requested chat session or the latest one
@@ -2167,8 +2190,8 @@ class ProviderController extends Controller
 
         $allChats = SugarprosAIChat::where('message_of_uid', $provider_id)
             ->select('chatuid')
-            ->orderBy('created_at', 'DESC')
-            ->distinct()
+            ->groupBy('chatuid')  // Changed from distinct() to groupBy()
+            ->orderByRaw('MAX(created_at) DESC')  // Order by the latest message in each chat
             ->get()
             ->map(function ($session) use ($provider_id) {
                 return SugarprosAIChat::where('message_of_uid', $provider_id)
@@ -2210,46 +2233,66 @@ class ProviderController extends Controller
             'message' => $userMessage,
         ]);
 
-        // Get last 10 messages for context
-        $previousMessages = SugarprosAIChat::where('message_of_uid', $provider_id)
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get()
-            ->reverse();
+        $lowerMessage = strtolower($userMessage);
 
-        // Prepare chat history for OpenAI
-        $chatHistory = [];
-        foreach ($previousMessages as $msg) {
-            $role = ($msg->requested_to === 'AI') ? 'user' : 'assistant';
-            $chatHistory[] = ['role' => $role, 'content' => $msg->message];
+        if (str_contains($lowerMessage, 'who are you') || str_contains($lowerMessage, 'what are you')) {
+            $aiReply = 'I am SugarPros AI';
+        } elseif (str_contains($lowerMessage, 'company') || str_contains($lowerMessage, 'overview')) {
+            $aiReply = 'Company Overview: SugarPros operates as a specialized telemedicine platform focused exclusively on diabetes care and management. The company positions itself as a solution to traditional healthcare system inefficiencies, offering virtual consultations with board-certified endocrinologists and specialty-trained healthcare providers. Their mission centers on making diabetes management more accessible and less burdensome for patients.';
+        } elseif (str_contains($lowerMessage, 'philosophy') || str_contains($lowerMessage, 'about us')) {
+            $aiReply = 'About Us Philosophy: The company was founded on the principle that "managing diabetes shouldn\'t feel like a second job." SugarPros addresses systemic healthcare failures including long wait times, brief consultations, confusing treatment plans, and financial pressures that create barriers to effective diabetes care. They aim to transform the patient experience through personalized, comprehensive virtual care designed for real-life situations.';
+        } elseif (str_contains($lowerMessage, 'core service') || str_contains($lowerMessage, 'what do you offer')) {
+            $aiReply = 'Core Services: SugarPros provides comprehensive diabetes management through virtual consultations with board-certified endocrinologists and specialty-trained providers. The service includes same-day appointment availability, personalized treatment plans, and clear action plans that patients can easily understand and follow. Their multidisciplinary approach incorporates both medical officers and registered dietitians to ensure holistic diabetes care.';
+        } elseif (str_contains($lowerMessage, 'service delivery') || str_contains($lowerMessage, 'how do you deliver')) {
+            $aiReply = 'Service Delivery Model: The platform offers virtual care that eliminates traditional healthcare frustrations such as long wait times and rushed appointments. Patients receive professional consultations with minimal wait times, supported by nursing staff and comprehensive medical services. The virtual format allows for more flexible scheduling while maintaining high-quality medical care standards.';
+        } elseif (str_contains($lowerMessage, 'pricing') || str_contains($lowerMessage, 'cost') || str_contains($lowerMessage, 'how much')) {
+            $aiReply = 'Pricing Structure: SugarPros offers two main payment options for their services. Patients can access care through Medicare coverage, making the service available to eligible beneficiaries without additional out-of-pocket costs. For those not covered by Medicare, the company provides affordable subscription plans starting at $99 per month, offering predictable pricing for ongoing diabetes management and care.';
+        } elseif (str_contains($lowerMessage, 'value proposition') || str_contains($lowerMessage, 'benefit')) {
+            $aiReply = 'Value Proposition: The pricing model aims to eliminate financial uncertainty and make specialized diabetes care more accessible compared to traditional healthcare settings. By offering flat-rate monthly subscriptions, patients can budget for their healthcare costs while receiving comprehensive diabetes management services that would typically require multiple specialist appointments and potentially higher costs in traditional healthcare systems.';
+        } elseif (str_contains($lowerMessage, 'target market') || str_contains($lowerMessage, 'accessibility') || str_contains($lowerMessage, 'who can use')) {
+            $aiReply = 'Target Market and Accessibility: SugarPros serves diabetes patients who seek convenient, affordable, and comprehensive care without the typical barriers of traditional healthcare. The dual pricing approach (Medicare and subscription) ensures accessibility across different patient demographics, while the virtual delivery model removes geographical constraints and scheduling difficulties that often prevent consistent diabetes management.';
+        } else {
+            // Get last 10 messages for context
+            $previousMessages = SugarprosAIChat::where('message_of_uid', $provider_id)
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get()
+                ->reverse();
+
+            // Prepare chat history for OpenAI
+            $chatHistory = [];
+            foreach ($previousMessages as $msg) {
+                $role = ($msg->requested_to === 'AI') ? 'user' : 'assistant';
+                $chatHistory[] = ['role' => $role, 'content' => $msg->message];
+            }
+
+            // Add system message if empty history
+            if (empty($chatHistory)) {
+                $chatHistory[] = [
+                    'role' => 'system',
+                    'content' => 'You are SugarPros AI, a helpful medical assistant specialized in diabetes care. Keep your responses professional and focused on diabetes management unless asked about other topics.'
+                ];
+            }
+
+            // Add current user message
+            $chatHistory[] = ['role' => 'user', 'content' => $userMessage];
+
+            // Send to OpenAI
+            $client = new \GuzzleHttp\Client();
+            $response = $client->post('https://api.openai.com/v1/chat/completions', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => [
+                    'model' => 'gpt-4o',
+                    'messages' => $chatHistory,
+                ],
+            ]);
+
+            $data = json_decode($response->getBody(), true);
+            $aiReply = $data['choices'][0]['message']['content'];
         }
-
-        // Add system message if empty history
-        if (empty($chatHistory)) {
-            $chatHistory[] = [
-                'role' => 'system',
-                'content' => 'You are a helpful medical assistant.'
-            ];
-        }
-
-        // Add current user message
-        $chatHistory[] = ['role' => 'user', 'content' => $userMessage];
-
-        // Send to OpenAI
-        $client = new \GuzzleHttp\Client();
-        $response = $client->post('https://api.openai.com/v1/chat/completions', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
-                'Content-Type' => 'application/json',
-            ],
-            'json' => [
-                'model' => 'gpt-4o',
-                'messages' => $chatHistory,
-            ],
-        ]);
-
-        $data = json_decode($response->getBody(), true);
-        $aiReply = $data['choices'][0]['message']['content'];
 
         // Save AI response to database
         SugarprosAIChat::create([

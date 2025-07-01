@@ -19,19 +19,217 @@ use App\Models\UserDetails;
 use App\Models\VirtualNotes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
 
 
-    public function super()
+    public function adminDashboard()
     {
         $AdminID = Auth::guard('admin')->user()->id;
         $AdminName = Auth::guard('admin')->user()->name;
         $AdminEmail = Auth::guard('admin')->user()->email;
 
-        return view('admin.super_dashboard', compact('AdminID', 'AdminName', 'AdminEmail'));
+        $all_providers = Provider::all();
+        $appointments = Appointment::orderBy('date', 'DESC')->get();
+
+
+        // $upcomingAppointments = Appointment::orderBy('date', 'DESC')->get();
+        $upcomingAppointments = Appointment::whereDate('date', '>=', now()->toDateString())
+            ->where('status', 0)
+            ->orderBy('date', 'ASC')
+            ->get();
+
+        // Current counts
+        $patients = User::orderBy('id', 'DESC')->get();
+        $patientDetails = UserDetails::all();
+        $totPatients = User::count();
+        $totConsultations = Appointment::count();
+        $totAIQueries = SugarprosAIChat::count();
+        $totPrescriptions = EPrescription::count();
+
+        // Previous period counts (e.g., last month)
+        $lastMonth = now()->subMonth();
+
+        $prevPatients = User::where('created_at', '<', $lastMonth)->count();
+        $prevConsultations = Appointment::where('created_at', '<', $lastMonth)->count();
+        $prevAIQueries = SugarprosAIChat::where('created_at', '<', $lastMonth)->count();
+        $prevPrescriptions = EPrescription::where('created_at', '<', $lastMonth)->count();
+
+        // Calculate percentage changes
+        $patientsChange = $prevPatients ? (($totPatients - $prevPatients) / $prevPatients) * 100 : 0;
+        $consultationsChange = $prevConsultations ? (($totConsultations - $prevConsultations) / $prevConsultations) * 100 : 0;
+        $aiQueriesChange = $prevAIQueries ? (($totAIQueries - $prevAIQueries) / $prevAIQueries) * 100 : 0;
+        $prescriptionsChange = $prevPrescriptions ? (($totPrescriptions - $prevPrescriptions) / $prevPrescriptions) * 100 : 0;
+
+
+
+        // Users/Patients data for the chart
+        $users = User::select([
+            DB::raw('COUNT(*) as count'),
+            DB::raw('MONTH(created_at) as month'),
+            DB::raw('YEAR(created_at) as year')
+        ])
+            ->groupBy('year', 'month')
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
+            ->get();
+
+        // Prepare chart data
+        $chartLabels = [];
+        $chartData = [];
+
+        foreach ($users as $user) {
+            $monthName = date('M', mktime(0, 0, 0, $user->month, 1));
+            $chartLabels[] = $monthName . ' ' . $user->year;
+            $chartData[] = $user->count;
+        }
+
+        $last30DaysUsers = User::where('created_at', '>=', now()->subDays(30))->count();
+        $activeTodayUsers = User::whereDate('last_logged_in', today())->count();
+
+
+
+        $virtual_notes = VirtualNotes::all();
+        $clinical_notes = ClinicalNotes::all();
+        $eprescriptions = EPrescription::all();
+        $questlabs = QuestLab::all();
+
+        $financilas = FinancialAggreemrnt::all();
+        $slepayments = SelPaymentForm::all();
+        $complianceform = ComplianceForm::all();
+
+        return view('admin.dashboard', compact(
+            'AdminID',
+            'AdminName',
+            'AdminEmail',
+            'totPatients',
+            'totConsultations',
+            'totAIQueries',
+            'totPrescriptions',
+            'patientsChange',
+            'consultationsChange',
+            'aiQueriesChange',
+            'prescriptionsChange',
+            'chartLabels',
+            'chartData',
+            'last30DaysUsers',
+            'activeTodayUsers',
+            'upcomingAppointments',
+            'all_providers',
+            'patients',
+            'patientDetails',
+            'appointments',
+            'virtual_notes',
+            'clinical_notes',
+            'eprescriptions',
+            'questlabs',
+            'financilas',
+            'slepayments',
+            'complianceform'
+        ));
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public function getUserChartData(Request $request)
+    {
+        $period = $request->input('period', 'monthly');
+
+        $query = User::query();
+
+        if ($period === 'weekly') {
+            $query->select([
+                DB::raw('COUNT(*) as count'),
+                DB::raw('WEEK(created_at) as week'),
+                DB::raw('YEAR(created_at) as year')
+            ])
+                ->groupBy('year', 'week')
+                ->orderBy('year', 'asc')
+                ->orderBy('week', 'asc');
+        } elseif ($period === 'yearly') {
+            $query->select([
+                DB::raw('COUNT(*) as count'),
+                DB::raw('YEAR(created_at) as year')
+            ])
+                ->groupBy('year')
+                ->orderBy('year', 'asc');
+        } else {
+            // Default to monthly
+            $query->select([
+                DB::raw('COUNT(*) as count'),
+                DB::raw('MONTH(created_at) as month'),
+                DB::raw('YEAR(created_at) as year')
+            ])
+                ->groupBy('year', 'month')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc');
+        }
+
+        $users = $query->get();
+
+        $labels = [];
+        $data = [];
+
+        foreach ($users as $user) {
+            if ($period === 'weekly') {
+                $labels[] = 'Week ' . $user->week . ' ' . $user->year;
+            } elseif ($period === 'yearly') {
+                $labels[] = $user->year;
+            } else {
+                $labels[] = date('M Y', mktime(0, 0, 0, $user->month, 1, $user->year));
+            }
+            $data[] = $user->count;
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'data' => $data
+        ]);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -114,7 +312,7 @@ class AdminController extends Controller
         $clinical_notes = ClinicalNotes::all();
         $eprescriptions = EPrescription::all();
         $questlabs = QuestLab::all();
-        
+
         $financilas = FinancialAggreemrnt::all();
         $slepayments = SelPaymentForm::all();
         $complianceform = ComplianceForm::all();
@@ -522,7 +720,8 @@ class AdminController extends Controller
 
 
 
-    public function removeStreet($address){
+    public function removeStreet($address)
+    {
         $settings = Settings::find(1);
         $streets = json_decode($settings->streets, true) ?? [];
         $streets = array_filter($streets, function ($street) use ($address) {
@@ -533,7 +732,8 @@ class AdminController extends Controller
         return redirect()->back()->with('info', 'Removed successfully!');
     }
 
-    public function removeCity($address){
+    public function removeCity($address)
+    {
         $settings = Settings::find(1);
         $cities = json_decode($settings->cities, true) ?? [];
         $cities = array_filter($cities, function ($city) use ($address) {
@@ -544,7 +744,8 @@ class AdminController extends Controller
         return redirect()->back()->with('info', 'Removed successfully!');
     }
 
-    public function removeState($address){
+    public function removeState($address)
+    {
         $settings = Settings::find(1);
         $states = json_decode($settings->states, true) ?? [];
         $states = array_filter($states, function ($state) use ($address) {
@@ -555,7 +756,8 @@ class AdminController extends Controller
         return redirect()->back()->with('info', 'Removed successfully!');
     }
 
-    public function removeZipCode($address){
+    public function removeZipCode($address)
+    {
         $settings = Settings::find(1);
         $zip_codes = json_decode($settings->zip_codes, true) ?? [];
         $zip_codes = array_filter($zip_codes, function ($zip) use ($address) {
@@ -566,7 +768,8 @@ class AdminController extends Controller
         return redirect()->back()->with('info', 'Removed successfully!');
     }
 
-    public function removeCountryCode($address){
+    public function removeCountryCode($address)
+    {
         $settings = Settings::find(1);
         $prefixcode = json_decode($settings->prefixcode, true) ?? [];
         $prefixcode = array_filter($prefixcode, function ($zip) use ($address) {
@@ -577,7 +780,8 @@ class AdminController extends Controller
         return redirect()->back()->with('info', 'Removed successfully!');
     }
 
-    public function removeLanguage($lang){
+    public function removeLanguage($lang)
+    {
         $settings = Settings::find(1);
         $languages = json_decode($settings->languages, true) ?? [];
         $languages = array_filter($languages, function ($zip) use ($lang) {
@@ -615,11 +819,9 @@ class AdminController extends Controller
         // Get unique chat sessions with their first message
         $chatSessions = SugarprosAIChat::where('message_of_uid', $admin_id)
             ->select('chatuid')
-            ->distinct()
-            ->with(['firstMessage' => function ($query) {
-                $query->orderBy('created_at', 'asc')->limit(1);
-            }])
-            ->orderBy('created_at', 'desc')
+            ->groupBy('chatuid')  // Changed from distinct() to groupBy()
+            ->with('firstMessage')
+            ->orderByRaw('MAX(created_at) DESC')  // Order by the latest message in each chat
             ->get();
 
         // Get messages for the requested chat session or the latest one
@@ -632,14 +834,14 @@ class AdminController extends Controller
 
         $allChats = SugarprosAIChat::where('message_of_uid', $admin_id)
             ->select('chatuid')
-            ->orderBy('created_at', 'DESC')
-            ->distinct()
+            ->groupBy('chatuid')  // Changed from distinct() to groupBy()
+            ->orderByRaw('MAX(created_at) DESC')  // Order by the latest message in each chat
             ->get()
             ->map(function ($session) use ($admin_id) {
-            return SugarprosAIChat::where('message_of_uid', $admin_id)
-                ->where('chatuid', $session->chatuid)
-                ->orderBy('created_at', 'asc')
-                ->first();
+                return SugarprosAIChat::where('message_of_uid', $admin_id)
+                    ->where('chatuid', $session->chatuid)
+                    ->orderBy('created_at', 'asc')
+                    ->first();
             })
             ->filter();
 
@@ -658,7 +860,7 @@ class AdminController extends Controller
 
 
 
-    
+
     public function adminChatgptResponse(Request $request)
     {
         $OPENAI_API_KEY = Settings::where('id', 1)->value('OPENAI_API_KEY');
@@ -675,46 +877,67 @@ class AdminController extends Controller
             'message' => $userMessage,
         ]);
 
-        // Get last 10 messages for context
-        $previousMessages = SugarprosAIChat::where('message_of_uid', $admin_id)
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get()
-            ->reverse();
+        // Check for specific queries and provide predefined responses
+        $lowerMessage = strtolower($userMessage);
 
-        // Prepare chat history for OpenAI
-        $chatHistory = [];
-        foreach ($previousMessages as $msg) {
-            $role = ($msg->requested_to === 'AI') ? 'user' : 'assistant';
-            $chatHistory[] = ['role' => $role, 'content' => $msg->message];
+        if (str_contains($lowerMessage, 'who are you') || str_contains($lowerMessage, 'what are you')) {
+            $aiReply = 'I am SugarPros AI';
+        } elseif (str_contains($lowerMessage, 'company') || str_contains($lowerMessage, 'overview')) {
+            $aiReply = 'Company Overview: SugarPros operates as a specialized telemedicine platform focused exclusively on diabetes care and management. The company positions itself as a solution to traditional healthcare system inefficiencies, offering virtual consultations with board-certified endocrinologists and specialty-trained healthcare providers. Their mission centers on making diabetes management more accessible and less burdensome for patients.';
+        } elseif (str_contains($lowerMessage, 'philosophy') || str_contains($lowerMessage, 'about us')) {
+            $aiReply = 'About Us Philosophy: The company was founded on the principle that "managing diabetes shouldn\'t feel like a second job." SugarPros addresses systemic healthcare failures including long wait times, brief consultations, confusing treatment plans, and financial pressures that create barriers to effective diabetes care. They aim to transform the patient experience through personalized, comprehensive virtual care designed for real-life situations.';
+        } elseif (str_contains($lowerMessage, 'core service') || str_contains($lowerMessage, 'what do you offer')) {
+            $aiReply = 'Core Services: SugarPros provides comprehensive diabetes management through virtual consultations with board-certified endocrinologists and specialty-trained providers. The service includes same-day appointment availability, personalized treatment plans, and clear action plans that patients can easily understand and follow. Their multidisciplinary approach incorporates both medical officers and registered dietitians to ensure holistic diabetes care.';
+        } elseif (str_contains($lowerMessage, 'service delivery') || str_contains($lowerMessage, 'how do you deliver')) {
+            $aiReply = 'Service Delivery Model: The platform offers virtual care that eliminates traditional healthcare frustrations such as long wait times and rushed appointments. Patients receive professional consultations with minimal wait times, supported by nursing staff and comprehensive medical services. The virtual format allows for more flexible scheduling while maintaining high-quality medical care standards.';
+        } elseif (str_contains($lowerMessage, 'pricing') || str_contains($lowerMessage, 'cost') || str_contains($lowerMessage, 'how much')) {
+            $aiReply = 'Pricing Structure: SugarPros offers two main payment options for their services. Patients can access care through Medicare coverage, making the service available to eligible beneficiaries without additional out-of-pocket costs. For those not covered by Medicare, the company provides affordable subscription plans starting at $99 per month, offering predictable pricing for ongoing diabetes management and care.';
+        } elseif (str_contains($lowerMessage, 'value proposition') || str_contains($lowerMessage, 'benefit')) {
+            $aiReply = 'Value Proposition: The pricing model aims to eliminate financial uncertainty and make specialized diabetes care more accessible compared to traditional healthcare settings. By offering flat-rate monthly subscriptions, patients can budget for their healthcare costs while receiving comprehensive diabetes management services that would typically require multiple specialist appointments and potentially higher costs in traditional healthcare systems.';
+        } elseif (str_contains($lowerMessage, 'target market') || str_contains($lowerMessage, 'accessibility') || str_contains($lowerMessage, 'who can use')) {
+            $aiReply = 'Target Market and Accessibility: SugarPros serves diabetes patients who seek convenient, affordable, and comprehensive care without the typical barriers of traditional healthcare. The dual pricing approach (Medicare and subscription) ensures accessibility across different patient demographics, while the virtual delivery model removes geographical constraints and scheduling difficulties that often prevent consistent diabetes management.';
+        } else {
+            // Get last 10 messages for context
+            $previousMessages = SugarprosAIChat::where('message_of_uid', $admin_id)
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get()
+                ->reverse();
+
+            // Prepare chat history for OpenAI
+            $chatHistory = [];
+            foreach ($previousMessages as $msg) {
+                $role = ($msg->requested_to == 'AI') ? 'user' : 'assistant';
+                $chatHistory[] = ['role' => $role, 'content' => $msg->message];
+            }
+
+            // Add system message if empty history
+            if (empty($chatHistory)) {
+                $chatHistory[] = [
+                    'role' => 'system',
+                    'content' => 'You are SugarPros AI, a helpful medical assistant specialized in diabetes care. Keep your responses professional and focused on diabetes management unless asked about other topics.'
+                ];
+            }
+
+            // Add current user message
+            $chatHistory[] = ['role' => 'user', 'content' => $userMessage];
+
+            // Send to OpenAI
+            $client = new \GuzzleHttp\Client();
+            $response = $client->post('https://api.openai.com/v1/chat/completions', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => [
+                    'model' => 'gpt-4o',
+                    'messages' => $chatHistory,
+                ],
+            ]);
+
+            $data = json_decode($response->getBody(), true);
+            $aiReply = $data['choices'][0]['message']['content'];
         }
-
-        // Add system message if empty history
-        if (empty($chatHistory)) {
-            $chatHistory[] = [
-                'role' => 'system',
-                'content' => 'You are a helpful medical assistant.'
-            ];
-        }
-
-        // Add current user message
-        $chatHistory[] = ['role' => 'user', 'content' => $userMessage];
-
-        // Send to OpenAI
-        $client = new \GuzzleHttp\Client();
-        $response = $client->post('https://api.openai.com/v1/chat/completions', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
-                'Content-Type' => 'application/json',
-            ],
-            'json' => [
-                'model' => 'gpt-4o',
-                'messages' => $chatHistory,
-            ],
-        ]);
-
-        $data = json_decode($response->getBody(), true);
-        $aiReply = $data['choices'][0]['message']['content'];
 
         // Save AI response to database
         SugarprosAIChat::create([
@@ -743,27 +966,5 @@ class AdminController extends Controller
             'newChatUid' => $newChatUid
         ]);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    public function patientClaimsBiller(){
-        $CLAIM_MD_CLIENT_ID = Settings::where('id', 1)->value('CLAIM_MD_CLIENT_ID');
-        $CLAIM_MD_ENV = Settings::where('id', 1)->value('CLAIM_MD_ENV');
-        return view('admin.patient_biller', compact('CLAIM_MD_CLIENT_ID', 'CLAIM_MD_ENV'));
-    }
-
     //
 }

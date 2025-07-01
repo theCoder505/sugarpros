@@ -7,12 +7,15 @@ use App\Models\ChatRecord;
 use App\Models\ClinicalNotes;
 use App\Models\ComplianceForm;
 use App\Models\EPrescription;
+use App\Models\Faq;
 use App\Models\FinancialAggreemrnt;
 use App\Models\Notification;
 use App\Models\PrivacyForm;
 use App\Models\Provider;
 use App\Models\QuestLab;
+use App\Models\Reviews;
 use App\Models\SelPaymentForm;
+use App\Models\Service;
 use App\Models\Settings;
 use App\Models\SugarprosAIChat;
 use App\Models\User;
@@ -28,38 +31,83 @@ class HomeController extends Controller
 {
     public function home()
     {
-        return view('home');
+        $allFaqs = Faq::orderBy('id', 'ASC')->get();
+        $providers = Provider::orderBy('id', 'DESC')->where('profile_picture', '!=', null)->get();
+        $allReviews = Reviews::orderBy('id', 'DESC')->where('status', 1)->limit(3)->get();
+        $users = User::all();
+        $allServices = Service::orderBy('id', 'ASC')->limit(3)->get();
+        return view('home', compact('allFaqs', 'providers', 'allReviews', 'users', 'allServices'));
     }
 
     public function about()
     {
-        return view('about_us');
+        $allFaqs = Faq::orderBy('id', 'ASC')->get();
+        $providers = Provider::orderBy('id', 'DESC')->where('profile_picture', '!=', null)->get();
+        $allReviews = Reviews::orderBy('id', 'DESC')->where('status', 1)->limit(3)->get();
+        $users = User::all();
+        $allServices = Service::orderBy('id', 'ASC')->limit(3)->get();
+        return view('about_us', compact('allFaqs', 'providers', 'allReviews', 'users', 'allServices'));
     }
 
     public function service()
     {
-        return view('service');
+        $allFaqs = Faq::orderBy('id', 'ASC')->get();
+        $providers = Provider::orderBy('id', 'DESC')->where('profile_picture', '!=', null)->get();
+        $allReviews = Reviews::orderBy('id', 'DESC')->where('status', 1)->limit(3)->get();
+        $users = User::all();
+        $allServices = Service::orderBy('id', 'ASC')->get();
+        return view('service', compact('allFaqs', 'providers', 'allReviews', 'users', 'allServices'));
     }
+
+
+
     public function reviews()
     {
-        return view('reviews');
+        if (Auth::check()) {
+            $patient_id = Auth::user()->patient_id;
+            $ownReview = Reviews::where('reviewed_by', $patient_id)->value('main_review');
+            $review_star = Reviews::where('reviewed_by', $patient_id)->value('review_star');
+        } else {
+            $ownReview = '';
+            $review_star = 0;
+        }
+        $allReviews = Reviews::orderBy('id', 'DESC')->where('status', 1)->limit(3)->get();
+        $users = User::all();
+        $allFaqs = Faq::orderBy('id', 'ASC')->get();
+        $allServices = Service::orderBy('id', 'ASC')->limit(3)->get();
+        return view('reviews', compact('allReviews', 'users', 'ownReview', 'review_star', 'allFaqs', 'allServices'));
     }
+
+
     public function pricing()
     {
         return view('pricing');
     }
+
+
+    public function privacyPolicy()
+    {
+        $privacy_text = '';
+        return view('privacy_policy', compact('privacy_text'));
+    }
+
+    public function TermsConditions()
+    {
+        $termsConditions = '';
+        return view('terms_conditions', compact('termsConditions'));
+    }
+
+
     public function faq()
     {
-        return view('faq');
+        $allFaqs = Faq::orderBy('id', 'ASC')->get();
+        $allServices = Service::orderBy('id', 'ASC')->limit(3)->get();
+        return view('faq', compact('allFaqs', 'allServices'));
     }
-    public function blog()
-    {
-        return view('blog');
-    }
-    public function blog_details()
-    {
-        return view('blog_details');
-    }
+
+
+
+
 
 
     public function otp()
@@ -436,11 +484,11 @@ class HomeController extends Controller
 
 
 
-    public function endMeeting($message){
+    public function endMeeting($message)
+    {
         if (Auth::check()) {
             return redirect('/dashboard')->with('success', $message);
-        }
-        else{
+        } else {
             return redirect('/provider/dashboard')->with('success', $message);
         }
     }
@@ -739,28 +787,27 @@ class HomeController extends Controller
     {
         $patient_id = Auth::user()->patient_id;
 
-        // Get unique chat sessions with their first message
+        // Get distinct chat sessions with their first message
         $chatSessions = SugarprosAIChat::where('message_of_uid', $patient_id)
             ->select('chatuid')
-            ->distinct()
-            ->with(['firstMessage' => function ($query) {
-                $query->orderBy('created_at', 'asc')->limit(1);
-            }])
-            ->orderBy('created_at', 'desc')
+            ->groupBy('chatuid')  // Changed from distinct() to groupBy()
+            ->with('firstMessage')
+            ->orderByRaw('MAX(created_at) DESC')  // Order by the latest message in each chat
             ->get();
 
         // Get messages for the requested chat session or the latest one
         $currentChatUid = $request->query('chatuid') ?? ($chatSessions->first()->chatuid ?? substr(uniqid('Chat_', true), 0, 18));
+
         $chats = SugarprosAIChat::where('message_of_uid', $patient_id)
             ->where('chatuid', $currentChatUid)
             ->orderBy('created_at', 'asc')
             ->get();
 
-
+        // Get all chat sessions with their first message
         $allChats = SugarprosAIChat::where('message_of_uid', $patient_id)
             ->select('chatuid')
-            ->orderBy('created_at', 'DESC')
-            ->distinct()
+            ->groupBy('chatuid')  // Changed from distinct() to groupBy()
+            ->orderByRaw('MAX(created_at) DESC')  // Order by the latest message in each chat
             ->get()
             ->map(function ($session) use ($patient_id) {
                 return SugarprosAIChat::where('message_of_uid', $patient_id)
@@ -801,46 +848,66 @@ class HomeController extends Controller
             'message' => $userMessage,
         ]);
 
-        // Get last 10 messages for context
-        $previousMessages = SugarprosAIChat::where('message_of_uid', $patient_id)
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get()
-            ->reverse();
+        $lowerMessage = strtolower($userMessage);
 
-        // Prepare chat history for OpenAI
-        $chatHistory = [];
-        foreach ($previousMessages as $msg) {
-            $role = ($msg->requested_to === 'AI') ? 'user' : 'assistant';
-            $chatHistory[] = ['role' => $role, 'content' => $msg->message];
+        if (str_contains($lowerMessage, 'who are you') || str_contains($lowerMessage, 'what are you')) {
+            $aiReply = 'I am SugarPros AI';
+        } elseif (str_contains($lowerMessage, 'company') || str_contains($lowerMessage, 'overview')) {
+            $aiReply = 'Company Overview: SugarPros operates as a specialized telemedicine platform focused exclusively on diabetes care and management. The company positions itself as a solution to traditional healthcare system inefficiencies, offering virtual consultations with board-certified endocrinologists and specialty-trained healthcare providers. Their mission centers on making diabetes management more accessible and less burdensome for patients.';
+        } elseif (str_contains($lowerMessage, 'philosophy') || str_contains($lowerMessage, 'about us')) {
+            $aiReply = 'About Us Philosophy: The company was founded on the principle that "managing diabetes shouldn\'t feel like a second job." SugarPros addresses systemic healthcare failures including long wait times, brief consultations, confusing treatment plans, and financial pressures that create barriers to effective diabetes care. They aim to transform the patient experience through personalized, comprehensive virtual care designed for real-life situations.';
+        } elseif (str_contains($lowerMessage, 'core service') || str_contains($lowerMessage, 'what do you offer')) {
+            $aiReply = 'Core Services: SugarPros provides comprehensive diabetes management through virtual consultations with board-certified endocrinologists and specialty-trained providers. The service includes same-day appointment availability, personalized treatment plans, and clear action plans that patients can easily understand and follow. Their multidisciplinary approach incorporates both medical officers and registered dietitians to ensure holistic diabetes care.';
+        } elseif (str_contains($lowerMessage, 'service delivery') || str_contains($lowerMessage, 'how do you deliver')) {
+            $aiReply = 'Service Delivery Model: The platform offers virtual care that eliminates traditional healthcare frustrations such as long wait times and rushed appointments. Patients receive professional consultations with minimal wait times, supported by nursing staff and comprehensive medical services. The virtual format allows for more flexible scheduling while maintaining high-quality medical care standards.';
+        } elseif (str_contains($lowerMessage, 'pricing') || str_contains($lowerMessage, 'cost') || str_contains($lowerMessage, 'how much')) {
+            $aiReply = 'Pricing Structure: SugarPros offers two main payment options for their services. Patients can access care through Medicare coverage, making the service available to eligible beneficiaries without additional out-of-pocket costs. For those not covered by Medicare, the company provides affordable subscription plans starting at $99 per month, offering predictable pricing for ongoing diabetes management and care.';
+        } elseif (str_contains($lowerMessage, 'value proposition') || str_contains($lowerMessage, 'benefit')) {
+            $aiReply = 'Value Proposition: The pricing model aims to eliminate financial uncertainty and make specialized diabetes care more accessible compared to traditional healthcare settings. By offering flat-rate monthly subscriptions, patients can budget for their healthcare costs while receiving comprehensive diabetes management services that would typically require multiple specialist appointments and potentially higher costs in traditional healthcare systems.';
+        } elseif (str_contains($lowerMessage, 'target market') || str_contains($lowerMessage, 'accessibility') || str_contains($lowerMessage, 'who can use')) {
+            $aiReply = 'Target Market and Accessibility: SugarPros serves diabetes patients who seek convenient, affordable, and comprehensive care without the typical barriers of traditional healthcare. The dual pricing approach (Medicare and subscription) ensures accessibility across different patient demographics, while the virtual delivery model removes geographical constraints and scheduling difficulties that often prevent consistent diabetes management.';
+        } else {
+            // Get last 10 messages for context
+            $previousMessages = SugarprosAIChat::where('message_of_uid', $patient_id)
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get()
+                ->reverse();
+
+            // Prepare chat history for OpenAI
+            $chatHistory = [];
+            foreach ($previousMessages as $msg) {
+                $role = ($msg->requested_to === 'AI') ? 'user' : 'assistant';
+                $chatHistory[] = ['role' => $role, 'content' => $msg->message];
+            }
+
+            // Add system message if empty history
+            if (empty($chatHistory)) {
+                $chatHistory[] = [
+                    'role' => 'system',
+                    'content' => 'You are SugarPros AI, a helpful medical assistant specialized in diabetes care. Keep your responses professional and focused on diabetes management unless asked about other topics.'
+                ];
+            }
+
+            // Add current user message
+            $chatHistory[] = ['role' => 'user', 'content' => $userMessage];
+
+            // Send to OpenAI
+            $client = new \GuzzleHttp\Client();
+            $response = $client->post('https://api.openai.com/v1/chat/completions', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => [
+                    'model' => 'gpt-4o',
+                    'messages' => $chatHistory,
+                ],
+            ]);
+
+            $data = json_decode($response->getBody(), true);
+            $aiReply = $data['choices'][0]['message']['content'];
         }
-
-        // Add system message if empty history
-        if (empty($chatHistory)) {
-            $chatHistory[] = [
-                'role' => 'system',
-                'content' => 'You are a helpful medical assistant.'
-            ];
-        }
-
-        // Add current user message
-        $chatHistory[] = ['role' => 'user', 'content' => $userMessage];
-
-        // Send to OpenAI
-        $client = new \GuzzleHttp\Client();
-        $response = $client->post('https://api.openai.com/v1/chat/completions', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
-                'Content-Type' => 'application/json',
-            ],
-            'json' => [
-                'model' => 'gpt-4o',
-                'messages' => $chatHistory,
-            ],
-        ]);
-
-        $data = json_decode($response->getBody(), true);
-        $aiReply = $data['choices'][0]['message']['content'];
 
         // Save AI response to database
         SugarprosAIChat::create([
@@ -956,20 +1023,78 @@ class HomeController extends Controller
     {
         $user = Auth::user();
         $userID = $user->id;
+        $patient_id = $user->patient_id;
 
-        $notifications = Notification::where('user_id', $userID)
+        $notifications = Notification::where('user_id', $patient_id)
             ->where('user_type', 'patient')
             ->orderBy('id', 'DESC')
             ->get();
 
         $profile_picture = $user->profile_picture;
 
-        $userIDAsString = (string)$userID;
+        $userIDAsString = (string)$patient_id;
         Notification::where('user_id', $userIDAsString)
             ->where('user_type', 'patient')
             ->where('read_status', 0)
             ->update(['read_status' => 1]);
 
         return view('patient.notifications', compact('profile_picture', 'notifications'));
+    }
+
+
+
+
+
+    public function showAllReviews()
+    {
+        if (Auth::check()) {
+            $patient_id = Auth::user()->patient_id;
+            $ownReview = Reviews::where('reviewed_by', $patient_id)->value('main_review');
+            $review_star = Reviews::where('reviewed_by', $patient_id)->value('review_star');
+        } else {
+            $ownReview = '';
+            $review_star = 0;
+        }
+
+        $allFaqs = Faq::orderBy('id', 'ASC')->get();
+        $providers = Provider::orderBy('id', 'DESC')->where('profile_picture', '!=', null)->get();
+        $allReviews = Reviews::orderBy('id', 'DESC')->where('status', 1)->get();
+        $users = User::all();
+
+        return view('reviews', compact('allReviews', 'review_star', 'ownReview', 'allFaqs', 'providers', 'allReviews', 'users'));
+    }
+
+
+
+
+
+
+    public function reviewWebsite(Request $request)
+    {
+        $patient_id = Auth::user()->patient_id;
+        $star = $request['star'];
+        $review = $request['review'];
+
+        $check_review = Reviews::where('reviewed_by', $patient_id)->count();
+        if ($check_review > 0) {
+            $update = Reviews::where('reviewed_by', $patient_id)->update([
+                'review_star' => $star,
+                'main_review' => $review,
+            ]);
+            $message = 'Your Review To Our Platform Updated Successfully! We will Justify Soon.';
+        } else {
+            $insert = Reviews::insert([
+                'reviewed_by' => $patient_id,
+                'review_star' => $star,
+                'main_review' => $review,
+            ]);
+            $message = 'Your Review To Our Platform Taken Successfully! We will Justify Soon.';
+        }
+
+        Notification::insert([
+            'user_id' => Auth::user()->patient_id,
+            'notification' => $message . ' <a href="/all-reviews#reviews" class="text-blue-500 text-md">Open Review </a>',
+        ]);
+        return redirect()->back()->with('success', $message);
     }
 }
