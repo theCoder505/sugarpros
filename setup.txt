@@ -162,11 +162,63 @@ EkWeb@7867
 
 
 --------- To Export Database -------
-scp database.sql root@31.97.14.107:/root/
+scp database.sql root@31.97.14.107:/root/ [From your folder where the database is in pc]
 root@31.97.14.107's password:
 database.sql                                                                          100%   84KB  79.6KB/s   00:01
 
-mysql -u root -p sugarpros < /root/database.sql
+mysql -u root -p sugarpros < /root/database.sql [From VPS Terminal]
 
 
+
+
+----------------- Remove old mysql: 
+mysql -u root -p
+
+# Once connected to MySQL:
+USE sugarpros;
+
+-- Disable foreign key checks temporarily
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Generate drop statements for all tables
+SELECT CONCAT('DROP TABLE IF EXISTS `', table_name, '`;')
+FROM information_schema.tables
+WHERE table_schema = 'sugarpros';
+
+-- After you see the list of DROP TABLE commands, you can either:
+-- 1. Copy and execute them one by one, OR
+-- 2. Use this automated approach:
+
+SET @drop_tables = NULL;
+SELECT GROUP_CONCAT('`', table_name, '`') INTO @drop_tables
+FROM information_schema.tables
+WHERE table_schema = 'sugarpros';
+
+SET @drop_tables = CONCAT('DROP TABLE IF EXISTS ', @drop_tables);
+PREPARE stmt FROM @drop_tables;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Re-enable foreign key checks
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- Verify all tables are gone
+SHOW TABLES;
+
+
+
+
+
+
+
+
+----------------------------------- Pulling Requests From Github And setting: ---------------------
+git stash
+git pull origin main
+# Instead of pop, check what's in the stash first:
+git stash show -p
+# If you're sure you want to apply:
+git stash pop
+# Or apply without removing from stash:
+git stash apply
 
