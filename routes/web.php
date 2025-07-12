@@ -394,7 +394,6 @@ Route::options('/provider/claim-md/{any}', function () {
 Route::middleware(['check_if_provider'])->group(function () {
     // Main interface
     Route::get('/provider/patient-claims-biller', [PatientClaimsMDController::class, 'patientClaimsBiller'])->name('provider.biller');
-    // Route::get('/provider/patient-claims-biller', [ProviderController::class, 'patientClaimsBiller'])->name('provider.biller');
 
     // SDK proxy
     Route::match(['get', 'post'], '/provider/claim-md/proxy', [PatientClaimsMDController::class, 'claimMdProxy'])
