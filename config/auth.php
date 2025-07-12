@@ -21,6 +21,16 @@ return [
             'driver' => 'session',
             'provider' => 'admins',
         ],
+
+        'api' => [ // New Guard For API | Patinets
+            'driver' => 'jwt',
+            'provider' => 'users',
+        ],
+
+        'provider-api' => [ // For Providers
+            'driver' => 'jwt-provider', // Custom driver
+            'provider' => 'providers',
+        ],
     ],
 
     'providers' => [
@@ -29,14 +39,14 @@ return [
             'model' => App\Models\User::class,
         ],
 
-        'providers' => [ 
+        'providers' => [
             'driver' => 'eloquent',
             'model' => App\Models\Provider::class,
         ],
 
         'admins' => [
             'driver' => 'eloquent',
-             'model' => App\Models\Admin::class,
+            'model' => App\Models\Admin::class,
         ],
     ],
 

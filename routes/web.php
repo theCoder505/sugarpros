@@ -19,269 +19,76 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 
-
+//Checking if mail send properly.
 Route::get('/mail-check', [CredentialsController::class, 'checkMailSending']);
 
 
-
-
-
+// ----------------------------------- SURFACE WEBSITE ----------------------------------------------- //
 Route::get('/', [HomeController::class, 'home'])->name('home');
-
 Route::get('/about-us', [HomeController::class, 'about'])->name('about');
-
 Route::get('/our-service', [HomeController::class, 'service'])->name('service');
-
 Route::get('/reviews', [HomeController::class, 'reviews'])->name('reviews');
-
+Route::get('/all-reviews', [HomeController::class, 'showAllReviews']); // No need of Auth here, checked inside controller.
+Route::post('/add-review', [HomeController::class, 'reviewWebsite'])->middleware('patient_loggedin', 'check_if_forms_filled'); // Need Auth on submit a Review
 Route::get('/pricing', [HomeController::class, 'pricing'])->name('pricing');
-
 Route::get('/privacy-policy', [HomeController::class, 'privacyPolicy'])->name('privacyPolicy');
-
 Route::get('/terms-and-conditions', [HomeController::class, 'TermsConditions'])->name('TermsConditions');
-
 Route::get('/faq', [HomeController::class, 'faq'])->name('faq');
+Route::get('/our-blogs', [BlogsController::class, 'blog'])->name('blog');
+Route::get('/blogs/{id}/{category}/{title}', [BlogsController::class, 'blog_details'])->name('blog_details');
+Route::get('/otp', [HomeController::class, 'otp'])->name('otp'); // Not needed at all, keeping though
 
-Route::get('/otp', [HomeController::class, 'otp'])->name('otp');
 
+Route::get('/patient-panel-api-documentation', [HomeController::class, 'patientPanelDocumentation'])->name('patient_api_doc');
+Route::get('/provider-panel-api-documentation', [HomeController::class, 'providerPanelDocumentation'])->name('provider_api_doc');
+
+
+
+
+
+
+
+
+
+
+// ----------------------------------------------------------------------------------------------------- //
+// ------------------------------------ PATIENT PORTAL STARTS ------------------------------------------ //
+// ----------------------------------------------------------------------------------------------------- //
 Route::get('/sign-up', [HomeController::class, 'signup'])->name('sign.up');
+Route::post('/send-otp-to-user', [CredentialsController::class, 'sendOTPToUser']);
+Route::post('/verify-otp', [CredentialsController::class, 'verifyUsersOTP']);
+Route::post('/signup-new-user', [CredentialsController::class, 'signupNewUser']);
 
 Route::get('/login', [HomeController::class, 'login'])->name('login');
-
+Route::post('/login-existing-user', [CredentialsController::class, 'loginUser']);
+Route::get('/forgot-password', [CredentialsController::class, 'forgetPwdPage']);
+Route::post('/send-forget-request', [CredentialsController::class, 'sendForgetRequest']);
+Route::post('/otp-verification-on-reset', [CredentialsController::class, 'verifyForgetOTP']);
+Route::post('/check-password-validity', [CredentialsController::class, 'checkPasswordValidity']);
+Route::post('/reset-account-password', [CredentialsController::class, 'resetAccountPassword']);
 Route::get('/logout', [CredentialsController::class, 'logout'])->name('logout');
 
 
 
 
 
-// Blogs Section 
-Route::get('/our-blogs', [BlogsController::class, 'blog'])->name('blog');
 
-Route::get('/blogs/{id}/{category}/{title}', [BlogsController::class, 'blog_details'])->name('blog_details');
 
 
-
-// patients portal 
-Route::get('/basic', [HomeController::class, 'basic'])->name('basic'); //checks in the page
-
-Route::get('/privacy', [HomeController::class, 'privacy'])->name('privacy');
-
-Route::get('/compliance', [HomeController::class, 'compliance'])->name('compliance');
-
-Route::get('/financial-responsibility-aggreement', [HomeController::class, 'financialRespAggreement'])->name('financialRespAggreement');
-
-Route::get('/agreement-for-self-payment', [HomeController::class, 'agreementSelfPayment'])->name('agreementSelfPayment');
-
-
-
-
-
-
-
-
-Route::get('/book-appointment', [HomeController::class, 'appointment'])->name('appointment')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-// Route::get('/payment', [HomeController::class, 'payment'])->name('payment')->middleware('patient_loggedin', 'check_if_forms_filled'); // book will send to here then stripe payment, then to list
-
-Route::get('/appointments', [HomeController::class, 'appointment_list'])->name('appointment_list')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/join-meeting/{appointment_uid}', [HomeController::class, 'joinMeeting'])->name('join_meeting')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/patient/show-appointment/{appointment_uid}', [HomeController::class, 'showSpecificAppointment'])->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/account', [HomeController::class, 'account'])->name('account')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/dashboard', [HomeController::class, 'dashboard'])->name('dashboard')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/send-to-chats/provider/{provider_id}', [HomeController::class, 'sendToSpecificChat'])->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/chats', [HomeController::class, 'chats'])->name('chats')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::post('/add-new-message', [HomeController::class, 'addNewMessage'])->name('add_new_message')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::post('/send-image-message', [HomeController::class, 'sendImageMessage'])->name('image_message')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::post('/update-message-seen', [HomeController::class, 'updateSeenStatus'])->name('seen_status'); // for both patient & user
-
-Route::post('/fetch-related-chats', [HomeController::class, 'fetchRelatedChats'])->name('fetch_chats')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/settings', [HomeController::class, 'settings'])->name('settings')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/notifications', [HomeController::class, 'notifications'])->name('notifications')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-// Reviews 
-Route::get('/all-reviews', [HomeController::class, 'showAllReviews']);
-
-Route::post('/add-review', [HomeController::class, 'reviewWebsite'])->middleware('patient_loggedin', 'check_if_forms_filled');
-
-
-
-
-// Doing by understanding with docs and help of AI 
-Route::get('/dexcom', [DexcomController::class, 'dexcom'])->name('dexcom')->middleware('patient_loggedin', 'check_if_forms_filled', 'check_dexcom');
-
-Route::get('/connect-dexcom', [DexcomController::class, 'redirectToDexcom'])->name('connect.dexcom');
-
-Route::get('/dexcom-callback', [DexcomController::class, 'handleDexcomCallback']);
-
-
-
-
-Route::get('/clinical-notes', [HomeController::class, 'ClinicalNotes'])->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/quest-lab', [HomeController::class, 'QuestLab'])->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/e-prescriptions', [HomeController::class, 'ePrescription'])->middleware('patient_loggedin', 'check_if_forms_filled');
-
-
-
-
-
-// Probably unnecessary
-// Route::get('/join-meeting', [HomeController::class, 'join_meeting'])->name('join_meeting')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/meeting-room', [HomeController::class, 'meeting_room'])->name('meeting_room')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/end-meeting/{message}', [HomeController::class, 'endMeeting'])->name('endMeeting');
-
-
-
-
-
-
-
-
-
-// All AI works
-Route::get('/fat-secret', [FatSecretController::class, 'FatSecret'])
-    ->name('fatsecret')
-    ->middleware('patient_loggedin', 'check_if_forms_filled');
-
-// Search foods
-// Route::get('/fat-secret/search', [FatSecretController::class, 'getFoods'])->name('fatsecret.search');
-
-Route::get('/fat-secret/search', [FatSecretController::class, 'getFoods'])->name('fatsecret.search');
-
-// Get specific food details
-Route::get('/fat-secret/food/{foodId}', [FatSecretController::class, 'getFoodDetails'])->name('fatsecret.food.details');
-
-// Meal-specific searches
-Route::get('/fat-secret/breakfast', [FatSecretController::class, 'getBreakfastFoods'])->name('fatsecret.breakfast');
-
-Route::get('/fat-secret/lunch', [FatSecretController::class, 'getLunchFoods'])->name('fatsecret.lunch');
-
-Route::get('/fat-secret/dinner', [FatSecretController::class, 'getDinnerFoods'])->name('fatsecret.dinner');
-
-
-
-
-Route::get('/sugarpro-ai', [HomeController::class, 'sugarpro_ai'])->name('sugarpro_ai')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::post('/chatgpt-response', [HomeController::class, 'chatgptResponse'])->name('chatgptResponse')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::post('/clear-chat-session', [HomeController::class, 'clearChatSession'])->name('clearChatSession')->middleware('patient_loggedin', 'check_if_forms_filled');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Post Routes 
-Route::post('/send-otp-to-user', [CredentialsController::class, 'sendOTPToUser']);
-
-Route::post('/verify-otp', [CredentialsController::class, 'verifyUsersOTP']);
-
-Route::post('/signup-new-user', [CredentialsController::class, 'signupNewUser']);
-
-Route::post('/login-existing-user', [CredentialsController::class, 'loginUser']);
-
-Route::get('/forgot-password', [CredentialsController::class, 'forgetPwdPage']);
-
-Route::post('/send-forget-request', [CredentialsController::class, 'sendForgetRequest']);
-
-Route::post('/otp-verification-on-reset', [CredentialsController::class, 'verifyForgetOTP']);
-
-Route::post('/check-password-validity', [CredentialsController::class, 'checkPasswordValidity']);
-
-Route::post('/reset-account-password', [CredentialsController::class, 'resetAccountPassword']);
-
-
-
-
-
-// patient arena
+// After Signup, pages Patient must fill up!
+Route::get('/basic', [HomeController::class, 'basic'])->name('basic'); // has to like this, handles in controller
 Route::post('/complete-user-details', [PatientsController::class, 'userDetailsAdding']);
 
-Route::post('/book-new-appoinment', [PatientsController::class, 'bookNewAppointment']);
-
-
-Route::post('/complete-booking', [PatientsController::class, 'completeBooking'])->middleware('patient_loggedin', 'check_if_forms_filled');
-
-Route::get('/payment/success', [PatientsController::class, 'paymentSuccess'])->name('payment.success');
-
-Route::get('/payment/cancel', [PatientsController::class, 'paymentCancel'])->name('payment.cancel');
-
-
-
-
-
-Route::post('/search-appointments-by-month', [PatientsController::class, 'searchByMonth']);
-
-Route::post('/fetch-specific-range-data', [PatientsController::class, 'fetchSpecificRangeData']);
-
-Route::post('/update-profile-picture', [PatientsController::class, 'updateProfilePicture']);
-
-Route::post('/update-account-details', [PatientsController::class, 'updateAccountDetails']);
-
-Route::get('/delete-account', [CredentialsController::class, 'DeleteUsersAccount']);
-
-Route::get('/delete-notification/{notification_id}', [PatientsController::class, 'deleteNotification']);
-
-
-
-
-Route::post('/user-accout-email-verification', [CredentialsController::class, 'checkIfEmailExists']);
-
-Route::post('/user-accout-otp-verification', [CredentialsController::class, 'verifyOTPOnEmailChange']);
-
-Route::post('/user-accout-email-change', [CredentialsController::class, 'finalEmailCheckAndChange']);
-
-
-
-Route::post('/user-account-password-verification', [CredentialsController::class, 'checkIfEmailExistsForPassword']);
-
-Route::post('/user-account-password-otp-verification', [CredentialsController::class, 'verifyOTPOnPasswordChange']);
-
-Route::post('/user-account-password-change', [CredentialsController::class, 'finalPasswordCheckAndChange']);
-
-Route::post('/hippa-consent-prefference', [CredentialsController::class, 'hippaConsentPreferrence']);
-
-Route::post('/change-language-prefference', [CredentialsController::class, 'changeLanguagePreferrence']);
-
-
-
-
-// forms after signup 
+Route::get('/privacy', [HomeController::class, 'privacy'])->name('privacy');
 Route::post('/privacy-form', [PatientsController::class, 'fillupPrivacyForm']);
 
+Route::get('/compliance', [HomeController::class, 'compliance'])->name('compliance');
 Route::post('/compliance-form', [PatientsController::class, 'fillupComplianceForm']);
 
+Route::get('/financial-responsibility-aggreement', [HomeController::class, 'financialRespAggreement'])->name('financialRespAggreement');
 Route::post('/financial-form', [PatientsController::class, 'fillupFinancialForm']);
 
+Route::get('/agreement-for-self-payment', [HomeController::class, 'agreementSelfPayment'])->name('agreementSelfPayment');
 Route::post('/self-payment-form', [PatientsController::class, 'fillupSelfPaymentForm']);
 
 
@@ -294,6 +101,89 @@ Route::post('/self-payment-form', [PatientsController::class, 'fillupSelfPayment
 
 
 
+// After Patient signup and fills up all the Related Important Forms
+Route::get('/dashboard', [HomeController::class, 'dashboard'])->name('dashboard')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/hippa-consent-prefference', [CredentialsController::class, 'hippaConsentPreferrence']);
+Route::post('/change-language-prefference', [CredentialsController::class, 'changeLanguagePreferrence']);
+
+Route::get('/account', [HomeController::class, 'account'])->name('account')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/update-profile-picture', [PatientsController::class, 'updateProfilePicture'])->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/update-account-details', [PatientsController::class, 'updateAccountDetails'])->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/delete-account', [CredentialsController::class, 'DeleteUsersAccount'])->middleware('patient_loggedin', 'check_if_forms_filled');
+
+Route::get('/settings', [HomeController::class, 'settings'])->name('settings')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/user-accout-email-verification', [CredentialsController::class, 'checkIfEmailExists']);
+Route::post('/user-accout-otp-verification', [CredentialsController::class, 'verifyOTPOnEmailChange']);
+Route::post('/user-accout-email-change', [CredentialsController::class, 'finalEmailCheckAndChange']);
+Route::post('/user-account-password-verification', [CredentialsController::class, 'checkIfEmailExistsForPassword']);
+Route::post('/user-account-password-otp-verification', [CredentialsController::class, 'verifyOTPOnPasswordChange']);
+Route::post('/user-account-password-change', [CredentialsController::class, 'finalPasswordCheckAndChange']);
+
+Route::get('/notifications', [HomeController::class, 'notifications'])->name('notifications')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/delete-notification/{notification_id}', [PatientsController::class, 'deleteNotification'])->middleware('patient_loggedin', 'check_if_forms_filled');
+
+
+
+
+
+Route::get('/book-appointment', [HomeController::class, 'appointment'])->name('appointment')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/book-new-appoinment', [PatientsController::class, 'bookNewAppointment'])->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/complete-booking', [PatientsController::class, 'completeBooking'])->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/payment/success', [PatientsController::class, 'paymentSuccess'])->name('payment.success');
+Route::get('/payment/cancel', [PatientsController::class, 'paymentCancel'])->name('payment.cancel');
+// Route::get('/payment', [HomeController::class, 'payment'])->name('payment')->middleware('patient_loggedin', 'check_if_forms_filled'); // book will send to here then stripe payment, then to list
+
+
+
+
+
+
+Route::get('/appointments', [HomeController::class, 'appointment_list'])->name('appointment_list')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/join-meeting/{appointment_uid}', [HomeController::class, 'joinMeeting'])->name('join_meeting')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/patient/show-appointment/{appointment_uid}', [HomeController::class, 'showSpecificAppointment'])->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/search-appointments-by-month', [PatientsController::class, 'searchByMonth'])->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/fetch-specific-range-data', [PatientsController::class, 'fetchSpecificRangeData'])->middleware('patient_loggedin', 'check_if_forms_filled');
+
+
+
+// Patients Chating With Providers
+Route::get('/chats', [HomeController::class, 'chats'])->name('chats')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/send-to-chats/provider/{provider_id}', [HomeController::class, 'sendToSpecificChat'])->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/add-new-message', [HomeController::class, 'addNewMessage'])->name('add_new_message')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/send-image-message', [HomeController::class, 'sendImageMessage'])->name('image_message')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/update-message-seen', [HomeController::class, 'updateSeenStatus'])->name('seen_status'); // for both patient & user
+Route::post('/fetch-related-chats', [HomeController::class, 'fetchRelatedChats'])->name('fetch_chats')->middleware('patient_loggedin', 'check_if_forms_filled');
+
+// Patient Chating With SugarPros AI (ChatGpt)
+Route::get('/sugarpro-ai', [HomeController::class, 'sugarpro_ai'])->name('sugarpro_ai')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/chatgpt-response', [HomeController::class, 'chatgptResponse'])->name('chatgptResponse')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::post('/clear-chat-session', [HomeController::class, 'clearChatSession'])->name('clearChatSession')->middleware('patient_loggedin', 'check_if_forms_filled');
+
+
+
+
+// Patients MY RESULTS PAGES ---------------------
+Route::get('/dexcom', [DexcomController::class, 'dexcom'])->name('dexcom')->middleware('patient_loggedin', 'check_if_forms_filled', 'check_dexcom');
+Route::get('/connect-dexcom', [DexcomController::class, 'redirectToDexcom'])->name('connect.dexcom');
+Route::get('/dexcom-callback', [DexcomController::class, 'handleDexcomCallback']);
+
+// FatSecret API | Search foods
+Route::get('/fat-secret', [FatSecretController::class, 'FatSecret'])->name('fatsecret')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/fat-secret/search', [FatSecretController::class, 'getFoods'])->name('fatsecret.search');
+Route::get('/fat-secret/food/{foodId}', [FatSecretController::class, 'getFoodDetails'])->name('fatsecret.food.details'); // Get specific food details
+Route::get('/fat-secret/breakfast', [FatSecretController::class, 'getBreakfastFoods'])->name('fatsecret.breakfast'); // Meal-specific searches
+Route::get('/fat-secret/lunch', [FatSecretController::class, 'getLunchFoods'])->name('fatsecret.lunch');
+Route::get('/fat-secret/dinner', [FatSecretController::class, 'getDinnerFoods'])->name('fatsecret.dinner');
+
+Route::get('/clinical-notes', [HomeController::class, 'ClinicalNotes'])->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/quest-lab', [HomeController::class, 'QuestLab'])->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/e-prescriptions', [HomeController::class, 'ePrescription'])->middleware('patient_loggedin', 'check_if_forms_filled');
+
+
+// ------------------------- Probably unnecessary ---------------------
+// Route::get('/join-meeting', [HomeController::class, 'join_meeting'])->name('join_meeting')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/meeting-room', [HomeController::class, 'meeting_room'])->name('meeting_room')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/end-meeting/{message}', [HomeController::class, 'endMeeting'])->name('endMeeting');
 
 
 
@@ -301,24 +191,36 @@ Route::post('/self-payment-form', [PatientsController::class, 'fillupSelfPayment
 
 
 
-// Provider Portal starts 
-// signup procedure 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ----------------------------------------------------------------------------------------------------- //
+// ------------------------------------ PROVIDER PORTAL STARTS ----------------------------------------- //
+// ----------------------------------------------------------------------------------------------------- //
 Route::get('/provider/sign-up', [ProviderController::class, 'signup'])->name('provider.signup');
-
 Route::post('/provider/check-and-send-otp', [ProviderController::class, 'checkAndSendOTP']);
-
+// Route::get('/provider/otp', [ProviderController::class, 'otp'])->name('provider.otp');
 Route::post('/provider/verify-otp-and-signup', [ProviderController::class, 'verifyOTPAndSignup']);
-
 Route::post('/add-new-provider', [ProviderController::class, 'addNewProvider']);
 
-Route::get('/provider/otp', [ProviderController::class, 'otp'])->name('provider.otp');
-
-
-// login procedure 
 Route::get('/provider/login', [ProviderController::class, 'login'])->name('provider.login');
-
 Route::post('/provider/sign-in', [ProviderController::class, 'loginProvider']);
-
 Route::get('/provider/logout', [ProviderController::class, 'logoutProvider'])->middleware('check_if_provider');
 
 
@@ -491,8 +393,8 @@ Route::options('/provider/claim-md/{any}', function () {
 // ClaimMD Routes
 Route::middleware(['check_if_provider'])->group(function () {
     // Main interface
-    Route::get('/provider/patient-claims-biller', [PatientClaimsMDController::class, 'patientClaimsBiller']);
-    Route::get('/provider/patient-claims-biller', [ProviderController::class, 'patientClaimsBiller'])->name('provider.biller');
+    Route::get('/provider/patient-claims-biller', [PatientClaimsMDController::class, 'patientClaimsBiller'])->name('provider.biller');
+    // Route::get('/provider/patient-claims-biller', [ProviderController::class, 'patientClaimsBiller'])->name('provider.biller');
 
     // SDK proxy
     Route::match(['get', 'post'], '/provider/claim-md/proxy', [PatientClaimsMDController::class, 'claimMdProxy'])
@@ -523,7 +425,37 @@ Route::middleware(['check_if_provider'])->group(function () {
 
 
 
-// super dashboard
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ----------------------------------------------------------------------------------------------------- //
+// -------------------------------------- ADMIN PORTAL STARTS ------------------------------------------ //
+// ----------------------------------------------------------------------------------------------------- //
 Route::get('/admin/login', [AdminCredentialsController::class, 'showLoginForm'])->name('adminlogin');
 
 Route::post('/admin/verify-admin-credentials', [AdminCredentialsController::class, 'verifyAdminCredentials']);
@@ -732,19 +664,18 @@ Route::post('/admin/delete-blog/{blog_id}', [BlogsController::class, 'deleteBlog
 
 
 
-Route::get('/404', [ProviderController::class, 'error'])->name('provider.error');
 
 
 
 
 
-
+// Clearing & Optimizing Routes, Views & Website
 Route::get('/clear', function () {
     Artisan::call('cache:clear');
     Artisan::call('config:clear');
     Artisan::call('config:cache');
     Artisan::call('view:clear');
     Artisan::call('storage:link');
-    Artisan::call('optimize');
+    // Artisan::call('optimize');
     return "Cleared!";
 });

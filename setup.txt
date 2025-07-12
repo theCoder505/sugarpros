@@ -78,6 +78,10 @@ npm install express ws http
 
 
 
+$socketURL = 'ws://31.97.14.107:3000'; // Or your domain if you have SSL
+// If you set up SSL, use:
+// $socketURL = 'wss://yourdomain.com/ws';
+
 # Start with PM2 (persistent)
 pm2 start server.js --name "websocket-server"
 
@@ -228,8 +232,37 @@ git stash apply
 
 
 
-app/Http/Controllers/AdminController.php: needs merge
-app/Providers/AppServiceProvider.php: needs merge
-The stash entry is kept in case you need it again.
-app/Http/Controllers/AdminController.php: needs merge
-app/Providers/AppServiceProvider.php: needs merge
+
+
+
+
+----------------------------- To Set On PORT 8080 ------------------------
+sudo nano /etc/apache2/sites-available/sugarpros.com.conf
+
+<VirtualHost *:8080>
+    ServerName srv866573.hstgr.cloud
+    ServerAdmin SugarPros1234@gmail.com
+    DocumentRoot /var/www/sugarpros/public
+
+    <Directory /var/www/sugarpros>
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog ${APACHE_LOG_DIR}/sugarpros_error.log
+    CustomLog ${APACHE_LOG_DIR}/sugarpros_access.log combined
+</VirtualHost>
+
+sudo nano /etc/apache2/ports.conf
+
+Listen 8080
+
+sudo a2dissite 000-default.conf
+
+sudo a2ensite sugarpros.com.conf
+sudo systemctl restart apache2
+
+sudo ufw allow 8080
+sudo ufw reload
+
+
+http://31.97.14.107:8080

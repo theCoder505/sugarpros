@@ -1800,31 +1800,6 @@ class ProviderController extends Controller
 
 
 
-    public function patientClaimsBiller()
-    {
-        try {
-            $credentials = [
-                'CLAIM_MD_CLIENT_ID' => Settings::value('CLAIM_MD_CLIENT_ID'),
-                'CLAIM_MD_API_KEY' => Settings::value('CLAIM_MD_API_KEY'),
-                'CLAIM_MD_ENV' => Settings::value('CLAIM_MD_ENV')
-            ];
-
-            if (
-                empty($credentials['CLAIM_MD_CLIENT_ID']) ||
-                empty($credentials['CLAIM_MD_API_KEY']) ||
-                empty($credentials['CLAIM_MD_ENV'])
-            ) {
-                throw new \Exception("Claim MD credentials are not fully configured");
-            }
-
-            return view('provider.patient_biller', $credentials);
-        } catch (\Exception $e) {
-            Log::error("PatientClaimsBiller Error: " . $e->getMessage());
-            return back()->with('error', $e->getMessage());
-        }
-    }
-
-
     public function passio()
     {
         return view('provider.passio_ai');
@@ -2152,10 +2127,7 @@ class ProviderController extends Controller
 
 
 
-    public function error()
-    {
-        return view('provider.error');
-    }
+
 
 
 

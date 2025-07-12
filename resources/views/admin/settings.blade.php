@@ -225,14 +225,9 @@
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Claim MD Client ID</label>
-                            <input type="text" name="CLAIM_MD_CLIENT_ID"
-                                value="{{ $settings->CLAIM_MD_CLIENT_ID ?? '' }}"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Claim MD Environment</label>
-                            <input type="text" name="CLAIM_MD_ENV" value="{{ $settings->CLAIM_MD_ENV ?? '' }}"
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Claim MD API Key (Account Key)</label>
+                            <input type="text" name="CLAIM_MD_API_KEY"
+                                value="{{ $settings->CLAIM_MD_API_KEY ?? '' }}"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                         <div>

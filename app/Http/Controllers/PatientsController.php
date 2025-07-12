@@ -25,6 +25,11 @@ class PatientsController extends Controller
 
     public function userDetailsAdding(Request $request)
     {
+        if (!Auth::check()) {
+            return redirect('/login')->with('error', 'Please login first!');
+        }
+
+
         $request->validate([
             'fname' => 'required',
             'lname' => 'required',

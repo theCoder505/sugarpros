@@ -115,6 +115,12 @@ class HomeController extends Controller
         return view('otp');
     }
 
+
+
+
+
+
+
     public function login()
     {
         if (!Auth::check()) {
@@ -141,6 +147,7 @@ class HomeController extends Controller
         if (!Auth::check()) {
             return redirect('/login')->with('error', 'Please login first!');
         }
+
 
         $userID = Auth::user()->id;
         $hasDetails = UserDetails::where('user_id', $userID)->exists();
@@ -501,6 +508,11 @@ class HomeController extends Controller
 
     public function agreementSelfPayment()
     {
+        if (!Auth::check()) {
+            return redirect('/login')->with('error', 'Please login first!');
+        }
+
+
         $userID = Auth::user()->id;
         $page_data = SelPaymentForm::where('user_id', $userID)->get();
 
@@ -522,6 +534,11 @@ class HomeController extends Controller
 
     public function financialRespAggreement()
     {
+        if (!Auth::check()) {
+            return redirect('/login')->with('error', 'Please login first!');
+        }
+
+
         $userID = Auth::user()->id;
         $page_data = FinancialAggreemrnt::where('user_id', $userID)->get();
         if ($page_data->isEmpty()) {
@@ -543,6 +560,10 @@ class HomeController extends Controller
 
     public function compliance()
     {
+        if (!Auth::check()) {
+            return redirect('/login')->with('error', 'Please login first!');
+        }
+
         $userID = Auth::user()->id;
         $page_data = ComplianceForm::where('user_id', $userID)->get();
         if ($page_data->isEmpty()) {
@@ -1097,4 +1118,36 @@ class HomeController extends Controller
         ]);
         return redirect()->back()->with('success', $message);
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public function patientPanelDocumentation(){
+        return view('documentation.patient_api_doc');
+    }
+
+
+
+
+    public function providerPanelDocumentation(){
+        return view('documentation.provider_api_doc');
+    }
+
+
+
+
+
+
+
+
 }

@@ -1,24 +1,17 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\APIControllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class PatientClaimsMDController extends Controller
+class ProviderClaimMDPatientController extends Controller
 {
-    // Base URLs
     private $claimMdApiUrl = 'https://api.claim.md/v1/';
     private $claimMdServiceUrl = 'https://svc.claim.md/services/';
-
-
-
-
-
-
-
 
     /**
      * Display the patient claims biller interface
@@ -40,29 +33,22 @@ class PatientClaimsMDController extends Controller
                 throw new \Exception("Claim MD credentials are not fully configured");
             }
 
-            // return view('admin.patient_biller', $credentials);
-            return view('provider.patient_biller', $credentials);
+            return response()->json([
+                'type' => 'success',
+                'data' => $credentials
+            ], 200);
         } catch (\Exception $e) {
             Log::error("PatientClaimsBiller Error: " . $e->getMessage());
-            return back()->with('error', $e->getMessage());
+            return response()->json([
+                'type' => 'error',
+                'message' => $e->getMessage()
+            ], 400);
         }
     }
-
-
-
-
-
-
-
-
-
-
-
 
     public function claimMdProxy(Request $request)
     {
         try {
-            // Skip validation for GET requests
             $clientId = $request->input('clientId') ?? $request->query('clientId');
             $environment = $request->input('environment') ?? $request->query('environment');
 
@@ -70,8 +56,10 @@ class PatientClaimsMDController extends Controller
                 $clientId !== Settings::value('CLAIM_MD_CLIENT_ID') ||
                 $environment !== Settings::value('CLAIM_MD_ENV')
             ) {
-                return response('console.error("Invalid credentials");', 403)
-                    ->header('Content-Type', 'application/javascript');
+                return response()->json([
+                    'type' => 'error',
+                    'message' => 'Invalid credentials'
+                ], 403);
             }
 
             $response = Http::withOptions(['verify' => false])
@@ -86,20 +74,12 @@ class PatientClaimsMDController extends Controller
             throw new \Exception("Failed to load ClaimMD SDK");
         } catch (\Exception $e) {
             Log::error("ClaimMD Proxy Error: " . $e->getMessage());
-            return response('console.error("Proxy Error");', 500)
-                ->header('Content-Type', 'application/javascript');
+            return response()->json([
+                'type' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
-
-
-
-
-
-
-
-
-
-
 
     /**
      * Proxy for ClaimMD API calls
@@ -117,23 +97,18 @@ class PatientClaimsMDController extends Controller
                 'Accept' => 'application/json',
             ])->post($this->claimMdApiUrl . $endpoint, $request->all());
 
-            return response($response->body(), $response->status())
-                ->header('Content-Type', 'application/json');
+            return response()->json([
+                'type' => 'success',
+                'data' => $response->json()
+            ], $response->status());
         } catch (\Exception $e) {
             Log::error("ClaimMD API Error: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'type' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
-
-
-
-
-
-
-
-
-
-
 
     /**
      * Upload claim file (EDI 837)
@@ -151,11 +126,9 @@ class PatientClaimsMDController extends Controller
                 throw new \Exception("API key not configured");
             }
 
-            // Get the file contents
             $file = $request->file('claim_file');
             $fileContents = file_get_contents($file->getRealPath());
 
-            // Create a temporary file stream
             $tempFile = tmpfile();
             fwrite($tempFile, $fileContents);
             rewind($tempFile);
@@ -167,10 +140,8 @@ class PatientClaimsMDController extends Controller
                     'AccountKey' => $apiKey
                 ]);
 
-            // Close the temporary file
             fclose($tempFile);
 
-            // Handle response
             $contentType = $response->header('Content-Type');
             if (str_contains($contentType, 'xml')) {
                 $xml = simplexml_load_string($response->body());
@@ -180,14 +151,14 @@ class PatientClaimsMDController extends Controller
             }
 
             return response()->json([
-                'success' => true,
+                'type' => 'success',
                 'data' => $data
-            ]);
+            ], 200);
         } catch (\Exception $e) {
             Log::error("ClaimMD Upload Error: " . $e->getMessage());
             return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
+                'type' => 'error',
+                'message' => $e->getMessage()
             ], 500);
         }
     }
@@ -205,46 +176,32 @@ class PatientClaimsMDController extends Controller
 
             $response = Http::asForm()
                 ->withHeaders([
-                    'Accept' => 'application/json', // Changed to JSON
+                    'Accept' => 'application/json',
                     'Content-Type' => 'application/x-www-form-urlencoded',
                 ])->post('https://svc.claim.md/services/uploadlist/', [
                     'AccountKey' => $apiKey
                 ]);
 
-            // Convert XML to JSON if needed
             $contentType = $response->header('Content-Type');
             if (str_contains($contentType, 'xml')) {
                 $xml = simplexml_load_string($response->body());
-                $json = json_encode($xml);
-                $data = json_decode($json, true);
+                $data = json_decode(json_encode($xml), true);
             } else {
                 $data = $response->json();
             }
 
             return response()->json([
-                'success' => true,
+                'type' => 'success',
                 'data' => $data
-            ]);
+            ], 200);
         } catch (\Exception $e) {
             Log::error("ClaimMD UploadList Error: " . $e->getMessage());
             return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
+                'type' => 'error',
+                'message' => $e->getMessage()
             ], 500);
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
     /**
      * Delete uploaded file
@@ -261,7 +218,6 @@ class PatientClaimsMDController extends Controller
                 throw new \Exception("API key not configured");
             }
 
-            // Use the correct endpoint for file deletion
             $response = Http::asForm()
                 ->withHeaders([
                     'Accept' => 'application/json',
@@ -271,35 +227,28 @@ class PatientClaimsMDController extends Controller
                     'FileID' => $request->input('file_id')
                 ]);
 
-            // Handle response
             if ($response->successful()) {
                 return response()->json([
-                    'success' => true,
-                    'message' => 'File deleted successfully'
-                ]);
+                    'type' => 'success',
+                    'data' => ['message' => 'File deleted successfully']
+                ], 200);
             }
 
-            // Handle specific ClaimMD error responses
             $errorResponse = $response->json();
             $errorMessage = $errorResponse['error']['error_mesg'] ?? 'Failed to delete file';
 
             return response()->json([
-                'success' => false,
-                'error' => $errorMessage
+                'type' => 'error',
+                'message' => $errorMessage
             ], 400);
         } catch (\Exception $e) {
             Log::error("ClaimMD Delete File Error: " . $e->getMessage());
             return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
+                'type' => 'error',
+                'message' => $e->getMessage()
             ], 500);
         }
     }
-
-
-
-
-
 
     public function viewUploadedFile(Request $request)
     {
@@ -323,25 +272,20 @@ class PatientClaimsMDController extends Controller
                 ]);
 
             return response()->json([
-                'success' => $response->successful(),
-                'content' => $response->body(),
-                'content_type' => $response->header('Content-Type')
-            ]);
+                'type' => 'success',
+                'data' => [
+                    'content' => $response->body(),
+                    'content_type' => $response->header('Content-Type')
+                ]
+            ], 200);
         } catch (\Exception $e) {
             Log::error("ClaimMD View File Error: " . $e->getMessage());
             return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
+                'type' => 'error',
+                'message' => $e->getMessage()
             ], 500);
         }
     }
-
-
-
-
-
-
-
 
     public function downloadFile(Request $request)
     {
@@ -356,7 +300,6 @@ class PatientClaimsMDController extends Controller
                 throw new \Exception("API key not configured");
             }
 
-            // Get the file content from ClaimMD
             $response = Http::asForm()
                 ->withHeaders([
                     'Accept' => 'application/octet-stream',
@@ -370,16 +313,13 @@ class PatientClaimsMDController extends Controller
                 throw new \Exception("Failed to download file from ClaimMD");
             }
 
-            // Get the filename from the request or response headers
             $filename = $request->input('filename');
             $contentDisposition = $response->header('Content-Disposition');
 
-            // Extract filename from Content-Disposition header if available
             if ($contentDisposition && preg_match('/filename="([^"]+)"/', $contentDisposition, $matches)) {
                 $filename = $matches[1];
             }
 
-            // Return the file as a download response
             return response()->streamDownload(function () use ($response) {
                 echo $response->body();
             }, $filename, [
@@ -387,7 +327,10 @@ class PatientClaimsMDController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error("ClaimMD Download Error: " . $e->getMessage());
-            return back()->with('error', $e->getMessage());
+            return response()->json([
+                'type' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 }
