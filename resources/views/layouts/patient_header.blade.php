@@ -16,15 +16,15 @@
             <a href="{{ route('appointment_list') }}" class="appointment">Appointments</a>
             <a href="{{ route('sugarpro_ai') }}" class="sugarpro_ai">SugarPros AI</a>
             <div class="relative group">
-                <button class="flex items-center space-x-1">
-                    <span>My Results</span>
+                <button class="flex items-center space-x-1" onclick="showDropDown(this)">
+                    <span>My Data</span>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
-                <div class="absolute z-10 hidden p-2 mt-0 bg-white rounded shadow-md group-hover:block min-w-[225px]">
+                <div class="absolute z-10 hidden p-2 mt-0 bg-white rounded shadow-md dropdown_items min-w-[225px]">
                     <a href="/dexcom" class="block px-4 py-2 hover:bg-gray-100 dexcom">Dexcom/Libre Results</a>
-                    <a href="/fat-secret" class="block px-4 py-2 hover:bg-gray-100 fatsecret">FatSecret AI</a>
+                    <a href="/nutrition-tracker" class="block px-4 py-2 hover:bg-gray-100 fatsecret">Nutrition Tracker</a>
                     <a href="/clinical-notes" class="block px-4 py-2 hover:bg-gray-100 dexcom">Clinical Notes</a>
                     <a href="/quest-lab" class="block px-4 py-2 hover:bg-gray-100 dexcom">Quest Lab</a>
                     <a href="/e-prescriptions" class="block px-4 py-2 hover:bg-gray-100 dexcom">E-Prescriptions</a>
@@ -70,7 +70,7 @@
             </a>
 
             <div class="relative group">
-                <a href="{{ route('account') }}">
+                <div onclick="showAccountInfo(this)">
                     <div
                         class="w-[46px] h-[46px] rounded-lg flex justify-center items-center hover:bg-slate-200 overflow-hidden account_nav cursor-pointer">
                         @php
@@ -80,9 +80,9 @@
                         @endphp
                         <img src="{{ $src }}" class="object-cover w-full h-full" alt="">
                     </div>
-                </a>
+                </div>
                 <div
-                    class="absolute right-0 top-12 z-20 hidden min-w-[250px] bg-white rounded-lg shadow-lg group-hover:block group-focus:block py-4 px-4">
+                    class="absolute right-0 top-12 z-20 hidden min-w-[250px] bg-white rounded-lg shadow-lg show_account_info group-focus:block py-4 px-4">
                     <div class="flex items-center gap-3 pb-3 border-b border-slate-100 mb-3">
                         <img src="{{ $src }}" class="w-12 h-12 rounded-full object-cover" alt="">
                         <div class="flex flex-col">
@@ -98,6 +98,8 @@
                         class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Notifications</a>
                     <a href="/settings"
                         class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Settings</a>
+                    <a href="/subscriptions"
+                        class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Subscriptions</a>
                     <a href="/logout"
                         class="block px-2 py-2 text-red-600 rounded hover:bg-slate-100 transition">Logout</a>
                 </div>
@@ -115,12 +117,12 @@
         <div>
             <button onclick="this.nextElementSibling.classList.toggle('hidden')"
                 class="flex items-center justify-between w-full py-2 text-left">
-                <span>My Results</span>
+                <span>My Data</span>
                 <i class="fas fa-chevron-down"></i>
             </button>
             <div class="hidden pl-4 space-y-2">
                 <a href="/dexcom" class="block py-2 hover:bg-gray-100 dexcom">Dexcom/Libre Results</a>
-                <a href="/fat-secret" class="block py-2 hover:bg-gray-100 fatsecret">FatSecret AI</a>
+                <a href="/nutrition-tracker" class="block py-2 hover:bg-gray-100 fatsecret">Nutrition Tracker</a>
                 <a href="/clinical-notes" class="block py-2 hover:bg-gray-100 dexcom">Clinical Notes</a>
                 <a href="/quest-lab" class="block py-2 hover:bg-gray-100 dexcom">Quest Lab</a>
                 <a href="/e-prescriptions" class="block py-2 hover:bg-gray-100 dexcom">E-Prescriptions</a>
@@ -174,5 +176,14 @@
     function toggleMobileMenu() {
         const mobileMenu = document.getElementById('mobile-menu');
         mobileMenu.classList.toggle('hidden');
+    }
+
+
+    function showDropDown(){
+        $(".dropdown_items").toggleClass("hidden");
+    }
+
+    function showAccountInfo(){
+        $(".show_account_info").toggleClass("hidden");
     }
 </script>

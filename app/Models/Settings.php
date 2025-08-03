@@ -16,7 +16,6 @@ class Settings extends Model
         'brandicon',
         'currency',
         'contact_email',
-        'stripe_amount',
         'stripe_client_id',
         'stripe_secret_key',
         'subscription_key',
@@ -41,5 +40,22 @@ class Settings extends Model
         'twitter_url',
         'instagram_url',
         'linkedin_url',
+
+
+
+        'stripe_amount',
+        'medicare_amount',
+        'monthly_basic_amount',
+        'monthly_basic_price_key',
+        'monthly_premium_amount',
+        'monthly_premium_price_key',
+        'monthly_vip_amount',
+        'monthly_vip_price_key',
+        'annual_basic_amount',
+        'annual_basic_price_key',
+        'annual_premium_amount',
+        'annual_premium_price_key',
+        'annual_vip_amount',
+        'annual_vip_price_key',
     ];
 }

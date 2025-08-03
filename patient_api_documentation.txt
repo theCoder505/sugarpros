@@ -1261,7 +1261,7 @@ json
 }
 FatSecret Integration
 FatSecret Dashboard
-URL: /api/fat-secret
+URL: /api/nutrition-tracker
 Method: GET
 Headers: Authorization: Bearer [JWT_TOKEN]
 Response:
@@ -1283,7 +1283,7 @@ json
     }
 }
 Search Foods
-URL: /api/fat-secret/search
+URL: /api/nutrition-tracker/search
 Method: GET
 Headers: Authorization: Bearer [JWT_TOKEN]
 Query Parameters:
@@ -1311,7 +1311,7 @@ json
     }
 }
 Get Food Details
-URL: /api/fat-secret/food/{foodId}
+URL: /api/nutrition-tracker/food/{foodId}
 Method: GET
 Headers: Authorization: Bearer [JWT_TOKEN]
 Response:
@@ -1346,19 +1346,19 @@ json
     }
 }
 Get Breakfast Foods
-URL: /api/fat-secret/breakfast
+URL: /api/nutrition-tracker/breakfast
 Method: GET
 Headers: Authorization: Bearer [JWT_TOKEN]
 Response: Same as search foods with breakfast-related items
 
 Get Lunch Foods
-URL: /api/fat-secret/lunch
+URL: /api/nutrition-tracker/lunch
 Method: GET
 Headers: Authorization: Bearer [JWT_TOKEN]
 Response: Same as search foods with lunch-related items
 
 Get Dinner Foods
-URL: /api/fat-secret/dinner
+URL: /api/nutrition-tracker/dinner
 Method: GET
 Headers: Authorization: Bearer [JWT_TOKEN]
 Response: Same as search foods with dinner-related items

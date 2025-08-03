@@ -24,9 +24,9 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 @forelse ($all_appointments as $item)
                     <div
-                        class="item group bg-white border-2 cursor-pointer border-gray-200 rounded-xl shadow-lg p-6 transition-all duration-300 hover:border-purple-500 hover:shadow-2xl focus-within:ring-2 focus-within:ring-purple-400">
+                        class="item group bg-white border-2 cursor-pointer border-gray-200 rounded-xl shadow-lg p-6 transition-all duration-300 hover:border-[#2d92b3] hover:shadow-2xl focus-within:ring-2 focus-within:ring-[#133a59]">
                         <div class="flex items-center mb-4">
-                            <i class="fas fa-calendar-alt text-purple-500 text-2xl mr-3"></i>
+                            <i class="fas fa-calendar-alt text-[#2d92b3] text-2xl mr-3"></i>
                             <div>
                                 <div class="font-semibold text-lg text-gray-800">ID:
                                     {{ $item->appointment_uid ?? 'Appointment' }}</div>
@@ -39,12 +39,12 @@
                                 @php $hasNotetaker = true; @endphp
                                 {{-- Add A icon that indicates video already added here, icon like the Select A Video File we have in the form --}}
                                 <div
-                                    class="flex flex-col items-center px-4 py-6 bg-gray-50 text-purple-500 rounded-lg shadow-inner tracking-wide uppercase border border-purple-200 cursor-pointer hover:bg-purple-100 transition mb-6">
-                                    <i class="fas fa-video text-3xl text-purple-500"></i>
-                                    <span class="text-sm text-purple-500">Video already added</span>
+                                    class="flex flex-col items-center px-4 py-6 bg-gray-50 text-[#2d92b3] rounded-lg shadow-inner tracking-wide uppercase border border-blue-200 cursor-pointer hover:bg-blue-100 transition mb-6">
+                                    <i class="fas fa-video text-3xl text-[#2d92b3]"></i>
+                                    <span class="text-sm text-[#2d92b3]">Video already added</span>
                                 </div>
                                 <button
-                                    class="view_note flex items-center justify-center gap-2 px-4 py-2 mt-2 border-2 border-purple-500 text-purple-500 rounded-lg shadow hover:bg-purple-600 hover:text-white transition focus:outline-none focus:ring-2  w-full"
+                                    class="view_note flex items-center justify-center gap-2 px-4 py-2 mt-2 border-2 border-[#2d92b3] text-[#2d92b3] rounded-lg shadow hover:bg-[#133a59] hover:text-white transition focus:outline-none focus:ring-2  w-full"
                                     data-id="{{ $item->appointment_uid }}" onclick="activateNote(this)">
                                     <i class="fas fa-play"></i>
                                     View Note
@@ -58,7 +58,7 @@
                                 @csrf
                                 <input type="hidden" name="appointment_uid" value="{{ $item->appointment_uid }}">
                                 <label
-                                    class="flex flex-col items-center px-4 py-6 bg-gray-50 text-purple-500 rounded-lg shadow-inner tracking-wide uppercase border border-purple-200 cursor-pointer hover:bg-purple-100 transition group-focus-within:ring-2 group-focus-within:ring-purple-400">
+                                    class="flex flex-col items-center px-4 py-6 bg-gray-50 text-[#2d92b3] rounded-lg shadow-inner tracking-wide uppercase border border-blue-200 cursor-pointer hover:bg-blue-100 transition group-focus-within:ring-2 group-focus-within:ring-[#133a59]">
                                     <i class="fas fa-cloud-upload-alt text-3xl mb-2"></i>
                                     <span class="text-sm leading-tight">Select a video file</span>
                                     <input type="file" name="video_file" class="hidden" required accept="video/*"
@@ -66,11 +66,11 @@
                                 </label>
                                 <div data-appid="{{ $item->appointment_uid }}"
                                     class="hidden items-center gap-2 p-2 bg-gray-100 rounded">
-                                    <i class="fas fa-video text-purple-500"></i>
+                                    <i class="fas fa-video text-[#2d92b3]"></i>
                                     <span class="text-sm truncate"></span>
                                 </div>
                                 <button type="submit"
-                                    class="flex items-center justify-center gap-2 px-4 py-2 mt-2 bg-purple-500 text-white rounded-lg shadow hover:bg-purple-600 transition focus:outline-none focus:ring-2 focus:ring-purple-400">
+                                    class="flex items-center justify-center gap-2 px-4 py-2 mt-2 bg-[#2d92b3] text-white rounded-lg shadow hover:bg-[#133a59] transition focus:outline-none focus:ring-2 focus:ring-[#133a59]">
                                     <i class="fas fa-upload"></i>
                                     <span>Upload File</span>
                                     <div class="spinner hidden ml-2">
@@ -138,12 +138,12 @@
                             @csrf
                             <input type="hidden" name="notetaker_id" class="notetaker_id" value="">
                             <div
-                                class="flex items-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:outline-none overflow-hidden">
+                                class="flex items-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#133a59] focus:outline-none overflow-hidden">
                                 <input type="text" name="note"
                                     class="flex-1 px-4 py-3 text-sm bg-white shadow-sm placeholder-gray-400 focus:border-none focus:outline-none"
                                     placeholder="Type your note here..." required>
                                 <button type="submit"
-                                    class="inline-flex items-center px-4 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-r-lg shadow hover:from-purple-600 hover:to-indigo-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm lg:text-md">
+                                    class="inline-flex items-center px-4 py-3 bg-gradient-to-r from-[#2d92b3] to-indigo-500 text-white font-semibold rounded-r-lg shadow hover:from-[#133a59] hover:to-indigo-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#133a59] text-sm lg:text-md">
                                     <i class="fas fa-plus mr-2 hidden lg:block"></i>
                                     Add Note
                                 </button>
@@ -168,8 +168,8 @@
         function activateNote(passedThis) {
             let selectedAppointmentID = $(passedThis).attr('data-id');
             $(".appintmentID").html(selectedAppointmentID);
-            $(".item").removeClass("border-purple-500").addClass('border-gray-200');
-            $(passedThis).closest(".item").addClass("border-purple-500").removeClass('border-gray-200');
+            $(".item").removeClass("border-[#2d92b3]").addClass('border-gray-200');
+            $(passedThis).closest(".item").addClass("border-[#2d92b3]").removeClass('border-gray-200');
             $(".removing_link").attr('href', '/provider/remove-note/' + selectedAppointmentID);
             $("#transcript").html('');
 
@@ -270,8 +270,8 @@
                 // Show video icon
                 const $videoIcon = $fileInfoDiv.find('i');
                 $videoIcon.removeClass().addClass(file.type.includes('video') ?
-                    'fas fa-video text-purple-500' :
-                    'fas fa-file-video text-purple-500');
+                    'fas fa-video text-[#2d92b3]' :
+                    'fas fa-file-video text-[#2d92b3]');
             }
         }
 

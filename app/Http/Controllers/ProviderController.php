@@ -53,6 +53,7 @@ class ProviderController extends Controller
         $random_otp = rand(111111, 999999);
 
         $check = Provider::where('email', $email)->first();
+
         if ($check) {
             return response()->json([
                 'type' => 'error',
@@ -149,7 +150,7 @@ class ProviderController extends Controller
         $year = date('y');
         $month = date('m');
         $count = Provider::whereRaw("DATE_FORMAT(created_at, '%y%m') = ?", [$year . $month])->count() + 1;
-        $provider_id = sprintf('PR%s%s%03d', $year, $month, $count);
+        $provider_id = sprintf('PR%s%s%04d', $year, $month, $count);
 
         $check = Provider::where('email', $email)->first();
         if ($check) {
@@ -205,6 +206,10 @@ class ProviderController extends Controller
             'notification' => 'Account creation successful. You assigned to ' . $pod_name_with_pod . ' as a ' . $roleLabels[$provider_role] . '.',
         ]);
 
+        $last_login = Provider::where('email', $email)->update([
+            'last_logged_in' => now(),
+        ]);
+
         Auth::guard('provider')->login($provider);
         $request->session()->regenerate();
 
@@ -238,6 +243,9 @@ class ProviderController extends Controller
 
         if ($provider) {
             if (password_verify($request->password, $provider->password)) {
+                $last_login = Provider::where('email', $request->email)->update([
+                    'last_logged_in' => now(),
+                ]);
                 Auth::guard('provider')->login($provider);
                 $request->session()->regenerate();
                 return redirect('/provider/dashboard')->with('success', 'Login successful!');

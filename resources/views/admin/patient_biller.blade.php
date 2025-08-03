@@ -5,6 +5,11 @@
 
 @section('styles')
     <style>
+        .patinet_biller {
+            font-weight: 500;
+            color: #000000;
+        }
+
         .claim-card {
             transition: all 0.2s ease;
         }

@@ -55,7 +55,7 @@
                 </div>
             </a>
             <div class="relative group">
-                <a href="{{ route('provider.account') }}">
+                <div onclick="showAccountInfo(this)">
                     <div
                         class="w-[46px] h-[46px] rounded-lg flex justify-center items-center hover:bg-slate-200 overflow-hidden account_nav cursor-pointer">
                         @php
@@ -65,9 +65,9 @@
                         @endphp
                         <img src="{{ $src }}" class="object-cover w-full h-full" alt="">
                     </div>
-                </a>
+                </div>
                 <div
-                    class="absolute right-0 top-12 z-20 hidden min-w-[250px] bg-white rounded-lg shadow-lg group-hover:block group-focus:block py-4 px-4">
+                    class="absolute right-0 top-12 z-20 hidden min-w-[250px] bg-white rounded-lg shadow-lg show_account_info group-focus:block py-4 px-4">
                     <div class="flex items-center gap-3 pb-3 border-b border-slate-100 mb-3">
                         <img src="{{ $src }}" class="w-12 h-12 rounded-full object-cover" alt="">
                         <div class="flex flex-col">
@@ -159,4 +159,11 @@
             '<i class="fas fa-times"></i>' :
             '<i class="fas fa-bars"></i>';
     });
+
+
+
+    
+    function showAccountInfo(){
+        $(".show_account_info").toggleClass("hidden");
+    }
 </script>

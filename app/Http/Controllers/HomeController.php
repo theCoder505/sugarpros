@@ -17,6 +17,7 @@ use App\Models\Reviews;
 use App\Models\SelPaymentForm;
 use App\Models\Service;
 use App\Models\Settings;
+use App\Models\SubscriptionPlan;
 use App\Models\SugarprosAIChat;
 use App\Models\User;
 use App\Models\UserDetails;
@@ -226,7 +227,24 @@ class HomeController extends Controller
         $fname = UserDetails::where('user_id', $userID)->value('fname');
         $lname = UserDetails::where('user_id', $userID)->value('lname');
         $email = UserDetails::where('user_id', $userID)->value('email');
-        return view('patient.appointment', compact('patient_id', 'fname', 'lname', 'email'));
+        $current_subscription = SubscriptionPlan::where('availed_by_uid', Auth::user()->patient_id)
+            ->whereIn('stripe_status', ['active', 'trialing'])
+            ->first();
+
+        if (!$current_subscription) {
+            return redirect()->route('patient.subscriptions')->with('error', 'You need to have an active subscription to book an appointment.');
+        }
+
+        $prefixcodes = Settings::where('id', 1)->value('prefixcode');
+
+        $this_month_appointments = Appointment::where('patient_id', $patient_id)
+            ->whereBetween('created_at', [
+                now()->startOfMonth(),
+                now()->endOfMonth()
+            ])
+            ->count();
+
+        return view('patient.appointment', compact('patient_id', 'fname', 'lname', 'email', 'this_month_appointments', 'prefixcodes'));
     }
 
 
@@ -1132,22 +1150,16 @@ class HomeController extends Controller
 
 
 
-    public function patientPanelDocumentation(){
+    public function patientPanelDocumentation()
+    {
         return view('documentation.patient_api_doc');
     }
 
 
 
 
-    public function providerPanelDocumentation(){
+    public function providerPanelDocumentation()
+    {
         return view('documentation.provider_api_doc');
     }
-
-
-
-
-
-
-
-
 }

@@ -30,6 +30,7 @@ class User extends Authenticatable implements JWTSubject
         'language',
         'hippa_consent',
         'last_logged_in',
+        'last_activity',
     ];
 
     /**

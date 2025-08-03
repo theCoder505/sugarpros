@@ -336,6 +336,9 @@
                                                         'last_logged_in' => $patient->last_logged_in
                                                             ? \Carbon\Carbon::parse($patient->last_logged_in)->format('g.iA jS M, Y')
                                                             : 'N/A',
+                                                        'last_activity' => $patient->last_activity
+                                                            ? \Carbon\Carbon::parse($patient->last_activity)->format('g.iA jS M, Y')
+                                                            : 'N/A',
                                                         'upcoming_appointments' => $appointments->where('patient_id', $patient->patient_id)->where('status', 0)->filter(function ($appt) {
                                                                 return \Carbon\Carbon::parse($appt->date)->isFuture();
                                                             })->count(),
@@ -387,7 +390,24 @@
                                             </td>
                                         @endif
                                     @empty
+                                        <td>N/A</td>
+                                        <td>N/A</td>
+                                        <td>N/A</td>
+                                        <td>N/A</td>
+                                        <td>
+                                            <p class="bg-red-100 px-2 py-1 rounded-full text-red-500 border border-red-500 text-center">Incomplete</p>
+                                        </td>
                                     @endforelse
+
+                                    @if ($patientDetails->isEmpty() || !$patientDetails->contains('user_id', $patient->id))
+                                        <td>N/A</td>
+                                        <td>N/A</td>
+                                        <td>N/A</td>
+                                        <td>N/A</td>
+                                        <td>
+                                            <p class="bg-red-100 px-2 py-1 rounded-full text-red-500 border border-red-500 text-center">Incomplete</p>
+                                        </td>
+                                    @endif
                                 </tr>
                             @empty
                                 <tr>

@@ -22,14 +22,14 @@
 
         <div class="items-center hidden space-x-4 md:flex">
             <div class="relative group">
-                <a href="/admin/settings">
+                <div onclick="showAccountInfo(this)">
                     <div
                         class="w-[46px] h-[46px] rounded-lg flex justify-center items-center hover:bg-slate-200 overflow-hidden account_nav cursor-pointer">
                         <img src="{{ $brandicon }}" class="border-1 p-1 w-full h-full" alt="">
                     </div>
-                </a>
+                </div>
                 <div
-                    class="absolute right-0 top-12 z-20 hidden min-w-[250px] bg-white rounded-lg shadow-lg group-hover:block group-focus:block py-4 px-4">
+                    class="absolute right-0 top-12 z-20 hidden min-w-[250px] bg-white rounded-lg shadow-lg show_account_info group-focus:block py-4 px-4">
                     <div class="flex items-center gap-3 pb-3 border-b border-slate-100 mb-3">
                         <img src="{{ $brandicon }}" class="w-12 h-12 rounded-full border p-1" alt="">
                         <div class="flex flex-col">
@@ -55,7 +55,8 @@
                         class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">FAQs</a>
                     <a href="/admin/settings"
                         class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Website Settings</a>
-                    <a href="/admin/logout" class="block px-2 py-2 text-red-600 rounded hover:bg-slate-100 transition">Logout</a>
+                    <a href="/admin/logout"
+                        class="block px-2 py-2 text-red-600 rounded hover:bg-slate-100 transition">Logout</a>
                 </div>
             </div>
         </div>
@@ -98,3 +99,11 @@
         </div>
     </div>
 </header>
+
+
+
+<script>
+    function showAccountInfo() {
+        $(".show_account_info").toggleClass("hidden");
+    }
+</script>

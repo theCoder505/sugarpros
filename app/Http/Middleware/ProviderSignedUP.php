@@ -20,7 +20,7 @@ class ProviderSignedUP
         if (Auth::guard('provider')->check()) {
             $userID = Auth::guard('provider')->user()->provider_id;
             Provider::where('provider_id', $userID)->update([
-                'last_logged_in' => now()
+                'last_activity' => now()
             ]);
             return $next($request);
         } else {

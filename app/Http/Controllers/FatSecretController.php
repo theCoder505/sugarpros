@@ -361,4 +361,14 @@ class FatSecretController extends Controller
         
         return $this->searchFoodsHandler($request->merge(['search' => $randomTerm]));
     }
+
+    public function getSnacksFoods(Request $request)
+    {
+        $snackTerms = ['snack', 'chips', 'fruit', 'yogurt', 'nuts', 'popcorn'];
+        $randomTerm = $snackTerms[array_rand($snackTerms)];
+
+        return $this->searchFoodsHandler($request->merge(['search' => $randomTerm]));
+    }
+
+
 }

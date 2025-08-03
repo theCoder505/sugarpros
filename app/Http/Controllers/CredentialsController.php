@@ -24,7 +24,7 @@ class CredentialsController extends Controller
         $mobile = '23432432432423';
         $random_otp = '123456';
         $brandname = 'SugarPros';
-        
+
         $data = [
             'username' => $username,
             'prefix_code' => $prefix_code,
@@ -239,6 +239,9 @@ class CredentialsController extends Controller
                     ]);
 
                     $user = User::where('email', $email)->first();
+                    $login_time = User::where('email', $email)->update([
+                        'last_logged_in' => now(),
+                    ]);
                     Auth::login($user);
                     return redirect('/dashboard')->with('success', 'Loggedin Successfully!');
 
@@ -267,6 +270,9 @@ class CredentialsController extends Controller
             $user_password = User::where('email', $email)->value('password');
             if (password_verify($password, $user_password)) {
                 $user = User::where('email', $email)->first();
+                $login_time = User::where('email', $email)->update([
+                    'last_logged_in' => now(),
+                ]);
                 Auth::login($user);
                 return redirect('/dashboard')->with('success', 'Loggedin Successfully!');
             } else {

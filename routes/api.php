@@ -138,12 +138,12 @@ Route::middleware(['api', 'jwt.patient'])->get('/connect-dexcom', [PatientDexcom
 Route::middleware(['api', 'jwt.patient'])->get('/dexcom-callback', [PatientDexcomController::class, 'handleDexcomCallback']);
 
 // FatSecret API | Search foods
-Route::middleware(['api', 'jwt.patient'])->get('/fat-secret', [PatientFatSecretController::class, 'FatSecret']);
-Route::middleware(['api', 'jwt.patient'])->get('/fat-secret/search', [PatientFatSecretController::class, 'getFoods']);
-Route::middleware(['api', 'jwt.patient'])->get('/fat-secret/food/{foodId}', [PatientFatSecretController::class, 'getFoodDetails']);
-Route::middleware(['api', 'jwt.patient'])->get('/fat-secret/breakfast', [PatientFatSecretController::class, 'getBreakfastFoods']);
-Route::middleware(['api', 'jwt.patient'])->get('/fat-secret/lunch', [PatientFatSecretController::class, 'getLunchFoods']);
-Route::middleware(['api', 'jwt.patient'])->get('/fat-secret/dinner', [PatientFatSecretController::class, 'getDinnerFoods']);
+Route::middleware(['api', 'jwt.patient'])->get('/nutrition-tracker', [PatientFatSecretController::class, 'FatSecret']);
+Route::middleware(['api', 'jwt.patient'])->get('/nutrition-tracker/search', [PatientFatSecretController::class, 'getFoods']);
+Route::middleware(['api', 'jwt.patient'])->get('/nutrition-tracker/food/{foodId}', [PatientFatSecretController::class, 'getFoodDetails']);
+Route::middleware(['api', 'jwt.patient'])->get('/nutrition-tracker/breakfast', [PatientFatSecretController::class, 'getBreakfastFoods']);
+Route::middleware(['api', 'jwt.patient'])->get('/nutrition-tracker/lunch', [PatientFatSecretController::class, 'getLunchFoods']);
+Route::middleware(['api', 'jwt.patient'])->get('/nutrition-tracker/dinner', [PatientFatSecretController::class, 'getDinnerFoods']);
 
 
 

@@ -281,7 +281,7 @@
                                                                 $statusText = 'You Absented';
                                                                 $statusClass = 'missed';
                                                             } else {
-                                                                $statusText = 'Did not set meeting';
+                                                                $statusText = 'Pending Approval meeting';
                                                                 $statusClass = 'unset';
                                                             }
                                                         }
@@ -364,7 +364,7 @@
                     'active': 'Waiting To Start|Started|Grace Period \\(1hr\\)',
                     'upcoming': 'Upcoming',
                     'missed': 'You Absented',
-                    'unset': 'Did not set meeting',
+                    'unset': 'Pending Approval meeting',
                     'complete': 'Completed'
                 };
 

@@ -235,7 +235,7 @@
                                 <tr>
                                     <th class="px-1 py-4 font-normal">Serial</th>
                                     <th class="px-1 py-4 font-normal">Provider ID</th>
-                                    <th class="px-1 py-4 font-normal">POD</th>
+                                    <th class="px-1 py-4 font-normal">Change POD</th>
                                     <th class="px-1 py-4 font-normal">Username</th>
                                     <th class="px-1 py-4 font-normal">Since</th>
                                     <th class="px-1 py-4 font-normal">
@@ -257,7 +257,14 @@
                                     <tr class="border-b border-[#000000]/10 mb-3">
                                         <td class="px-1 py-4">{{ $key + 1 }}</td>
                                         <td class="px-1 py-4">{{ $provider->provider_id }}</td>
-                                        <td class="px-1 py-4 w-[50px]">{{ $provider->pod_name }}</td>
+                                        <td class="px-1 py-4 w-[170px]">
+                                            <form action="/admin/change-pod" method="post">
+                                                @csrf
+                                                <input type="hidden" name="provider_id" value="{{ $provider->provider_id }}">
+                                                <input type="text" class="border-1 rounded px-2 py-1 w-full text-center" name="new_pod" value="{{ $provider->pod_name }}">
+                                                <button class="bg-[#133a59] text-white rounded-full px-2 py-1 w-full mt-2 text-sm">Change</button>
+                                            </form>
+                                        </td>
                                         <td class="px-1 py-4 w-[120px]">
                                             <span class="w-[120px] text-wrap capitalize">{{ $provider->name }}</span>
                                         </td>
@@ -282,7 +289,12 @@
                                                     'language' => $provider->language,
                                                     'profile_picture' => $provider->profile_picture,
                                                     'created_at' => \Carbon\Carbon::parse($provider->created_at)->format('jS M, Y'),
-                                                    'last_logged_in' => $provider->last_logged_in ? \Carbon\Carbon::parse($provider->last_logged_in)->format('g.iA jS M, Y') : 'N/A',
+                                                    'last_logged_in' => $provider->last_logged_in
+                                                        ? \Carbon\Carbon::parse($provider->last_logged_in)->format('g.iA jS M, Y')
+                                                        : 'N/A',
+                                                    'last_activity' => $provider->last_activity
+                                                        ? \Carbon\Carbon::parse($provider->last_activity)->format('g.iA jS M, Y')
+                                                        : 'N/A',
                                                     'upcoming_appointments' => $appointments->where('provider_id', $provider->provider_id)->where('status', 0)->filter(function ($appt) {
                                                             return \Carbon\Carbon::parse($appt->date)->isFuture();
                                                         })->count(),
@@ -440,7 +452,8 @@
                     </div>
                 
                     <div class="mt-6">
-                        <p class="text-sm mb-2"><span class="font-semibold">Last Activity:</span> ${providerData.last_logged_in}</p>
+                        <p class="text-sm mb-2"><span class="font-semibold">Last Login:</span> ${providerData.last_logged_in}</p>
+                        <p class="text-sm mb-2"><span class="font-semibold">Last Activity:</span> ${providerData.last_activity}</p>
                     </div>
                 `;
 

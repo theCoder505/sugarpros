@@ -268,7 +268,7 @@
 
                             <!-- Action Buttons -->
                             <div class="flex flex-wrap gap-3 mt-6">
-                                <a href="/patient/show-appointment/{{ $prescription->appointment_uid }}"
+                                <a href="/appointments/{{ $prescription->appointment_uid }}"
                                     class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
                                     <i class="fas fa-calendar-alt"></i> View Appointment
                                 </a>
@@ -308,7 +308,7 @@
                         <div class="flex gap-3">
                             <a href="/chats"
                                 class="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1">
-                                <i class="fas fa-message"></i> Chat with Support
+                                <i class="fas fa-message"></i> Message A Provider
                             </a>
                         </div>
                     </div>

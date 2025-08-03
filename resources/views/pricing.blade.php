@@ -49,8 +49,8 @@
             </p>
         </div>
 
-        <div class="gap-4 mx-auto md:flex max-w-8xl">
-            <div class="bg-slate-50 mx-auto max-w-[320px] rounded-xl p-6 flex flex-col justify-between"
+        <div class="gap-4 mx-auto md:flex max-w-8xl justify-center">
+            <div class="bg-slate-50 rounded-xl p-6 flex flex-col justify-between"
                 style="box-shadow: 0px 14px 84px 0px #0000001F;">
                 <div>
                     <h3 class="mb-2 text-2xl font-semibold text-font_color">For Medicare Patients</h3>
@@ -81,8 +81,21 @@
             <div class="hidden max-w-5xl overflow-hidden bg-white shadow rounded-xl md:block"
                 style="border: 1px solid #D1D5DC;">
                 <div class="p-6 border-b border-gray-300">
-                    <h3 class="text-[24px] font-semibold text-font_color">Subscription Plans (Self-Pay)</h3>
-                    <p class="mt-1 text-sm text-gray-800">CHOOSE THE PLAN THAT FITS YOUR NEEDS:</p>
+                    <div class="block md:flex justify-between items-end">
+                        <div class="plan_left_box">
+                            <h3 class="text-[24px] font-semibold text-font_color">Subscription Plans (Self-Pay)</h3>
+                            <p class="mt-1 text-sm text-gray-800">CHOOSE THE PLAN THAT FITS YOUR NEEDS:</p>
+                        </div>
+                        <div class="plan_right_box">
+                            <div class="inline-block bg-slate-50 p-1 rounded-full overflow-hidden">
+                                <button class="common_option active_option" onclick="subscriptionPlan(this)"
+                                    data-plan="monthly">Monthly</button>
+                                <button class="common_option" onclick="subscriptionPlan(this)"
+                                    data-plan="annually">Annually</button>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
                 <div class="mx-4 overflow-x-auto">
                     <table class="min-w-full text-[16px] text-left">
@@ -96,18 +109,21 @@
                         </thead>
 
                         <tbody class="border-gray-300 text-slate-600">
-                            <tr class="border-b border-gray-300">
+                            <tr class="border-b border-gray-300 monthlyPlans">
                                 <td class="px-4 py-3 font-medium border-r border-gray-300">Monthly</td>
                                 <td class="px-4 py-3 border-r border-gray-300">$99</td>
                                 <td class="px-4 py-3 border-r border-gray-300">$149</td>
                                 <td class="px-4 py-3 ">$199</td>
                             </tr>
-                            <tr class="border-b border-gray-300">
-                                <td class="px-4 py-3 font-medium border-r border-gray-300">Annual (Save 10%)</td>
-                                <td class="px-4 py-3 border-r border-gray-300">$1,069</td>
-                                <td class="px-4 py-3 border-r border-gray-300">$1,609</td>
-                                <td class="px-4 py-3">$2,149</td>
+
+                            <tr class="border-b border-gray-300 hidden annuallyPlans">
+                                <td class="px-4 py-3 font-medium border-r border-gray-300">Annually</td>
+                                <td class="px-4 py-3 border-r border-gray-300">$1,089</td>
+                                <td class="px-4 py-3 border-r border-gray-300">$1,639</td>
+                                <td class="px-4 py-3">$2,189</td>
                             </tr>
+
+
                             <tr class="border-b border-gray-300">
                                 <td class="px-4 py-3 font-medium border-r border-gray-300">Best For</td>
                                 <td class="px-4 py-3 border-r border-gray-300">Maintenance care</td>
@@ -118,8 +134,26 @@
 
 
                             <tr class="align-top border-gray-200">
-                                <td class="px-4 py-3 font-medium border-r border-gray-300">
+                                <td class="px-4 py-3 font-medium border-r border-gray-300 align-top"
+                                    style="vertical-align: top;">
                                     Whats Included
+
+                                    <div class="relative h-full min-h-[215px]">
+                                        <div class="absolute bottom-0 left-0 w-full float_bottom">
+                                            <div
+                                                class="one_time_service w-full bg-[#298AAB1A]/10 text-[#133A59] px-2 py-2 rounded-md border border-[#298AAB4D]/30 text-[15px]">
+                                                <p class="font-semibold text-md">One Time</p>
+                                                <p class="font-normal text-sm">service flat fee</p>
+
+                                                <div class="font-semibold text-md mt-2">$249</div>
+
+                                                <a href="/subscription/one-time-service"
+                                                    class="mt-8 bg-white text-gray-800 text-lg py-2 rounded-xl w-full block text-center">
+                                                    Buy
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
 
                                 <td class="px-4 py-3 align-top border-r border-gray-300">
@@ -130,8 +164,12 @@
                                             <li>Basic lab review</li>
                                         </ul>
                                         <div class="mt-4">
-                                            <button
-                                                class="w-full bg-[#298AAB1A]/10 text-[#133A59] px-2 py-2 rounded-md border border-[#298AAB4D]/30 text-[15px]">
+                                            <button onclick="continueMonthlyPlan('Basic')"
+                                                class="w-full bg-[#298AAB1A]/10 text-[#133A59] px-2 py-2 rounded-md border border-[#298AAB4D]/30 text-[15px] monthlyPlans">
+                                                Continue with Basic
+                                            </button>
+                                            <button onclick="continueAnnuallyPlan('Basic')"
+                                                class="w-full bg-[#298AAB1A]/10 text-[#133A59] px-2 py-2 rounded-md border border-[#298AAB4D]/30 text-[15px] hidden annuallyPlans">
                                                 Continue with Basic
                                             </button>
                                         </div>
@@ -147,8 +185,12 @@
                                             <li>Urgent care messaging</li>
                                         </ul>
                                         <div class="mt-4">
-                                            <button
-                                                class="w-full bg-[#298AAB1A]/10 text-[#133A59] px-2 py-2 rounded-md border border-[#298AAB4D]/30 text-[15px]">
+                                            <button onclick="continueMonthlyPlan('Premium')"
+                                                class="w-full bg-[#298AAB1A]/10 text-[#133A59] px-2 py-2 rounded-md border border-[#298AAB4D]/30 text-[15px] monthlyPlans">
+                                                Continue with Premium
+                                            </button>
+                                            <button onclick="continueAnnuallyPlan('Premium')"
+                                                class="w-full bg-[#298AAB1A]/10 text-[#133A59] px-2 py-2 rounded-md border border-[#298AAB4D]/30 text-[15px] hidden annuallyPlans">
                                                 Continue with Premium
                                             </button>
                                         </div>
@@ -164,8 +206,12 @@
                                             <li>Dedicated care coordinator</li>
                                         </ul>
                                         <div class="mt-4">
-                                            <button
-                                                class="w-full bg-[#298AAB1A]/10 text-[#133A59] px-2 py-2 rounded-md border border-[#298AAB4D]/30 text-[15px]">
+                                            <button onclick="continueMonthlyPlan('VIP')"
+                                                class="w-full bg-[#298AAB1A]/10 text-[#133A59] px-2 py-2 rounded-md border border-[#298AAB4D]/30 text-[15px] monthlyPlans">
+                                                Continue with VIP
+                                            </button>
+                                            <button onclick="continueAnnuallyPlan('VIP')"
+                                                class="w-full bg-[#298AAB1A]/10 text-[#133A59] px-2 py-2 rounded-md border border-[#298AAB4D]/30 text-[15px] hidden annuallyPlans">
                                                 Continue with VIP
                                             </button>
                                         </div>
@@ -367,7 +413,7 @@
 
 
 
-    <section class="bg-[#0e3757] md:rounded-2xl   md:mx-16 md:my-12 overflow-hidden">
+    <section class="bg-[#0e3757] md:rounded-2xl md:mx-16 md:my-12 overflow-hidden">
         <div class="grid items-center grid-cols-1 gap-8 py-8 mx-auto max-w-7xl md:py-0 md:grid-cols-2">
 
             <div class="p-4 text-white max-w-1/2 md:p-8">
@@ -396,4 +442,27 @@
 
 @section('script')
 
+    <script>
+        function subscriptionPlan(passedThis) {
+            var plan = passedThis.getAttribute('data-plan');
+            $(passedThis).addClass('active_option').siblings().removeClass('active_option');
+
+            if (plan === 'monthly') {
+                $('.monthlyPlans').removeClass('hidden');
+                $('.annuallyPlans').addClass('hidden');
+            } else if (plan === 'annually') {
+                $('.annuallyPlans').removeClass('hidden');
+                $('.monthlyPlans').addClass('hidden');
+            }
+        }
+
+
+        function continueMonthlyPlan(plan) {
+            alert('Choosen Monthly Plan Is: ' + plan);
+        }
+
+        function continueAnnuallyPlan(plan) {
+            alert('Choosen Annually Plan Is: ' + plan);
+        }
+    </script>
 @endsection

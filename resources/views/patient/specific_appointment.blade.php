@@ -11,7 +11,7 @@
     <style>
         /* Base Styles */
         .appointment-header {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            background: linear-gradient(135deg, #2d92b3, #133a59);
             color: white;
         }
 
@@ -51,7 +51,7 @@
 
         .badge-primary {
             background-color: #e0e7ff;
-            color: #4f46e5;
+            color: #2889aa;
         }
 
         .badge-success {
@@ -101,7 +101,7 @@
             width: 0.75rem;
             height: 0.75rem;
             border-radius: 50%;
-            background-color: #4f46e5;
+            background-color: #2889aa;
         }
 
         .note-content {
@@ -125,7 +125,7 @@
             justify-content: center;
             border-radius: 50%;
             background-color: #e0e7ff;
-            color: #4f46e5;
+            color: #2889aa;
         }
 
         .test-icon {
@@ -155,8 +155,12 @@
 
         .rx-symbol {
             font-size: 2.5rem;
-            color: #4f46e5;
-            font-family: serif;
+            color: #2889aa;
+            /* font-family: serif; */
+        }
+
+        .text-indigo-600 {
+            color: #2889aa;
         }
     </style>
 @endsection
@@ -176,7 +180,11 @@
                                 $status = $appointment['appointmentData'][0]->status;
                                 $meetLink = $appointment['appointmentData'][0]->meet_link;
 
-                                $appointmentDateTime = \Carbon\Carbon::parse($appointment['appointmentData'][0]->date . ' ' . $appointment['appointmentData'][0]->time);
+                                $appointmentDateTime = \Carbon\Carbon::parse(
+                                    $appointment['appointmentData'][0]->date .
+                                        ' ' .
+                                        $appointment['appointmentData'][0]->time,
+                                );
                                 $gracePeriodEnd = $appointmentDateTime->copy()->addHour();
                             @endphp
 
@@ -202,7 +210,7 @@
                                         </span>
                                     @else
                                         <span class="badge badge-danger">
-                                            <i class="fas fa-times-circle mr-1"></i> Did Not Set
+                                            <i class="fas fa-times-circle mr-1"></i> Pending Approval
                                         </span>
                                     @endif
                                 @endif
@@ -224,14 +232,26 @@
                         </div>
                     </div>
                     <div class="flex gap-3">
-                        <a href="/join-meeting/{{ $appointment['appointmentData'][0]->appointment_uid }}" target="_blank"
-                            class="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded hover:bg-indigo-50 transition">
-                            <i class="fas fa-video"></i> Join Meeting
-                        </a>
-                        <button onclick="window.print()"
-                            class="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded hover:bg-indigo-50 transition">
-                            <i class="fas fa-download"></i> Export Summary
-                        </button>
+                        @if ($appointment['appointmentData'][0]->provider_id == null)
+                            <a href="/chats"
+                                class="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded hover:bg-indigo-50 transition">
+                                <i class="fas fa-message"></i> Message A Provider
+                            </a>
+                        @else
+                            <a href="/send-to-chats/provider/{{ $appointment['appointmentData'][0]->provider_id }}"
+                                class="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded hover:bg-indigo-50 transition">
+                                <i class="fas fa-message"></i> Message Provider
+                            </a>
+                            <a href="/join-meeting/{{ $appointment['appointmentData'][0]->appointment_uid }}"
+                                target="_blank"
+                                class="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded hover:bg-indigo-50 transition">
+                                <i class="fas fa-video"></i> Join
+                            </a>
+                            <button onclick="window.print()"
+                                class="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded hover:bg-indigo-50 transition">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        @endif
                     </div>
                 </div>
             </div>

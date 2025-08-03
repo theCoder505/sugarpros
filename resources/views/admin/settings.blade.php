@@ -165,12 +165,6 @@
                     </div>
                     <div class="settings-body grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Stripe Amount</label>
-                            <input type="number" step="0.01" name="stripe_amount"
-                                value="{{ $settings->stripe_amount ?? '' }}"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
-                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Stripe Client ID</label>
                             <input type="text" name="stripe_client_id" value="{{ $settings->stripe_client_id ?? '' }}"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
@@ -181,12 +175,123 @@
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">One Time Service Flat Fee</label>
+                            <input type="number" step="0.01" name="stripe_amount"
+                                value="{{ $settings->stripe_amount ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Medicare Amount</label>
+                            <input type="number" step="0.01" name="medicare_amount"
+                                value="{{ $settings->medicare_amount ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        {{-- <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Subscription Key</label>
                             <input type="text" name="subscription_key" value="{{ $settings->subscription_key ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div> --}}
+                    </div>
+                </div>
+
+
+
+
+
+                <div class="settings-card">
+                    <div class="settings-header">
+                        <h2 class="text-lg font-semibold text-gray-800">Stripe Monthly Plans</h2>
+                    </div>
+                    <div class="settings-body grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Basic Package Amount</label>
+                            <input type="number" step="0.01" name="monthly_basic_amount"
+                                value="{{ $settings->monthly_basic_amount ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Basic Package Price Key</label>
+                            <input type="text" name="monthly_basic_price_key" value="{{ $settings->monthly_basic_price_key ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+                    <div class="settings-body grid grid-cols-1 md:grid-cols-2 gap-6 border-t-2 border-b-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Premium Package Amount</label>
+                            <input type="number" step="0.01" name="monthly_premium_amount"
+                                value="{{ $settings->monthly_premium_amount ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Premium Package Price Key</label>
+                            <input type="text" name="monthly_premium_price_key" value="{{ $settings->monthly_premium_price_key ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+                    <div class="settings-body grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">VIP Package Amount</label>
+                            <input type="number" step="0.01" name="monthly_vip_amount"
+                                value="{{ $settings->monthly_vip_amount ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">VIP Package Price Key</label>
+                            <input type="text" name="monthly_vip_price_key" value="{{ $settings->monthly_vip_price_key ?? '' }}"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                     </div>
                 </div>
+
+
+                <div class="settings-card">
+                    <div class="settings-header">
+                        <h2 class="text-lg font-semibold text-gray-800">Stripe Annual Plans</h2>
+                    </div>
+                    <div class="settings-body grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Basic Package Amount</label>
+                            <input type="number" step="0.01" name="annual_basic_amount"
+                                value="{{ $settings->annual_basic_amount ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Basic Package Price Key</label>
+                            <input type="text" name="annual_basic_price_key" value="{{ $settings->annual_basic_price_key ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+                    <div class="settings-body grid grid-cols-1 md:grid-cols-2 gap-6 border-t-2 border-b-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Premium Package Amount</label>
+                            <input type="number" step="0.01" name="annual_premium_amount"
+                                value="{{ $settings->annual_premium_amount ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Premium Package Price Key</label>
+                            <input type="text" name="annual_premium_price_key" value="{{ $settings->annual_premium_price_key ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+                    <div class="settings-body grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">VIP Package Amount</label>
+                            <input type="number" step="0.01" name="annual_vip_amount"
+                                value="{{ $settings->annual_vip_amount ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">VIP Package Price Key</label>
+                            <input type="text" name="annual_vip_price_key" value="{{ $settings->annual_vip_price_key ?? '' }}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+                </div>
+
+
+
+
 
 
 

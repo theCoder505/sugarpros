@@ -9,6 +9,7 @@ use App\Models\ClinicalNotes;
 use App\Models\ComplianceForm;
 use App\Models\EPrescription;
 use App\Models\FinancialAggreemrnt;
+use App\Models\Notification;
 use App\Models\Provider;
 use App\Models\QuestLab;
 use App\Models\SelPaymentForm;
@@ -238,7 +239,7 @@ class AdminController extends Controller
 
     public function allProviders()
     {
-        $providers = Provider::orderBy('pod_name', 'ASC')->get();
+        $providers = Provider::orderBy('id', 'ASC')->get();
         $totalProviders = Provider::count();
 
 
@@ -253,6 +254,25 @@ class AdminController extends Controller
         return view('admin.provider_records', compact('providers', 'totalProviders', 'appointments', 'virtual_notes', 'clinical_notes', 'eprescriptions', 'questlabs', 'unread_messages'));
     }
 
+
+
+    public function changeProvidersPOD(Request $request)
+    {
+        $provider_id = $request['provider_id'];
+        $new_pod = $request['new_pod'];
+
+        $update = Provider::where('provider_id', $provider_id)->update([
+            'pod_name' => $new_pod,
+        ]);
+
+        Notification::insert([
+            'user_id' => $provider_id,
+            'user_type' => 'provider',
+            'notification' => 'Admin assigned you to a new POD. Which is POD ' . $new_pod,
+        ]);
+
+        return redirect()->back()->with('success', 'Provider ' . $provider_id . ' POD changed to POD ' . $new_pod);
+    }
 
 
     public function newProvider()

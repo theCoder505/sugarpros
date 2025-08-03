@@ -11,4 +11,12 @@
     .active_tab{
         @apply text-[15px] bg-[#FF6400] font-semibold rounded-[21px] py-2 text-white hover:bg-opacity-90;
     }
+
+    .common_option{
+        @apply bg-white px-6 py-1 rounded-full text-center cursor-pointer
+    }
+
+    .active_option{
+        @apply bg-button_lite text-white font-semibold;
+    }
 }

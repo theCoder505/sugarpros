@@ -3901,7 +3901,7 @@
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method get">GET</span>
-                        <span class="url">/api/fat-secret</span>
+                        <span class="url">/api/nutrition-tracker</span>
                     </div>
                     <div class="endpoint-description">
                         <p>Get FatSecret dashboard data</p>
@@ -3939,7 +3939,7 @@
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method get">GET</span>
-                        <span class="url">/api/fat-secret/search</span>
+                        <span class="url">/api/nutrition-tracker/search</span>
                     </div>
                     <div class="endpoint-description">
                         <p>Search foods in FatSecret database</p>
@@ -4000,7 +4000,7 @@
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method get">GET</span>
-                        <span class="url">/api/fat-secret/food/{foodId}</span>
+                        <span class="url">/api/nutrition-tracker/food/{foodId}</span>
                     </div>
                     <div class="endpoint-description">
                         <p>Get food details from FatSecret</p>
@@ -4072,7 +4072,7 @@
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method get">GET</span>
-                        <span class="url">/api/fat-secret/breakfast</span>
+                        <span class="url">/api/nutrition-tracker/breakfast</span>
                     </div>
                     <div class="endpoint-description">
                         <p>Get breakfast food suggestions</p>
@@ -4087,7 +4087,7 @@
                         <div class="response">
                             <span class="detail-title">Success Response (200):</span>
                             <div class="code-block">
-                                <pre>Same structure as /api/fat-secret/search with breakfast-related items</pre>
+                                <pre>Same structure as /api/nutrition-tracker/search with breakfast-related items</pre>
                             </div>
                         </div>
                     </div>
@@ -4096,7 +4096,7 @@
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method get">GET</span>
-                        <span class="url">/api/fat-secret/lunch</span>
+                        <span class="url">/api/nutrition-tracker/lunch</span>
                     </div>
                     <div class="endpoint-description">
                         <p>Get lunch food suggestions</p>
@@ -4111,7 +4111,7 @@
                         <div class="response">
                             <span class="detail-title">Success Response (200):</span>
                             <div class="code-block">
-                                <pre>Same structure as /api/fat-secret/search with lunch-related items</pre>
+                                <pre>Same structure as /api/nutrition-tracker/search with lunch-related items</pre>
                             </div>
                         </div>
                     </div>
@@ -4120,7 +4120,7 @@
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method get">GET</span>
-                        <span class="url">/api/fat-secret/dinner</span>
+                        <span class="url">/api/nutrition-tracker/dinner</span>
                     </div>
                     <div class="endpoint-description">
                         <p>Get dinner food suggestions</p>
@@ -4135,7 +4135,7 @@
                         <div class="response">
                             <span class="detail-title">Success Response (200):</span>
                             <div class="code-block">
-                                <pre>Same structure as /api/fat-secret/search with dinner-related items</pre>
+                                <pre>Same structure as /api/nutrition-tracker/search with dinner-related items</pre>
                             </div>
                         </div>
                     </div>

@@ -138,7 +138,8 @@
                                 </div>
                             </div>
                             <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                                <a href="/patient/show-appointment/{{$item->appointment_uid}}" class="status-badge status-reviewed bg-slate-700 text-white">
+                                <a href="/appointments/{{ $item->appointment_uid }}"
+                                    class="status-badge status-reviewed bg-slate-700 text-white">
                                     <i class="fas fa-eye mr-1"></i> View Appointment
                                 </a>
                                 <span class="status-badge status-reviewed">
@@ -208,9 +209,9 @@
                         <h3 class="font-medium text-gray-800 mb-1">Need help with your lab results?</h3>
                         <p class="text-sm text-gray-600 mb-2">If you have questions about your test results or need further
                             clarification, please contact with provider.</p>
-                        <a href="recent-chat"
-                            class="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1">
-                            <i class="fas fa-message mr-2"></i>Chat Now
+                        <a href="/chats"
+                            class="text-sm text-indigo-600 font-medium hover:underline flex items-center gap-1">
+                            <i class="fas fa-message"></i> Message A Provider
                         </a>
                     </div>
                 </div>

@@ -9,6 +9,7 @@ use App\Http\Controllers\FatSecretController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PatientClaimsMDController;
 use App\Http\Controllers\PatientsController;
+use App\Http\Controllers\PatientSubscriptionsController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\ProviderWorks;
 use App\Http\Controllers\Settings;
@@ -136,11 +137,19 @@ Route::get('/payment/cancel', [PatientsController::class, 'paymentCancel'])->nam
 
 
 
+// new Patient Subscriptions Pages
+Route::get('/subscriptions', [PatientSubscriptionsController::class, 'subscriptions'])->name('patient.subscriptions')->middleware('patient_loggedin');
+Route::get('/subscription/{recurring_option}/{plan}', [PatientSubscriptionsController::class, 'subscriptionPlan'])->name('patient.subscriptionPlan')->middleware('patient_loggedin');
+Route::post('/complete-subscription', [PatientSubscriptionsController::class, 'completeSubscription'])->name('patient.completeSubscription')->middleware('patient_loggedin');
+Route::get('/subscription/success', [PatientSubscriptionsController::class, 'subscriptionSuccess'])->name('subscription.success');
+Route::get('/subscription/cancel', [PatientSubscriptionsController::class, 'subscriptionCancel'])->name('subscription.cancel');
+// Subscription CRON Job
+Route::get('/subscription/cron-job', [PatientSubscriptionsController::class, 'subscriptionCronJob'])->name('subscription.cronJob');
 
 
 Route::get('/appointments', [HomeController::class, 'appointment_list'])->name('appointment_list')->middleware('patient_loggedin', 'check_if_forms_filled');
 Route::get('/join-meeting/{appointment_uid}', [HomeController::class, 'joinMeeting'])->name('join_meeting')->middleware('patient_loggedin', 'check_if_forms_filled');
-Route::get('/patient/show-appointment/{appointment_uid}', [HomeController::class, 'showSpecificAppointment'])->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/appointments/{appointment_uid}', [HomeController::class, 'showSpecificAppointment'])->middleware('patient_loggedin', 'check_if_forms_filled');
 Route::post('/search-appointments-by-month', [PatientsController::class, 'searchByMonth'])->middleware('patient_loggedin', 'check_if_forms_filled');
 Route::post('/fetch-specific-range-data', [PatientsController::class, 'fetchSpecificRangeData'])->middleware('patient_loggedin', 'check_if_forms_filled');
 
@@ -168,12 +177,13 @@ Route::get('/connect-dexcom', [DexcomController::class, 'redirectToDexcom'])->na
 Route::get('/dexcom-callback', [DexcomController::class, 'handleDexcomCallback']);
 
 // FatSecret API | Search foods
-Route::get('/fat-secret', [FatSecretController::class, 'FatSecret'])->name('fatsecret')->middleware('patient_loggedin', 'check_if_forms_filled');
-Route::get('/fat-secret/search', [FatSecretController::class, 'getFoods'])->name('fatsecret.search');
-Route::get('/fat-secret/food/{foodId}', [FatSecretController::class, 'getFoodDetails'])->name('fatsecret.food.details'); // Get specific food details
-Route::get('/fat-secret/breakfast', [FatSecretController::class, 'getBreakfastFoods'])->name('fatsecret.breakfast'); // Meal-specific searches
-Route::get('/fat-secret/lunch', [FatSecretController::class, 'getLunchFoods'])->name('fatsecret.lunch');
-Route::get('/fat-secret/dinner', [FatSecretController::class, 'getDinnerFoods'])->name('fatsecret.dinner');
+Route::get('/nutrition-tracker', [FatSecretController::class, 'FatSecret'])->name('fatsecret')->middleware('patient_loggedin', 'check_if_forms_filled');
+Route::get('/nutrition-tracker/search', [FatSecretController::class, 'getFoods'])->name('fatsecret.search');
+Route::get('/nutrition-tracker/food/{foodId}', [FatSecretController::class, 'getFoodDetails'])->name('fatsecret.food.details'); // Get specific food details
+Route::get('/nutrition-tracker/breakfast', [FatSecretController::class, 'getBreakfastFoods'])->name('fatsecret.breakfast'); // Meal-specific searches
+Route::get('/nutrition-tracker/lunch', [FatSecretController::class, 'getLunchFoods'])->name('fatsecret.lunch');
+Route::get('/nutrition-tracker/dinner', [FatSecretController::class, 'getDinnerFoods'])->name('fatsecret.dinner');
+Route::get('/nutrition-tracker/snacks', [FatSecretController::class, 'getSnacksFoods'])->name('fatsecret.snacks');
 
 Route::get('/clinical-notes', [HomeController::class, 'ClinicalNotes'])->middleware('patient_loggedin', 'check_if_forms_filled');
 Route::get('/quest-lab', [HomeController::class, 'QuestLab'])->middleware('patient_loggedin', 'check_if_forms_filled');
@@ -468,6 +478,8 @@ Route::get('/admin/get-user-chart-data', [AdminController::class, 'getUserChartD
 
 Route::get('/admin/providers', [AdminController::class, 'allProviders'])->middleware('admin_loggedin');
 
+Route::post('/admin/change-pod', [AdminController::class, 'changeProvidersPOD'])->middleware('admin_loggedin');
+
 Route::get('/admin/new-provider', [AdminController::class, 'newProvider'])->middleware('admin_loggedin');
 
 Route::post('/admin/add-new-provider', [AdminController::class, 'addNewProvider'])->middleware('admin_loggedin');
@@ -574,7 +586,7 @@ Route::options('/admin/claim-md/{any}', function () {
 // ClaimMD Routes
 Route::middleware(['admin_loggedin'])->group(function () {
     // Main interface
-    Route::get('/admin/patient-claims-biller', [PatientClaimsMDController::class, 'patientClaimsBiller']);
+    Route::get('/admin/patient-claims-biller', [PatientClaimsMDController::class, 'patientClaimsBillerAdmin']);
 
     // SDK proxy
     Route::match(['get', 'post'], '/admin/claim-md/proxy', [PatientClaimsMDController::class, 'claimMdProxy'])

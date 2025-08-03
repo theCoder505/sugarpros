@@ -42,7 +42,7 @@
                             <span class="px-3 py-1 rounded-full text-sm font-semibold bg-[#f6028b] text-white">You
                                 Absented</span>
                         @else
-                            <span class="px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800">Did not set
+                            <span class="px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800">Pending Approval
                                 meeting</span>
                         @endif
                     @endif

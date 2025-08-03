@@ -3,6 +3,7 @@
 @section('title', 'appointment-list')
 
 @section('link')
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
 
 @endsection
 
@@ -13,55 +14,72 @@
             color: #000000;
         }
 
-
-        .litepicker {
-            top: 160px !important;
-            right: 160px !important;
-            left: unset !important;
+        .dataTables_wrapper .dataTables_filter input {
+            padding-left: 32px;
+            margin-left: 0;
+            border: none;
+            border-radius: 10px;
+            height: 40px;
+            background: white;
+            min-width: 250px;
         }
 
-        @media (max-width: 720px) {
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_info {
+            padding: 10px 0;
+        }
 
-            .litepicker {
-                top: 252px !important;
-                right: 49px !important;
-                left: unset !important;
-            }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 5px 10px;
+            margin: 0 2px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
 
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #2889AA;
+            color: white !important;
+            border: 1px solid #2889AA;
+        }
+
+        table.dataTable thead th,
+        table.dataTable thead td {
+            padding: 20px;
+            border-bottom: 0px;
+            font-weight: 500;
+            font-size: 1rem;
+            background: #ffffff;
+        }
+
+        table.dataTable tbody td {
+            padding: 1rem;
+            background: #f3f4f6;
+            border-bottom: 1px solid #ddd;
+        }
+
+        table.dataTable.no-footer {
+            border-bottom: none !important;
+        }
+
+        .bottom {
+            padding: 10px 1rem;
+        }
+
+        #appointmentsTable_filter {
+            position: relative;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            border: none;
+            margin-right: 1rem;
         }
 
 
-        .loader {
-            border: 3px solid #999;
-            border-radius: 50%;
-            border-top: 3px solid #fff;
-            width: 3.5rem;
-            height: 3.5rem;
-            -webkit-animation: spin 1s linear infinite;
-            /* Safari */
-            animation: spin 1s linear infinite;
-            margin: 0px auto;
-        }
-
-        /* Safari */
-        @-webkit-keyframes spin {
-            0% {
-                -webkit-transform: rotate(0deg);
-            }
-
-            100% {
-                -webkit-transform: rotate(360deg);
-            }
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+        /* Status badge styling */
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
         }
     </style>
 
@@ -73,125 +91,96 @@
     @include('layouts.patient_header')
 
     <div class="bg-gray-100 min-h-screen p-6">
-        <div class="max-w-7xl mx-auto bg-white p-6 rounded-md">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <div class="text-xl font-semibold">Appointments</div>
+        <h3 class="text-[#000000] appointments_null_text text-4xl font-bold text-center mt-6">
+            Appointments
+        </h3>
 
-                <div class="w-full md:w-auto flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-center">
-                    <button
-                        class="flex items-center justify-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-700 w-full sm:w-auto">
-                        <i class="fa-solid fa-sliders"></i>
-                        Filter
-                    </button>
-
-                    <div class="relative w-full sm:w-auto">
-                        <input type="text" id="dateRangePicker" class="hidden" />
-                        <button id="datePickerBtn"
-                            class="flex items-center justify-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-700 w-full sm:w-auto">
-                            <i class="far fa-calendar-alt"></i>
-                            <span id="selectedDate">Select Date Range</span>
-                        </button>
-                    </div>
-
-                    <input type="hidden" value="{{ csrf_token() }}" class="token">
-
-                    <div class="relative w-full sm:w-auto">
-                        <select
-                            class="appearance-none pr-8 pl-4 py-2 text-sm border border-gray-300 rounded focus:outline-none  text-gray-700 w-full sm:w-auto cursor-pointer"
-                            onchange="appointmentsByMonth(this)">
-                            <option value="" selected disabled>Select Month</option>
-                            <option value="01">January</option>
-                            <option value="02">February</option>
-                            <option value="03">March</option>
-                            <option value="04">April</option>
-                            <option value="05">May</option>
-                            <option value="06">June</option>
-                            <option value="07">July</option>
-                            <option value="08">August</option>
-                            <option value="09">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                        <i
-                            class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
-                    </div>
+        <div class="max-w-7xl mx-auto bg-white p-6 rounded-md mt-10 mb-16">
+            <div class="bg-gray-100 rounded-lg shadow relative p-6 pt-0">
+                <div class="overflow-x-auto">
+                    <table id="appointmentsTable" class="w-full text-sm text-left">
+                        <thead class="bg-[#ffffff] text-[#00000080]/50">
+                            <tr>
+                                <th class="px-4 py-4">#</th>
+                                <th class="px-4 py-4">Appointment UID</th>
+                                <th class="px-4 py-4">Provider</th>
+                                <th class="px-4 py-4">Date</th>
+                                <th class="px-4 py-4">Time</th>
+                                <th class="px-4 py-4">Status</th>
+                                <th class="px-4 py-4">View Details</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm text-[#000000]">
+                            @forelse ($appointments as $key => $item)
+                                @php
+                                    $appointmentDateTime = \Carbon\Carbon::parse($item->date . ' ' . $item->time);
+                                    $gracePeriodEnd = $appointmentDateTime->copy()->addHour();
+                                @endphp
+                                <tr class="border-b border-[#000000]/10">
+                                    <td>{{ $key + 1 }}</td>
+                                    <td>{{ $item->appointment_uid }}</td>
+                                    <td class="px-4 py-4">
+                                        @if ($item->provider_id == null)
+                                            <span class="text-gray-400">&mdash;</span>
+                                        @else
+                                            @forelse ($all_providers as $provider)
+                                                @if ($item->provider_id == $provider->provider_id)
+                                                    <span class="text-[#000000]">{{ $provider->name }}</span>
+                                                    @break
+                                                @endif
+                                            @empty
+                                                <span class="text-gray-400">Provider Not Found</span>
+                                            @endforelse
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-4">{{ $appointmentDateTime->format('jS F Y') }}</td>
+                                    <td class="px-4 py-4">{{ $appointmentDateTime->format('g:i A') }}</td>
+                                    <td class="px-4 py-4">
+                                        @if ($item->status == 0)
+                                            @if ($appointmentDateTime->isFuture())
+                                                <span class="status-badge bg-blue-100 text-blue-800">Upcoming</span>
+                                            @elseif ($gracePeriodEnd->isFuture())
+                                                @if ($item->meet_link)
+                                                    <span class="status-badge bg-blue-100 text-blue-800">Waiting To
+                                                        Start</span>
+                                                @else
+                                                    <span class="status-badge bg-yellow-100 text-yellow-800">Grace
+                                                        Period (1hr)</span>
+                                                @endif
+                                            @else
+                                                @if ($item->meet_link)
+                                                    <span class="status-badge bg-red-100 text-red-800">
+                                                        Provider Absent
+                                                    </span>
+                                                @else
+                                                    <span class="status-badge bg-red-100 text-red-800">
+                                                        Pending Approval
+                                                    </span>
+                                                @endif
+                                            @endif
+                                        @elseif ($item->status == 1)
+                                            <span class="status-badge bg-blue-100 text-blue-800">Started</span>
+                                        @elseif ($item->status == 5)
+                                            <span class="status-badge bg-green-100 text-green-800">Completed</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <a href="/appointments/{{ $item->appointment_uid }}"
+                                            class="px-4 py-1 bg-[#f6028b] text-white text-center max-w-[150px] rounded-full text-[0.70rem]">Click
+                                            Here</a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-4 py-4 text-center text-gray-400">
+                                        No Appointments Yet!
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
-
-            <div class="spin_items hidden">
-                <div class="loader"></div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-5" id="appointmentList">
-                @forelse ($appointments as $item)
-                    <div class="bg-white rounded-xl border border-slate-300 p-4 shadow-sm relative">
-                        <div class="flex flex-col sm:flex-row justify-between text-sm mb-2 gap-2">
-                            <div>
-                                <p class="text-slate-500">Name</p>
-                                @forelse ($all_providers as $provider)
-                                    @if ($item->provider_id == $provider->provider_id)
-                                        <h2 class="text-[#000000] font-bold">{{ $provider->name }}</h2>
-                                    @endif
-                                @empty
-                                @endforelse
-                            </div>
-
-                            <span class="flex items-center gap-1 text-xs sm:text-sm">
-                                <i class="fas fa-circle text-[#2889AA] text-[10px]"></i>
-                                {{ \Carbon\Carbon::parse($item->time)->format('g:i A') }} -
-                                {{ \Carbon\Carbon::parse($item->date)->format('jS F Y') }}
-                            </span>
-                        </div>
-                        <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
-                            @forelse ($all_providers as $provider)
-                                @if ($item->provider_id == $provider->provider_id)
-                                    <div
-                                        class="flex p-2 items-center border border-slate-200 bg-slate-50 rounded-[42px] gap-2 text-xs sm:text-sm text-gray-600">
-                                        <i class="fas fa-envelope text-gray-400"></i>
-                                        <span class="truncate">{{ $provider->email }}</span>
-                                    </div>
-
-                                    <div
-                                        class="flex p-2 items-center border border-slate-200 bg-slate-50 rounded-[42px] gap-2 text-xs sm:text-sm text-gray-600">
-                                        <i class="fas fa-phone text-gray-400"></i>
-                                        <span>{{ $provider->prefix_code }} {{ $provider->mobile }}</span>
-                                    </div>
-                                @endif
-                            @empty
-                            @endforelse
-
-                        </div>
-                        @if ($item->meet_link == 'scheduled')
-                            <div
-                                class="flex items-center justify-between bg-[#DBEAFE] text-gray-800 px-3 sm:px-4 py-2 rounded-[42px] mt-3 text-xs sm:text-sm font-semibold">
-                                <p class="text-blue-600">
-                                    Join Meeting:
-                                    <a href="{{ '/join-meeting/' . $item->appointment_uid }}"
-                                        class="truncate hover:underline" target="_blank">
-                                        {{ url('/join-meeting/' . $item->appointment_uid) }}
-                                    </a>
-                                </p>
-                                <div
-                                    class="w-[28px] h-[28px] sm:w-[33px] sm:h-[33px] bg-white rounded-full flex justify-center items-center flex-shrink-0">
-                                    <i class="fa-solid fa-video text-[#2889AA] text-[14px] sm:text-[18px]"></i>
-                                </div>
-                            </div>
-                        @else
-                            <div class="relative lg:absolute w-full left-0 bottom-0 p-4">
-                                <div
-                                    class="text-center bg-[#DBEAFE] px-3 sm:px-4 py-4 rounded-[42px] mt-3 text-lg sm:text-sm font-semibold text-blue-500">
-                                    <i class="fas fa-exclamation-triangle"></i> Meeting not scheduled yet!
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                @empty
-                    <p class="text-xl text-red-500 font-semibold text-center welcome col-span-1 md:col-span-2">No
-                        Appointments Yet!</p>
-                @endforelse
-
-            </div>
-
         </div>
     </div>
 
@@ -201,7 +190,30 @@
 @endsection
 
 @section('script')
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
-    <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
-    <script src="{{ asset('assets/js/appointment.js') }}"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            $('#appointmentsTable').DataTable({
+                "ordering": false,
+                "pagingType": "simple_numbers",
+                "language": {
+                    "search": "_INPUT_",
+                    "searchPlaceholder": "Search appointments...",
+                    "paginate": {
+                        "previous": "←",
+                        "next": "→"
+                    }
+                },
+                "dom": '<"top"f>rt<"bottom"lip><"clear">',
+                "initComplete": function() {
+                    // Add the search icon to the search input
+                    $('.dataTables_filter input').before(
+                        '<i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>'
+                    );
+                    $('.dataTables_filter input').addClass('pl-8');
+                }
+            });
+        });
+    </script>
 @endsection

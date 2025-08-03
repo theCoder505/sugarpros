@@ -164,7 +164,8 @@ $(document).ready(function () {
                     ${renderDocumentSection('Compliance Forms', patientData.compliance_forms, ['patients_name', 'dob', 'patients_signature', 'patients_dob', 'representative_signature', 'representative_dob', 'nature_with_patient'])}
                     
                     <div class="mt-6">
-                        <p class="text-sm mb-2"><span class="font-semibold">Last Activity:</span> ${patientData.last_logged_in || 'N/A'}</p>
+                        <p class="text-sm mb-2"><span class="font-semibold">Last Login:</span> ${patientData.last_logged_in || 'N/A'}</p>
+                        <p class="text-sm mb-2"><span class="font-semibold">Last Activity:</span> ${patientData.last_activity || 'N/A'}</p>
                         ${patientData.license ? `<a target="_blank" href="/${patientData.license}" class="bg-slate-700 hover:bg-slate-900 text-white text-sm py-2 px-4 rounded inline-block mt-2">View License</a>` : ''}
                     </div>
                 `;

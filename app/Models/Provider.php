@@ -30,6 +30,7 @@ class Provider extends Authenticatable implements JWTSubject
         'about_me',
         'language',
         'last_logged_in',
+        'last_activity',
     ];
 
     /**

@@ -24,7 +24,7 @@ class Patient
 
         $userID = Auth::user()->id;
         User::where('id', $userID)->update([
-            'last_logged_in' => now()
+            'last_activity' => now()
         ]);
 
         $hasDetails = UserDetails::where('user_id', $userID)->exists();

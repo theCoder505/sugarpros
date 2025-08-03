@@ -56,7 +56,10 @@
                 @csrf
                 <div class="my-5">
                     <h2 class="font-bold text-[20px] text-[#292524]">Payment info</h2>
-                    <p class="text-sm text-[#57534E] ">Share the specific details below and complete the booking process</p>
+                    <p class="text-sm text-[#57534E]">
+                        Share the specific details below and complete the booking process.
+                        You will be charged <span class="text-[#5469D4] font-semibold">{{ $amount . $currency }}</span> here.
+                    </p>
                 </div>
 
                 <input type="hidden" name="fname" value="{{ $fname }}">
@@ -65,6 +68,19 @@
                 <input type="hidden" name="patient_id" value="{{ $patient_id }}">
                 <input type="hidden" name="date" value="{{ $date }}">
                 <input type="hidden" name="time" value="{{ $time }}">
+                <input type="hidden" name="insurance_company" value="{{ $insurance_company }}">
+                <input type="hidden" name="policyholder_name" value="{{ $policyholder_name }}">
+                <input type="hidden" name="policy_id" value="{{ $policy_id }}">
+                <input type="hidden" name="group_number" value="{{ $group_number }}">
+                <input type="hidden" name="insurance_plan_type" value="{{ $insurance_plan_type }}">
+                <input type="hidden" name="chief_complaint" value="{{ $chief_complaint }}">
+                <input type="hidden" name="symptom_onset" value="{{ $symptom_onset }}">
+                <input type="hidden" name="prior_diagnoses" value="{{ $prior_diagnoses }}">
+                <input type="hidden" name="current_medications" value="{{ $current_medications }}">
+                <input type="hidden" name="allergies" value="{{ $allergies }}">
+                <input type="hidden" name="past_surgical_history" value="{{ $past_surgical_history }}">
+                <input type="hidden" name="family_medical_history" value="{{ $family_medical_history }}">
+                <input type="hidden" name="plan" value="{{ $plan }}">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                     <div>
@@ -155,12 +171,13 @@
     <div id="popupModal" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center hidden">
         <div class="bg-white rounded-xl px-6 py-6 w-full max-w-md mx-4">
             <div class="flex justify-end">
-                <img src="{{ asset('assets/image/close.png') }}" id="closeBtn" class=" cursor-pointer float-right w-6 h-6"
-                    alt="">
+                <img src="{{ asset('assets/image/close.png') }}" id="closeBtn"
+                    class=" cursor-pointer float-right w-6 h-6" alt="">
             </div>
 
             <div class="w-full flex justify-center items-center">
-                <img src="{{ asset('assets/image/mark.png') }}" id="" class="w-[90px] h-[90px]" alt="">
+                <img src="{{ asset('assets/image/mark.png') }}" id="" class="w-[90px] h-[90px]"
+                    alt="">
             </div>
 
             <div class="text-[20px] mx-auto text-center">

@@ -9,6 +9,7 @@ use App\Models\Notification;
 use App\Models\PrivacyForm;
 use App\Models\SelPaymentForm;
 use App\Models\Settings;
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserDetails;
 use Illuminate\Http\Request;
@@ -120,23 +121,142 @@ class PatientsController extends Controller
     // appointment purchasing 
     public function bookNewAppointment(Request $request)
     {
-        $fname = $request['fname'];
-        $lname = $request['lname'];
-        $email = $request['email'];
-        $patient_id = Auth::user()->patient_id;
-        $date = $request['date'];
-        $time = $request['time'];
-        $booked_by = Auth::user()->id;
-        $stripe_client_id = Settings::where('id', 1)->value('stripe_client_id');
-        $prefixcodes = Settings::where('id', 1)->value('prefixcode');
+        $check_if_exists = Appointment::where('booked_by', Auth::user()->id)
+            ->where('date', $request->date)
+            ->where('time', $request->time)
+            ->count();
 
-        $check_if_exists = Appointment::where('booked_by', $booked_by)->where('patient_id', $patient_id)->where('date', $date)->where('time', $time)->count();
         if ($check_if_exists > 0) {
-            return back()->with('info', 'You already booked an appointment in the same date and time!')->with('date', $date)->with('time', $time);
+            return back()->with('info', 'You already booked an appointment in the same date: ' . $request->date . ' and time: ' . $request->time)
+                ->with('date', $request->date)
+                ->with('time', $request->time);
+        }
+
+        // Handle file uploads if they exist
+        $frontInsurancePath = $request->hasFile('insurance_card_front')
+            ? $this->uploadFile($request->file('insurance_card_front'), 'frontInsurance')
+            : null;
+
+        $backInsurancePath = $request->hasFile('insurance_card_back')
+            ? $this->uploadFile($request->file('insurance_card_back'), 'backInsurance')
+            : null;
+
+        // Store uploaded files in session if they exist
+        if ($frontInsurancePath) {
+            $request->session()->put('insurance_card_front', $frontInsurancePath);
+        }
+        if ($backInsurancePath) {
+            $request->session()->put('insurance_card_back', $backInsurancePath);
+        }
+
+        $plan = $request['plan'];
+        $prefix = 'SA';
+        $year = date('y');
+        $month = date('m');
+
+        $currentMonthCount = Appointment::whereYear('created_at', date('Y'))
+            ->whereMonth('created_at', date('m'))
+            ->count();
+        $sequence = str_pad($currentMonthCount + 1, 4, '0', STR_PAD_LEFT);
+        $appointment_uid = $prefix . $year . $month . '-' . $sequence;
+
+        if ($plan == 'subscription') {
+            $appointment = Appointment::create([
+                'appointment_uid' => $appointment_uid,
+                'fname' => $request->fname,
+                'lname' => $request->lname,
+                'email' => $request->email,
+                'patient_id' => Auth::user()->patient_id,
+                'date' => $request->date,
+                'time' => $request->time,
+                'booked_by' => Auth::user()->id,
+                'users_full_name' => $request->fname . ' ' . $request->lname,
+                'insurance_company' => $request->insurance_company,
+                'policyholder_name' => $request->policyholder_name,
+                'policy_id' => $request->policy_id,
+                'group_number' => $request->group_number,
+                'insurance_plan_type' => $request->insurance_plan_type,
+                'chief_complaint' => $request->chief_complaint,
+                'symptom_onset' => $request->symptom_onset,
+                'prior_diagnoses' => $request->prior_diagnoses,
+                'current_medications' => $request->current_medications,
+                'allergies' => $request->allergies,
+                'past_surgical_history' => $request->past_surgical_history,
+                'family_medical_history' => $request->family_medical_history,
+                'plan' => $request->plan,
+                'insurance_card_front' => $frontInsurancePath,
+                'insurance_card_back' => $backInsurancePath,
+            ]);
+
+            // Insert notification
+            Notification::create([
+                'user_id' => Auth::user()->patient_id,
+                'user_type' => 'patient',
+                'notification' => 'Using Your Subscription Plan, You\'ve booked an appointment at ' . date('g:i A', strtotime($request->time)) . ' on ' . date('j F, Y', strtotime($request->date)),
+            ]);
+
+            return redirect('/appointments')->with('success', 'Booking Successful!');
         } else {
-            return view('patient.payment', compact('prefixcodes'))->with('fname', $fname)->with('lname', $lname)->with('email', $email)->with('patient_id', $patient_id)->with('date', $date)->with('time', $time)->with('booked_by', $booked_by)->with('stripe_client_id', $stripe_client_id);
+            $plan = $request['plan'];
+            $currency = Settings::where('id', 1)->value('currency');
+            if ($plan == 'medicare') {
+                $amount = Settings::where('id', 1)->value('medicare_amount');
+            } elseif ($plan == 'cash') {
+                $amount = Settings::where('id', 1)->value('stripe_amount'); // This is basically One Time Service Flat Fee
+            }
+
+            return view('patient.payment', [
+                'prefixcodes' => Settings::where('id', 1)->value('prefixcode'),
+                'fname' => $request->fname,
+                'lname' => $request->lname,
+                'email' => $request->email,
+                'patient_id' => $request->patient_id,
+                'date' => $request->date,
+                'time' => $request->time,
+                'booked_by' => Auth::user()->id,
+                'stripe_client_id' => Settings::where('id', 1)->value('stripe_client_id'),
+                'insurance_company' => $request->insurance_company,
+                'policyholder_name' => $request->policyholder_name,
+                'policy_id' => $request->policy_id,
+                'group_number' => $request->group_number,
+                'insurance_plan_type' => $request->insurance_plan_type,
+                'chief_complaint' => $request->chief_complaint,
+                'symptom_onset' => $request->symptom_onset,
+                'prior_diagnoses' => $request->prior_diagnoses,
+                'current_medications' => $request->current_medications,
+                'allergies' => $request->allergies,
+                'past_surgical_history' => $request->past_surgical_history,
+                'family_medical_history' => $request->family_medical_history,
+                'plan' => $request->plan,
+                'amount' => $amount,
+                'currency' => $currency,
+            ]);
         }
     }
+
+
+
+
+
+
+
+
+
+    private function uploadFile($file, $type)
+    {
+        if ($file) {
+            $extension = $file->getClientOriginalExtension();
+            $filename = 'insurance_' . $type . '_' . rand(1111111111, 9999999999) . '.' . $extension;
+            $path = $type . '/';
+            $file->move(public_path($path), $filename);
+            return $path . $filename;
+        }
+        return null;
+    }
+
+
+
+
 
 
 
@@ -163,90 +283,110 @@ class PatientsController extends Controller
         $sequence = str_pad($currentMonthCount + 1, 4, '0', STR_PAD_LEFT);
         $appointment_uid = $prefix . $year . $month . '-' . $sequence;
 
+        $plan = $request['plan'];
+        if ($plan == 'medicare') {
+            $amount = Settings::where('id', 1)->value('medicare_amount');
+            $notification = 'Using Medicare Payment, You\'ve booked an appointment at ' . date('g:i A', strtotime($request->time)) . ' on ' . date('j F, Y', strtotime($request->date));
+        } elseif ($plan == 'cash') {
+            $amount = Settings::where('id', 1)->value('stripe_amount'); // This is basically One Time Service Flat Fee
+            $notification = 'Using Direct Cash Payment, You\'ve booked an appointment at ' . date('g:i A', strtotime($request->time)) . ' on ' . date('j F, Y', strtotime($request->date));
+        }
 
-
-        $fname = $request['fname'];
-        $lname = $request['lname'];
-        $email = $request['email'];
-        $patient_id = Auth::user()->patient_id;
-        $date = $request['date'];
-        $time = $request['time'];
-        $booked_by = Auth::user()->id;
-        $users_full_name = $request['users_full_name'];
-        $users_address = $request['users_address'];
-        $users_email = $request['users_email'];
-        $users_phone = $request['users_phone'];
-        $country_code = $request['country_code'];
-
-        $amount = Settings::where('id', 1)->value('stripe_amount');
         $currency = Settings::where('id', 1)->value('currency');
-        $stripe_client_id = Settings::where('id', 1)->value('stripe_client_id');
         $stripe_secret_key = Settings::where('id', 1)->value('stripe_secret_key');
 
         Stripe\Stripe::setApiKey($stripe_secret_key);
 
         try {
-            // Create a Stripe charge
             $charge = Stripe\Charge::create([
-                'amount' => $amount * 100, // Convert to cents
+                'amount' => $amount * 100,
                 'currency' => strtolower($currency),
                 'source' => $request->stripeToken,
-                'description' => 'Appointment booking for ' . $users_full_name,
-                'receipt_email' => $users_email,
+                'description' => 'Appointment booking for ' . $request->users_full_name,
+                'receipt_email' => $request->users_email,
                 'metadata' => [
-                    'patient_id' => $patient_id,
-                    'appointment_date' => $date,
-                    'appointment_time' => $time,
+                    'patient_id' => Auth::user()->patient_id,
+                    'appointment_date' => $request->date,
+                    'appointment_time' => $request->time,
                 ]
             ]);
 
-            // Only insert appointment if payment succeeds
-            $appointment = Appointment::create([
+            $appointmentData = [
                 'appointment_uid' => $appointment_uid,
-                'fname' => $fname,
-                'lname' => $lname,
-                'email' => $email,
-                'patient_id' => $patient_id,
-                'date' => $date,
-                'time' => $time,
-                'booked_by' => $booked_by,
-                'users_full_name' => $users_full_name,
-                'users_address' => $users_address,
-                'users_email' => $users_email,
-                'users_phone' => $users_phone,
-                'country_code' => $country_code,
+                'fname' => $request->fname,
+                'lname' => $request->lname,
+                'email' => $request->email,
+                'patient_id' => Auth::user()->patient_id,
+                'date' => $request->date,
+                'time' => $request->time,
+                'booked_by' => Auth::user()->id,
+                'users_full_name' => $request->users_full_name,
+                'users_address' => $request->users_address,
+                'users_email' => $request->users_email,
+                'users_phone' => $request->users_phone,
+                'country_code' => $request->country_code,
                 'stripe_charge_id' => $charge->id,
                 'payment_status' => 'completed',
                 'amount' => $amount,
                 'currency' => $currency,
-            ]);
+                'insurance_company' => $request->insurance_company,
+                'policyholder_name' => $request->policyholder_name,
+                'policy_id' => $request->policy_id,
+                'group_number' => $request->group_number,
+                'insurance_plan_type' => $request->insurance_plan_type,
+                'chief_complaint' => $request->chief_complaint,
+                'symptom_onset' => $request->symptom_onset,
+                'prior_diagnoses' => $request->prior_diagnoses,
+                'current_medications' => $request->current_medications,
+                'allergies' => $request->allergies,
+                'past_surgical_history' => $request->past_surgical_history,
+                'family_medical_history' => $request->family_medical_history,
+                'plan' => $request->plan,
+            ];
 
-            // Insert notification
+            // Add insurance card paths if they exist in session
+            if ($request->session()->has('insurance_card_front')) {
+                $appointmentData['insurance_card_front'] = $request->session()->get('insurance_card_front');
+            }
+            if ($request->session()->has('insurance_card_back')) {
+                $appointmentData['insurance_card_back'] = $request->session()->get('insurance_card_back');
+            }
+
+            $appointment = Appointment::create($appointmentData);
+
+            // Clear session data if it exists
+            $request->session()->forget(['insurance_card_front', 'insurance_card_back']);
+
             Notification::create([
-                'user_id' => $patient_id,
-                'notification' => 'You have booked an appointment at ' . date('g:i A', strtotime($time)) . ' on ' . date('j F, Y', strtotime($date)),
+                'user_id' => Auth::user()->patient_id,
+                'user_type' => 'patient',
+                'notification' => $notification,
             ]);
 
-            // Return JSON response for AJAX handling
             return response()->json([
                 'success' => true,
                 'message' => 'Payment and booking completed successfully!',
                 'appointment_id' => $appointment->id
             ]);
-        } catch (\Stripe\Exception\CardException $e) {
-            // Handle card errors
-            return response()->json([
-                'success' => false,
-                'message' => $e->getError()->message
-            ], 400);
         } catch (\Exception $e) {
-            // Handle other errors
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred. Please try again.'
+                'message' => $e->getMessage()
             ], 500);
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
     public function paymentSuccess(Request $request)
     {
@@ -255,7 +395,7 @@ class PatientsController extends Controller
 
     public function paymentCancel()
     {
-        return redirect()->route('booking')->with('error', 'Payment was cancelled.');
+        return redirect('/book-appointment')->with('error', 'Payment was cancelled.');
     }
     // complete booking
 

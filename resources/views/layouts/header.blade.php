@@ -14,7 +14,6 @@
                 <a href="{{ route('about') }}" class="hover:text-button About">About Us</a>
                 <a href="{{ route('service') }}" class="hover:text-button Services">Our Services</a>
                 <a href="{{ route('reviews') }}" class="hover:text-button Reviews">Patient Reviews</a>
-                <a href="{{ route('pricing') }}" class="hover:text-button Pricing">Pricing</a>
                 <a href="/our-blogs" class="hover:text-button Blog">Blog</a>
                 <a href="{{ route('faq') }}" class="hover:text-button FAQs">FAQs</a>
             </nav>

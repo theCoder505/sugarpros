@@ -252,7 +252,7 @@
                                             $statusText = 'You Absented';
                                             $statusClass = 'missed';
                                         } else {
-                                            $statusText = 'Did not set meeting';
+                                            $statusText = 'Pending Approval meeting';
                                             $statusClass = 'unset';
                                         }
                                     }
@@ -317,7 +317,7 @@
                     'active': 'Waiting To Start|Started|Grace Period \\(1hr\\)',
                     'upcoming': 'Upcoming',
                     'missed': 'You Absented',
-                    'unset': 'Did not set meeting',
+                    'unset': 'Pending Approval meeting',
                     'complete': 'Completed'
                 };
 
@@ -330,6 +330,7 @@
             // Initialize the DataTable
             var table = $('#appointmentsTable').DataTable({
                 "pagingType": "simple_numbers",
+                "ordering": false,
                 "language": {
                     "search": "_INPUT_",
                     "searchPlaceholder": "Search something...",

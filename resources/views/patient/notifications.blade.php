@@ -62,9 +62,6 @@
                                         {{ $notification->created_at->format('g:i A') }}, {{ $notification->created_at->format('jS F Y') }}
                                     </span>
                                 </div>
-                                <a href="/delete-notification/{{ $notification->id }}" class="ml-4 text-gray-400 hover:text-red-500 mt-2" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </a>
                                 <span class="ml-2 inline-block w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
                             </li>
                         @else
@@ -75,9 +72,6 @@
                                         {{ $notification->created_at->format('g:i A') }}, {{ $notification->created_at->format('jS F Y') }}
                                     </span>
                                 </div>
-                                <a href="/delete-notification/{{ $notification->id }}" class="ml-4 text-gray-400 hover:text-red-500 mt-2" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </a>
                             </li>
                         @endif
                     @empty

@@ -209,7 +209,7 @@
                             }
                         @endphp
 
-                        <img src="{{ $src }}" class="w-[170px] h-[170px] mb-2 rounded-full" alt="Profile">
+                        <img src="{{ $src }}" class="w-[130px] h-[130px] mb-2 rounded-full" alt="Profile">
 
                         <h2 class="text-2xl font-semibold">{{ Auth::guard('provider')->user()->name }}</h2>
                         <h2 class="text-lg font-semibold text-gray-500">
@@ -239,83 +239,89 @@
 
 
                 <!-- Chat Inbox -->
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="font-semibold text-20px mb-6 unseen_mesages">Inbox ( <span
-                            class="">{{ $total_unread }}</span> Unread)</h3>
-                </div>
+                <div class="bg-white p-4 rounded-lg shadow">
 
-                <div class="relative w-full mb-3">
-                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
-                    <input type="text" placeholder="Search here..."
-                        class="w-full pl-10 pr-3 bg-gray-100 py-2 text-sm border rounded-md border-gray-300 focus:outline-none"
-                        onkeyup="searchList(this)" />
-                </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-semibold text-20px mb-6 unseen_mesages">Inbox ( <span
+                                class="">{{ $total_unread }}</span> Unread)</h3>
+                    </div>
 
-                <p class="text-gray-500 font-semibold text-center py-4 my-4 no_match hidden">
-                    No Match Found
-                </p>
+                    <div class="relative w-full mb-3">
+                        <i
+                            class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <input type="text" placeholder="Search here..."
+                            class="w-full pl-10 pr-3 bg-gray-100 py-2 text-sm border rounded-md border-gray-300 focus:outline-none"
+                            onkeyup="searchList(this)" />
+                    </div>
 
-                <div class="dashboard_message_list users_list space-y-2">
-                    @forelse ($releted_patients as $patient)
-                        <a href="/send-to-chats/patient/{{$patient->patient_id}}" class="flex items-center justify-between px-2 py-5 mb-2 bg-gray-100 rounded-lg cursor-pointer chat-item @if ($patient->message_status != 'seen' && $patient->is_sender != Auth::guard('provider')->user()->provider_id) unread @endif"
-                            data-id="{{ $patient->patient_id }}" onclick="showMessage(this)">
+                    <p class="text-gray-500 font-semibold text-center py-4 my-4 no_match hidden">
+                        No Match Found
+                    </p>
 
-                            <div class="flex items-center gap-3 provider_details">
-                                <div class="relative w-10 h-10 overflow-hidden image_section">
-                                    @if (!empty($patient->profile_picture))
-                                        <img src="{{ asset($patient->profile_picture) }}" class="w-full rounded-full" />
-                                        <img src="{{ asset('assets/image/act.png') }}" class="absolute bottom-0 right-0" />
-                                    @else
-                                        <div
-                                            class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-500 text-white font-bold text-lg">
-                                            {{ strtoupper(substr($patient->name, 0, 1)) }}
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="name_section">
-                                    <p class="font-semibold text-[16px] provider_name">
-                                        <span class="naming">{{ $patient->name }}</span>
-                                    </p>
-                                    <p class="text-sm text-gray-600 patient_message">
-                                        @if ($patient->latest_message)
-                                            @if ($patient->is_sender)
-                                                You:
-                                            @endif
-                                            @if ($patient->message_type == 'image')
-                                                sent a picture
-                                            @else
-                                                {{ Str::limit($patient->latest_message, 20, '...') }}
-                                            @endif
+                    <div class="dashboard_message_list users_list space-y-2">
+                        @forelse ($releted_patients as $patient)
+                            <a href="/send-to-chats/patient/{{ $patient->patient_id }}"
+                                class="flex items-center justify-between px-2 py-5 mb-2 bg-gray-100 rounded-lg cursor-pointer chat-item @if ($patient->message_status != 'seen' && $patient->is_sender != Auth::guard('provider')->user()->provider_id) unread @endif"
+                                data-id="{{ $patient->patient_id }}" onclick="showMessage(this)">
+
+                                <div class="flex items-center gap-3 provider_details">
+                                    <div class="relative w-10 h-10 overflow-hidden image_section">
+                                        @if (!empty($patient->profile_picture))
+                                            <img src="{{ asset($patient->profile_picture) }}" class="w-full rounded-full" />
+                                            <img src="{{ asset('assets/image/act.png') }}"
+                                                class="absolute bottom-0 right-0" />
                                         @else
-                                            No messages yet
+                                            <div
+                                                class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-500 text-white font-bold text-lg">
+                                                {{ strtoupper(substr($patient->name, 0, 1)) }}
+                                            </div>
                                         @endif
-                                    </p>
+                                    </div>
+                                    <div class="name_section">
+                                        <p class="font-semibold text-[16px] provider_name">
+                                            <span class="naming">{{ $patient->name }}</span>
+                                        </p>
+                                        <p class="text-sm text-gray-600 patient_message">
+                                            @if ($patient->latest_message)
+                                                @if ($patient->is_sender)
+                                                    You:
+                                                @endif
+                                                @if ($patient->message_type == 'image')
+                                                    sent a picture
+                                                @else
+                                                    {{ Str::limit($patient->latest_message, 20, '...') }}
+                                                @endif
+                                            @else
+                                                No messages yet
+                                            @endif
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="flex flex-col items-end timeandseen">
-                                @if ($patient->message_time)
-                                    <span class="text-xs text-gray-400 msg_time">
-                                        {{ \Carbon\Carbon::parse($patient->message_time)->format('H:i') }}
-                                    </span>
-                                @endif
-                                <span class="flex items-center mt-1">
-                                    @if ($patient->message_status == 'seen')
-                                        <i class="fas fa-check-double text-[#2889AA] text-xs"></i>
-                                    @elseif($patient->is_sender)
-                                        <i class="fas fa-check-double text-md text-[#6c7683]"></i>
+                                <div class="flex flex-col items-end timeandseen">
+                                    @if ($patient->message_time)
+                                        <span class="text-xs text-gray-400 msg_time">
+                                            {{ \Carbon\Carbon::parse($patient->message_time)->format('H:i') }}
+                                        </span>
                                     @endif
-                                </span>
-                                @if ($patient->unread_count > 0 && !$patient->is_sender)
-                                    <span
-                                        class="flex items-center justify-center w-5 h-5 mt-1 text-xs text-white bg-orange-500 rounded-full related_unread">
-                                        {{ $patient->unread_count }}
+                                    <span class="flex items-center mt-1">
+                                        @if ($patient->message_status == 'seen')
+                                            <i class="fas fa-check-double text-[#2889AA] text-xs"></i>
+                                        @elseif($patient->is_sender)
+                                            <i class="fas fa-check-double text-md text-[#6c7683]"></i>
+                                        @endif
                                     </span>
-                                @endif
-                            </div>
-                        </a>
-                    @empty
-                        <p class="px-2 py-5 text-gray-500">No patients found in your pod</p>
-                    @endforelse
+                                    @if ($patient->unread_count > 0 && !$patient->is_sender)
+                                        <span
+                                            class="flex items-center justify-center w-5 h-5 mt-1 text-xs text-white bg-orange-500 rounded-full related_unread">
+                                            {{ $patient->unread_count }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </a>
+                        @empty
+                            <p class="px-2 py-5 text-gray-500">No patients found in your pod</p>
+                        @endforelse
+                    </div>
                 </div>
             </div>
 
@@ -379,7 +385,7 @@
                                                     $statusText = 'You Absented';
                                                     $statusClass = 'missed';
                                                 } else {
-                                                    $statusText = 'Did not set meeting';
+                                                    $statusText = 'Pending Approval meeting';
                                                     $statusClass = 'unset';
                                                 }
                                             }
@@ -453,6 +459,7 @@
             const table = $('#apiTable').DataTable({
                 paging: true,
                 searching: true,
+                ordering: false,  // This disables sorting
                 info: false,
                 lengthChange: false,
                 pageLength: 10,
@@ -480,7 +487,7 @@
                     'active': 'Waiting To Start|Started|Grace Period \\(1hr\\)',
                     'upcoming': 'Upcoming',
                     'missed': 'You Absented',
-                    'unset': 'Did not set meeting',
+                    'unset': 'Pending Approval meeting',
                     'complete': 'Completed'
                 };
 
@@ -493,6 +500,7 @@
             // Initialize the DataTable
             var table = $('#appointmentsTable').DataTable({
                 "pagingType": "simple_numbers",
+                "ordering": false,
                 "language": {
                     "search": "_INPUT_",
                     "searchPlaceholder": "Search something...",

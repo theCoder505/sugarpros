@@ -110,11 +110,11 @@
                                 : '/assets/image/dummy_user.png';
                         @endphp
 
-                        <img src="{{ $src }}" class="w-[170px] h-[170px] rounded-full mb-2" alt="Profile">
+                        <img src="{{ $src }}" class="w-[130px] h-[130px] rounded-full mb-2" alt="Profile">
                         <h2 class="text-2xl font-semibold">{{ Auth::user()->name }}</h2>
                         <p class="text-sm text-gray-500">{{ Auth::user()->patient_id }}</p>
 
-                        <div class="mt-[3rem] w-full">
+                        <div class="mt-6 w-full">
                             <a href="/account"
                                 class="block w-full text-center px-4 py-2 bg-[#2889AA] text-white rounded hover:bg-cyan-800 text-[16px] font-bold">
                                 View Profile
@@ -123,22 +123,7 @@
                     </div>
                 </div>
 
-                <!-- Sugar Overview -->
-                <div class="bg-white p-4 rounded-lg shadow space-y-2">
-                    <h3 class="text-[20px] font-semibold text-[#000000] mb-4 border-b border-[#0000001A]/10 pb-2">
-                        Sugar Overview
-                    </h3>
-                    <div class="text-gray-700 text-base mb-8">
-                        Monitoring your blood sugar is essential for managing diabetes. Devices like Dexcom provide real-time glucose readings, helping you track trends and make informed decisions about your health. Connect your Dexcom or Libre device to view detailed sugar level progress and insights here.
-                    </div>
-
-                    <div class="mt-[3rem]">
-                        <a href="/dexcom"
-                            class="block w-full text-center px-4 py-2 bg-[#2889AA] text-white rounded hover:bg-cyan-800 text-[16px] font-bold">
-                            View Progress On Dexcom/Libre
-                        </a>
-                    </div>
-                </div>
+                
 
                 <!-- Chat Inbox -->
                 <div class="bg-white p-4 rounded-lg shadow">
@@ -226,7 +211,7 @@
                 </div>
             </div>
 
-            <!-- Appointments + Preferences -->
+            <!-- Appointments -->
             <div class="lg:col-span-3">
                 <div class="text-xl font-semibold mb-6">Welcome, {{ Auth::user()->name }}</div>
 
@@ -305,7 +290,7 @@
                                                             </span>
                                                         @else
                                                             <span class="status-badge bg-red-100 text-red-800">
-                                                                Did Not Set
+                                                                Pending Approval
                                                             </span>
                                                         @endif
                                                     @endif
@@ -316,7 +301,7 @@
                                                 @endif
                                             </td>
                                             <td class="px-4 py-4">
-                                                <a href="/patient/show-appointment/{{ $item->appointment_uid }}"
+                                                <a href="/appointments/{{ $item->appointment_uid }}"
                                                     class="px-4 py-1 bg-[#f6028b] text-white text-center max-w-[150px] rounded-full text-[0.70rem]">Click
                                                     Here</a>
                                             </td>
@@ -332,48 +317,6 @@
                             </table>
                         </div>
                     </div>
-
-                    <!-- User Preferences -->
-                    <div class="bg-gray-100 rounded-md p-6">
-                        <div class="bg-white p-4 rounded-lg shadow">
-                            <h3 class="text-[20px] font-semibold text-[#000000]">
-                                User Profile & Preferences Appointments
-                            </h3>
-                            <input type="hidden" name="token" class="token" value="{{ csrf_token() }}">
-                            <div class="space-y-4 mt-4 text-sm">
-                                <div class="flex justify-between items-center border-b pb-2 border-[#000000]/10">
-                                    <span>HIPAA Consent</span>
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" value="" class="sr-only peer"
-                                            @if ($Consent == true) checked @endif
-                                            onchange="hippaConsent(this)" />
-                                        <div
-                                            class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-300 peer-checked:bg-green-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:left-[6px] after:top-[4px] after:bg-white after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all">
-                                        </div>
-                                    </label>
-                                </div>
-                                <div class="flex justify-between items-center border-b pb-2 border-[#000000]/10">
-                                    <span>Notification Settings</span>
-                                    <span class="text-sm text-gray-600 capitalize">{{ $notificationMethod }}</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span>Language Selection</span>
-                                    <select class="text-sm border rounded-md px-2 py-1" onchange="changeLanguage(this)">
-                                        @php
-                                            $options = json_decode($languages, true);
-                                        @endphp
-                                        @if (is_array($options))
-                                            @foreach ($options as $language)
-                                                <option value="{{ $language }}"
-                                                    {{ $userLang == $language ? 'selected' : '' }}>{{ $language }}
-                                                </option>
-                                            @endforeach
-                                        @endif
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -381,14 +324,13 @@
 @endsection
 
 @section('script')
-    <!-- jQuery (required for DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- DataTables JS -->
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
 
     <script>
         $(document).ready(function() {
             $('#appointmentsTable').DataTable({
+                "ordering": false,
                 "pagingType": "simple_numbers",
                 "language": {
                     "search": "_INPUT_",
