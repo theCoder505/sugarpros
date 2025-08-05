@@ -4,19 +4,27 @@
 
 
 @layer components {
-    .message_tab{
+    .message_tab {
         @apply bg-[#E0E0E0] rounded-[21px] py-2;
     }
 
-    .active_tab{
+    .active_tab {
         @apply text-[15px] bg-[#FF6400] font-semibold rounded-[21px] py-2 text-white hover:bg-opacity-90;
     }
 
-    .common_option{
+    .common_option {
         @apply bg-white px-6 py-1 rounded-full text-center cursor-pointer
     }
 
-    .active_option{
+    .active_option {
         @apply bg-button_lite text-white font-semibold;
+    }
+
+    .form_group{
+        @apply grid grid-cols-2 gap-4 items-center;
+    }
+
+    .pcb_input {
+        @apply w-full px-3 py-2 border border-gray-300 rounded-md font-semibold text-black text-sm;
     }
 }

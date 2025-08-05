@@ -225,6 +225,7 @@
                             <th>Date</th>
                             <th>Time</th>
                             <th>Status</th>
+                            <th>Type</th>
                             <th>View Details</th>
                         </tr>
                     </thead>
@@ -274,7 +275,7 @@
                                 @endforeach
                                 <td class="px-4 py-4">{{ \Carbon\Carbon::parse($item->date)->format('jS F Y') }}</td>
                                 <td class="px-4 py-4">{{ \Carbon\Carbon::parse($item->time)->format('g:i A') }}</td>
-                                <td class="px-4 py-4">
+                                <td class="px-4 py-4 max-w-[100px]">
                                     @if ($statusClass == 'active')
                                         <span class="status-badge bg-blue-100 text-blue-800">{{ $statusText }}</span>
                                     @elseif($statusClass == 'upcoming')
@@ -286,6 +287,15 @@
                                     @elseif($statusClass == 'complete')
                                         <span class="status-badge bg-green-100 text-green-800">{{ $statusText }}</span>
                                     @endif
+                                </td>
+                                <td>
+                                    <p class="capitalize px-3">
+                                        @if ($item->plan == null)
+                                            Cash
+                                        @else
+                                            {{ $item->plan }}
+                                        @endif
+                                    </p>
                                 </td>
                                 <td class="px-4 py-4">
                                     <a href="/provider/view-appointment/{{ $item->appointment_uid }}"
@@ -348,7 +358,7 @@
                     );
                     $('.dataTables_filter input').addClass('pl-8');
                     updateCounts();
-                    
+
                     // Show only active appointments by default
                     showSelectedType('active');
                 }

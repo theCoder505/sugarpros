@@ -39,7 +39,7 @@
 @endsection
 
 @section('content')
-    <main class="mx-auto my-12 space-y-6 md:max-w-6xl">
+    <main class="mx-auto my-12 px-6 lg:px-0 space-y-6 md:max-w-6xl">
         <h1 class="text-3xl font-semibold mb-6">Address & Location Setup For Website</h1>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <section class="bg-white p-6 rounded-lg shadow border border-gray-100">

@@ -239,6 +239,7 @@ function showMessage(passedThis) {
     let dataID = $(passedThis).data('id');
     let imageSection = $(passedThis).children(".provider_details").children('.image_section').html();
     let providerName = $(passedThis).children(".provider_details").children('.name_section').children('.provider_name').html();
+    var plandata = '<span class="bg-red-100 text-red-500 border border-red-500 text-sm rounded-lg px-2 ml-1 py-1 font-normal capitalize">No Plan</span>';
 
     // Set default to Offline initially
     $(".activity_status").removeClass('text-green-500').addClass('text-gray-400');
@@ -249,7 +250,28 @@ function showMessage(passedThis) {
     $(".chat-list-container").addClass("make_hide");
     $(".first_part").addClass("make_hide");
 
+    
     let token = $(".token").val();
+    $.ajax({
+        url: '/provider/fetch-users-subscription',
+        type: 'POST',
+        data: {
+            _token: token,
+            user_id: dataID,
+        },
+        success: function (response) {
+            if (response.recurring_option != null) {
+                plandata = '<span class="bg-blue-100 text-blue-500 border border-blue-500 text-sm rounded-lg px-2 ml-1 py-1 font-normal capitalize">' + response.recurring_option + ' ' + response.plan + '</span>' 
+            }else{
+                plandata = '<span class="bg-red-100 text-red-500 border border-red-500 text-sm rounded-lg px-2 ml-1 py-1 font-normal capitalize">No Plan</span>';
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error('Message send failed:', error);
+        }
+    });
+
+
     $.ajax({
         url: linkone,
         type: 'POST',
@@ -259,7 +281,7 @@ function showMessage(passedThis) {
         },
         success: function (response) {
             $(".img_div").html(imageSection);
-            $(".picked_user_name").html(providerName);
+            $(".picked_user_name").html(providerName + plandata);
             $(".message_topbar").removeClass("hidden").addClass("flex");
             $(".all_chats").removeClass("hidden");
             $(".message_sending").removeClass("hidden");

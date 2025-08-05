@@ -348,6 +348,8 @@ Route::get('/provider/chats', [ProviderController::class, 'providerChats'])->nam
 
 Route::get('/send-to-chats/patient/{patient_id}', [ProviderController::class, 'sendToSpecificChat'])->middleware('check_if_provider');
 
+Route::post('/provider/fetch-users-subscription', [ProviderController::class, 'fetchSubscription'])->middleware('check_if_provider');
+
 Route::post('/provider/fetch-related-chats', [ProviderController::class, 'fetchRelatedChats'])->name('provider.relatedChats')->middleware('check_if_provider');
 
 Route::post('/provider/send-message', [ProviderController::class, 'sendMessage'])->name('provider.sendMessage')->middleware('check_if_provider');
@@ -419,6 +421,18 @@ Route::middleware(['check_if_provider'])->group(function () {
     Route::post('/provider/claim-md/deletefile', [PatientClaimsMDController::class, 'deleteUploadedFile']);
     Route::post('/provider/claim-md/viewfile', [PatientClaimsMDController::class, 'viewUploadedFile']);
     Route::get('/provider/claim-md/downloadfile', [PatientClaimsMDController::class, 'downloadFile'])->name('claim-md-provider.download');
+
+
+
+    // new PCB
+    Route::get('/provider/patient-claims-biller/{appointment_uid}', [PatientClaimsMDController::class, 'specificPatientClaimsBiller']);
+    Route::post('/provider/add-new-patient-claims-md', [PatientClaimsMDController::class, 'addNewPatientClaimsMD']);
+
+    Route::get('/provider/claim-md/get-claims', [PatientClaimsMDController::class, 'getClaims']);
+    Route::get('/provider/claim-md/get-claim/{id}', [PatientClaimsMDController::class, 'getClaim']);
+    Route::delete('/provider/claim-md/delete-claim/{id}', [PatientClaimsMDController::class, 'deleteClaim']);
+    Route::get('/provider/mark-appointment-proceed/{appointment_uid}', [PatientClaimsMDController::class, 'markAppointmentProceed']);
+    // Done New PCB
 });
 
 
@@ -587,6 +601,18 @@ Route::options('/admin/claim-md/{any}', function () {
 Route::middleware(['admin_loggedin'])->group(function () {
     // Main interface
     Route::get('/admin/patient-claims-biller', [PatientClaimsMDController::class, 'patientClaimsBillerAdmin']);
+
+    // new pcb
+    Route::get('/admin/patient-claims-biller/{appointment_uid}', [PatientClaimsMDController::class, 'specificPatientClaimsBiller']);
+    Route::post('/admin/add-new-patient-claims-md', [PatientClaimsMDController::class, 'addNewPatientClaimsMD']);
+
+
+    Route::get('/admin/claim-md/get-claims', [PatientClaimsMDController::class, 'getClaims']);
+    Route::get('/admin/claim-md/get-claim/{id}', [PatientClaimsMDController::class, 'getClaim']);
+    Route::delete('/admin/claim-md/delete-claim/{id}', [PatientClaimsMDController::class, 'deleteClaim']);
+    Route::get('/admin/mark-appointment-proceed/{appointment_uid}', [PatientClaimsMDController::class, 'markAppointmentProceed']);
+    //new pcb 
+
 
     // SDK proxy
     Route::match(['get', 'post'], '/admin/claim-md/proxy', [PatientClaimsMDController::class, 'claimMdProxy'])

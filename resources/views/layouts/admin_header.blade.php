@@ -6,7 +6,7 @@
             </a>
         </div>
 
-        <button class="text-gray-600 md:hidden focus:outline-none" id="menuToggle">
+        <button class="text-gray-600 md:hidden focus:outline-none" onclick="toggleMenu(this)" id="menuToggle">
             <i class="text-xl fas fa-bars"></i>
         </button>
 
@@ -17,7 +17,7 @@
             <a href="/admin/appointments" class="book appointments">Active Appointments</a>
             <a href="/admin/patients" class="book patients">Patients</a>
             <a href="/admin/providers" class="book providers">Providers</a>
-            <a href="/admin/adress-page" class="book address_page">Address</a>
+            <a href="/admin/biller-admins" class="book biller_admins">Biller Admins</a>
         </nav>
 
         <div class="items-center hidden space-x-4 md:flex">
@@ -41,6 +41,8 @@
                     </div>
                     <a href="/admin/account"
                         class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Admin Account</a>
+                    <a href="/admin/adress-page"
+                        class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Address</a>
                     <a href="/admin/services"
                         class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Services</a>
                     <a href="/admin/reviews"
@@ -62,48 +64,65 @@
         </div>
     </div>
 
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="md:hidden px-4 pb-4 space-y-2 text-[16px] text-slate-500 hidden">
+        <a href="/admin/dashboard" class="block py-2 emr">EMR System</a>
+        <a href="/admin/sugarpros-ai" class="block py-2 ai">SugarPros AI</a>
+        <a href="/admin/patient-claims-biller" class="block py-2 claims">Patient Claims Biller</a>
+        <a href="/admin/appointments" class="block py-2 appoint">Active Appointments</a>
+        <a href="/admin/patients" class="block py-2 book patients">Patients</a>
+        <a href="/admin/providers" class="block py-2 book providers">Providers</a>
+        <a href="/admin/biller-admins" class="block py-2 book biller_admins">Biller Admins</a>
 
-    <div id="menu" class="md:hidden px-4 pb-4 space-y-2 text-[16px] text-slate-500 hidden">
-        <a href="/admin/dashboard" class="block emr">EMR System</a>
-        <a href="#" class="block ai">SugarPros AI</a>
-        <a href="#" class="block claims">Patient Claims Biller</a>
-        <a href="/admin/appointment" class="block appoint">Active Appointments</a>
-
-        <div class="flex items-center pt-2 space-x-4">
-            <a href="#">
-                <div
-                    class="border border-[#E2E8F0] w-[46px] rounded-lg  flex justify-center items-center h-[46px] bg-slate-100 hover:bg-slate-200">
-                    <img src="/assets/image/p1.png" class="w-[20px] h-20px]" alt="">
+        <div class="pt-4 border-t border-gray-200">
+            <div class="flex items-center gap-3 pb-3 mb-3">
+                <img src="{{ $brandicon }}" class="w-12 h-12 rounded-full border p-1" alt="">
+                <div class="flex flex-col">
+                    <span class="text-base font-semibold leading-tight truncate max-w-[150px]">{{ Auth::guard('admin')->user()->name }}</span>
+                    <span class="text-sm text-gray-500 truncate max-w-[150px]">{{ Auth::guard('admin')->user()->email }}</span>
                 </div>
-            </a>
-
-            <a href="/admin/recent-chat">
-                <div
-                    class="border border-[#E2E8F0] w-[46px] rounded-lg  flex justify-center items-center h-[46px] bg-slate-100 hover:bg-slate-200">
-                    <img src="/assets/image/p2.png" class="w-[20px] h-20px]" alt="">
-                </div>
-            </a>
-            <a href="#">
-                <div
-                    class="border border-[#E2E8F0] w-[46px] rounded-lg  flex justify-center items-center h-[46px] bg-slate-100 hover:bg-slate-200">
-                    <img src="/assets/image/p3.png" class="w-[20px] h-20px]" alt="">
-                </div>
-            </a>
-
-            <a href="/admin/account">
-                <div
-                    class="border border-[#E2E8F0] w-[46px] rounded-lg  flex justify-center items-center h-[46px] bg-slate-100 hover:bg-slate-200 overflow-hidden">
-                    <img src="/assets/image/p4.png" class="w-full h-[46px]" alt="">
-                </div>
-            </a>
+            </div>
+            
+            <a href="/admin/account" class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Admin Account</a>
+            <a href="/admin/adress-page" class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Address</a>
+            <a href="/admin/services" class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Services</a>
+            <a href="/admin/reviews" class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Reviews</a>
+            <a href="/admin/categories" class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Categories</a>
+            <a href="/admin/blogs" class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Blogs</a>
+            <a href="/admin/add-new-blog" class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Add Blog</a>
+            <a href="/admin/all-blogs" class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">FAQs</a>
+            <a href="/admin/settings" class="block px-2 py-2 text-gray-700 rounded hover:bg-slate-100 transition">Website Settings</a>
+            <a href="/admin/logout" class="block px-2 py-2 text-red-600 rounded hover:bg-slate-100 transition">Logout</a>
         </div>
     </div>
 </header>
 
-
-
 <script>
-    function showAccountInfo() {
-        $(".show_account_info").toggleClass("hidden");
+    function toggleMenu(button) {
+        const menu = document.getElementById('mobileMenu');
+        const icon = button.querySelector('i');
+        
+        menu.classList.toggle('hidden');
+        
+        if (menu.classList.contains('hidden')) {
+            icon.classList.remove('fa-times');
+            icon.classList.add('fa-bars');
+        } else {
+            icon.classList.remove('fa-bars');
+            icon.classList.add('fa-times');
+        }
+    }
+
+    function showAccountInfo(element) {
+        const accountInfo = element.nextElementSibling;
+        accountInfo.classList.toggle('hidden');
+        
+        // Close when clicking outside
+        document.addEventListener('click', function handleClickOutside(e) {
+            if (!element.contains(e.target) && !accountInfo.contains(e.target)) {
+                accountInfo.classList.add('hidden');
+                document.removeEventListener('click', handleClickOutside);
+            }
+        });
     }
 </script>

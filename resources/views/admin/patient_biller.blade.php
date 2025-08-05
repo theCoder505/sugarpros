@@ -1,536 +1,500 @@
 @extends('layouts.admin_app')
 
-@section('title', 'Upload Claims')
-
+@section('title', 'Patient Claims Biller Responses')
 
 @section('styles')
     <style>
-        .patinet_biller {
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-accepted {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-rejected {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .status-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .medicare-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .medicare-completed {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 2px solid #10b981;
+        }
+
+        .medicare-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 2px solid #f59e0b;
+        }
+
+        .added-by-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.7rem;
             font-weight: 500;
-            color: #000000;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            border: 1px solid;
+        }
+
+        .added-by-admin {
+            background-color: #ede9fe;
+            color: #6b46c1;
+            border-color: #a78bfa;
+        }
+
+        .added-by-provider {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border-color: #60a5fa;
+        }
+
+        .added-by-biller {
+            background-color: #fef3c7;
+            color: #92400e;
+            border-color: #fbbf24;
         }
 
         .claim-card {
             transition: all 0.2s ease;
+            border-left: 4px solid;
         }
 
-        .claim-card:hover {
+        .claim-card.accepted {
+            border-left-color: #10b981;
+        }
+
+        .claim-card.rejected {
+            border-left-color: #ef4444;
+        }
+
+        .claim-card.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .action-btn {
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .status-badge {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            border-radius: 9999px;
-            display: inline-flex;
-            align-items: center;
         }
 
         .spinner {
             display: none;
-            margin: 20px auto;
             width: 40px;
             height: 40px;
-            border: 4px solid #e5e7eb;
-            border-top: 4px solid #2563eb;
+            margin: 0 auto;
+            border: 4px solid rgba(0, 0, 0, 0.1);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-
-
-        .modal-content {
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-
-        /* Animation for modal */
-        .modal-enter {
-            opacity: 0;
-            transform: scale(0.9);
-        }
-
-        .modal-enter-active {
-            opacity: 1;
-            transform: translateX(0);
-            transition: opacity 300ms, transform 300ms;
-        }
-
-        .modal-exit {
-            opacity: 1;
-        }
-
-        .modal-exit-active {
-            opacity: 0;
-            transform: scale(0.9);
-            transition: opacity 300ms, transform 300ms;
+            border-top-color: #2d92b3;
+            animation: spin 1s ease-in-out infinite;
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
+            to {
                 transform: rotate(360deg);
             }
+        }
+
+        .status-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .info-section {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .info-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 0.5rem;
         }
     </style>
 @endsection
 
 @section('content')
-    <div class="container py-8 max-w-7xl mx-auto">
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h1 class="text-2xl font-bold mb-6">Upload Claim Files</h1>
-
-            <form id="uploadForm" enctype="multipart/form-data">
-                @csrf
-                <div class="mb-4">
-                    <label class="block text-gray-700 mb-2" for="claim_file">
-                        Claim File (EDI 837)
-                    </label>
-                    <input type="file" name="claim_file" id="claim_file" class="border rounded p-2 w-full" required
-                        accept=".txt,.837">
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-gray-700 mb-2" for="file_name">
-                        File Name
-                    </label>
-                    <input type="text" name="file_name" id="file_name" class="border rounded p-2 w-full" required
-                        placeholder="e.g., claims_20230801.txt">
-                </div>
-
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 uploadBtn">
-                    Upload File
+    <div class="container px-6 lg:px-0 py-8 max-w-7xl mx-auto">
+        <div class="lg:flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Patient Claims Biller Responses</h1>
+            <div class="flex space-x-4">
+                <button onclick="fetchList()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 w-full lg:w-auto mt-2 lg:mt-0">
+                    Refresh List
                 </button>
-            </form>
-
-            <div id="uploadResult" class="mt-6 hidden">
-                <h2 class="text-xl font-semibold mb-2">Upload Result</h2>
-                <pre id="resultContent" class="bg-gray-100 p-4 rounded overflow-auto"></pre>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-md p-6 mt-8">
-            <h1 class="text-2xl font-bold mb-6">Upload History</h1>
-            <button id="fetchUploads" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                onclick="fetchList(this)">
-                Latest Upload List
-            </button>
-
+        <div class="bg-white rounded-lg shadow-md p-6">
             <div class="spinner"></div>
 
-            <div id="uploadList" class="mt-4 hidden">
-                <pre id="listContent" class="bg-gray-100 px-4 rounded overflow-auto"></pre>
-            </div>
+            <div id="claimsList" class="space-y-4"></div>
         </div>
     </div>
 
-
+    <!-- Modal for Claim Details -->
+    <div id="claimModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold" id="modalTitle">Claim Details</h3>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="modalContent" class="space-y-4"></div>
+        </div>
+    </div>
 @endsection
 
-
 @section('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // File Upload Form
-        $('#uploadForm').on('submit', function(e) {
-            e.preventDefault();
-            $(".uploadBtn").html('Processing...');
-
-            let formData = new FormData(this);
-            $('#uploadResult').addClass('hidden');
-
-            $.ajax({
-                url: '/admin/claim-md/upload',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    if (response.success) {
-                        $(".uploadBtn").html('Upload File');
-                        if (response.data && response.data.error && response.data.error
-                            .error_mesg) {
-                            console.log(response.data.error.error_mesg);
-                            toastr.error('Processing Aborted! Duplicate File Found.');
-                        } else {
-                            toastr.success('Claim MD Added Successfully!');
-                            fetchList();
-                            // $('#resultContent').html(formatUploadResponse(response.data));
-                            // $('#uploadResult').removeClass('hidden');
-                        }
-                    } else {
-                        // $('#resultContent').html(`
-                    //     <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
-                    //         ${response.error}
-                    //     </div>`);
-                        // $('#uploadResult').removeClass('hidden');
-                        toastr.error('Error! Try again Later!');
-                        console.log(response.error);
-                    }
-                },
-                error: function(xhr) {
-                    // $('#resultContent').html(`
-                // <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
-                //     Server Error: ${xhr.statusText}
-                // </div>`);
-                    // $('#uploadResult').removeClass('hidden');
-                    toastr.error('Error! Try again Later!');
-                    console.log(response.error);
-                }
-            });
-        });
-
-        // Fetch Upload List
+        // Fetch claims list
         function fetchList() {
-
-            $('#uploadList').addClass('hidden');
+            $('#claimsList').html('');
             $('.spinner').show();
 
             $.ajax({
-                url: '/admin/claim-md/uploadlist',
-                type: 'POST',
-                data: {
-                    AccountKey: '{{ $CLAIM_MD_API_KEY }}',
-                    _token: '{{ csrf_token() }}'
-                },
+                url: '/admin/claim-md/get-claims',
+                type: 'GET',
                 success: function(response) {
                     $('.spinner').hide();
-                    if (response.success) {
-                        $('#listContent').html(formatUploadListResponse(response.data));
-                    } else {
-                        $('#listContent').html(`
-                        <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
-                            ${response.error}
-                        </div>
-                    `);
-                    }
-                    $('#uploadList').removeClass('hidden');
-                },
-                error: function(xhr) {
-                    $('#listContent').html(`
-                    <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
-                        Server Error: ${xhr.statusText}
-                    </div>
-                `);
-                    $('#uploadList').removeClass('hidden');
-                }
-            });
-        }
-
-
-
-        fetchList();
-
-        // Format Upload Response
-        function formatUploadResponse(data) {
-            if (!data) return '<div class="text-gray-500">No data received</div>';
-
-            let html = '';
-
-            // Handle both XML-converted and native JSON responses
-            const result = data.result || data;
-            const claims = result.claim || [];
-            const messages = result.messages || [];
-
-            // Summary Card
-            html += `
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                        <h3 class="text-lg font-semibold text-blue-800">
-                            ${result.messages || 'Claims processed successfully'}
-                        </h3>
-                        <p class="text-blue-600 mt-1">
-                            ${Array.isArray(claims) ? claims.length : 1} claim(s) processed
-                        </p>
-                    </div>`;
-
-            // Claims List
-            if (Array.isArray(claims)) {
-                claims.forEach(claim => {
-                    html += formatClaimCard(claim);
-                });
-            } else if (claims) {
-                html += formatClaimCard(claims);
-            }
-
-            return html;
-        }
-
-        function formatClaimCard(claim) {
-            const statusClass = {
-                'A': 'bg-green-100 text-green-800',
-                'R': 'bg-red-100 text-red-800',
-                'W': 'bg-yellow-100 text-yellow-800',
-                'P': 'bg-blue-100 text-blue-800'
-            } [claim.status] || 'bg-gray-100 text-gray-800';
-
-            const statusText = {
-                'A': 'Accepted',
-                'R': 'Rejected',
-                'W': 'Warning',
-                'P': 'Pending'
-            } [claim.status] || claim.status;
-
-            let messagesHtml = '';
-            if (claim.messages) {
-                const messages = Array.isArray(claim.messages) ? claim.messages : [claim.messages];
-                messagesHtml = `
-                        <div class="mt-3 pt-3 border-t border-gray-200">
-                            <h4 class="font-medium text-gray-700 mb-2">Messages:</h4>
-                            <ul class="space-y-1">` +
-                    messages.map(msg => `
-                                <li class="text-sm ${msg.status === 'W' ? 'text-yellow-600' : 'text-red-600'}">
-                                    <span class="font-medium">${msg.mesgid || 'Message'}:</span>
-                                    ${msg.message || msg}
-                                </li>
-                            `).join('') +
-                    `</ul>
-                        </div>`;
-            }
-
-            return `
-                    <div class="border rounded-lg overflow-hidden mb-4 shadow-sm hover:shadow-md transition-shadow">
-                        <div class="flex justify-between items-center p-4 ${statusClass}">
-                            <div>
-                                <span class="font-bold">Claim ID:</span> ${claim.claimid || 'N/A'}
-                                <span class="ml-4"><span class="font-bold">Status:</span> ${statusText}</span>
-                            </div>
-                            <div>
-                                <span class="font-bold">Amount:</span> $${claim.total_charge || '0.00'}
-                            </div>
-                        </div>
-                        <div class="p-4">
-                            <div class="grid grid-cols-2 gap-4 mb-3">
-                                <div><span class="font-bold">Batch ID:</span> ${claim.batchid || 'N/A'}</div>
-                                <div><span class="font-bold">DOS:</span> ${claim.fdos || 'N/A'}</div>
-                                <div><span class="font-bold">Payer ID:</span> ${claim.payerid || 'N/A'}</div>
-                                <div><span class="font-bold">PCN:</span> ${claim.pcn || 'N/A'}</div>
-                            </div>
-                            ${messagesHtml}
-                        </div>
-                    </div>`;
-        }
-
-
-
-        // Format Upload List Response
-        function formatUploadListResponse(data) {
-            if (!data) return '<div class="text-gray-500">No data received</div>';
-
-            const files = data.file || [];
-
-            if (!files.length) {
-                return '<div class="text-gray-500">No upload history found</div>';
-            }
-
-            return `
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Inbound ID</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filename</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Count</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Amount</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">` +
-                (Array.isArray(files) ? files : [files]).map(file => {
-                    const statusClass = {
-                        'P': 'bg-blue-100 text-blue-800',
-                        'C': 'bg-green-100 text-green-800',
-                        'E': 'bg-red-100 text-red-800'
-                    } [file.status] || 'bg-gray-100 text-gray-800';
-
-                    const statusText = {
-                        'P': 'Pending',
-                        'C': 'Completed',
-                        'E': 'Error'
-                    } [file.status] || file.status;
-
-                    return `
-                                <tr class="hover:bg-gray-50" id="file-row-${file.inboundid}">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${file.inboundid || 'N/A'}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">${file.filename || 'N/A'}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">${file.file_count || 'N/A'}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">${file.file_amount || 'N/A'}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        ${file.uploadtime ? new Date(file.uploadtime * 1000).toLocaleString() : 'N/A'}
-                                    </td>
-                                </tr>`;
-                }).join('') +
-                `</tbody>
-                            </table>
-                        </div>`;
-        }
-
-
-
-
-
-        function deleteFile(fileId) {
-            if (!confirm('Are you sure you want to delete this file?')) return;
-
-            // Show loading indicator
-            const $row = $(`#file-row-${fileId}`);
-            $row.css('opacity', '0.5');
-            $row.find('button').prop('disabled', true);
-
-            $.ajax({
-                url: '/admin/claim-md/deletefile',
-                type: 'POST',
-                data: {
-                    file_id: fileId,
-                    _token: '{{ csrf_token() }}'
-                },
-                success: function(response) {
-                    if (response.success) {
-                        toastr.success(response.message || 'File deleted successfully');
-                        $row.fadeOut(300, function() {
-                            $(this).remove();
+                    if (response.success && response.data.length) {
+                        response.data.forEach(claim => {
+                            $('#claimsList').append(formatClaimCard(claim));
                         });
                     } else {
-                        toastr.error(response.error || 'Failed to delete file');
-                        $row.css('opacity', '1');
-                        $row.find('button').prop('disabled', false);
+                        $('#claimsList').html(`
+                            <div class="text-center py-8 text-gray-500">
+                                No claims found in the system
+                            </div>
+                        `);
                     }
                 },
                 error: function(xhr) {
-                    toastr.error('Error: ' + (xhr.responseJSON?.error || xhr.statusText));
-                    $row.css('opacity', '1');
-                    $row.find('button').prop('disabled', false);
+                    $('.spinner').hide();
+                    $('#claimsList').html(`
+                        <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
+                            Error loading claims: ${xhr.responseJSON?.message || xhr.statusText}
+                        </div>
+                    `);
                 }
             });
         }
 
-
-
-
-
-
-
-
-
-
-
-        // Add this function to your scripts
-        function viewFile(fileId, filename) {
-            // Show loading state
-            toastr.info('Loading file content...');
-
-            $.ajax({
-                url: '/admin/claim-md/viewfile',
-                type: 'POST',
-                data: {
-                    file_id: fileId,
-                    _token: '{{ csrf_token() }}'
-                },
-                success: function(response) {
-                    if (response.success) {
-                        // Create a modal to display the content
-                        const modalHtml = `
-                                            <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                                                <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-                                                    <div class="flex justify-between items-center border-b pb-2">
-                                                        <h3 class="text-lg font-semibold">${filename}</h3>
-                                                        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
-                                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                    <div class="mt-4 max-h-[70vh] overflow-auto">
-                                                        <pre class="bg-gray-100 p-4 rounded text-sm">${response.content}</pre>
-                                                    </div>
-                                                </div>
-                                            </div>`;
-
-                        $('body').append(modalHtml);
-                    } else {
-                        toastr.error(response.error || 'Failed to load file');
-                    }
-                },
-                error: function(xhr) {
-                    toastr.error('Error loading file: ' + xhr.statusText);
-                }
-            });
+        // Get claim status text
+        function getClaimStatusText(statusCode) {
+            const statusMap = {
+                'A': 'Accepted',
+                'R': 'Rejected',
+                'W': 'Warning'
+            };
+            return statusMap[statusCode] || statusCode;
         }
 
-        function closeModal() {
-            $('.fixed.inset-0').remove();
-        }
+        // Get added by info
+        function getAddedByInfo(doneBy, doneById) {
+            const doneByLower = doneBy ? doneBy.toLowerCase() : 'unknown';
+            let badgeClass = 'added-by-admin';
+            let icon = '';
+            let displayText = '';
 
-        // Update your formatUploadListResponse function to add view buttons
-        function formatUploadListResponse(data) {
-            if (!data) return '<div class="text-gray-500">No data received</div>';
-
-            const files = data.file || [];
-
-            if (!files.length) {
-                return '<div class="text-gray-500">No upload history found</div>';
+            switch (doneByLower) {
+                case 'admin':
+                    badgeClass = 'added-by-admin';
+                    icon =
+                        '<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"></path></svg>';
+                    displayText = 'Admin';
+                    break;
+                case 'provider':
+                    badgeClass = 'added-by-provider';
+                    icon =
+                        '<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+                    displayText = `Provider ${doneById ? `(ID: ${doneById})` : ''}`;
+                    break;
+                case 'biller':
+                    badgeClass = 'added-by-biller';
+                    icon =
+                        '<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>';
+                    displayText = `Biller ${doneById ? `(ID: ${doneById})` : ''}`;
+                    break;
+                default:
+                    badgeClass = 'added-by-admin';
+                    icon =
+                        '<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
+                    displayText = 'Unknown';
             }
 
+            return {
+                badgeClass,
+                icon,
+                displayText
+            };
+        }
+
+        // Format claim card
+        function formatClaimCard(claim) {
+            const statusClass = {
+                'A': 'status-accepted',
+                'R': 'status-rejected',
+                'W': 'status-warning'
+            } [claim.claim_status] || 'status-rejected';
+
+            const statusText = getClaimStatusText(claim.claim_status);
+
+            const cardClass = {
+                'A': 'accepted',
+                'R': 'rejected',
+                'W': 'warning'
+            } [claim.claim_status] || 'rejected';
+
+            // Medicare status badge
+            const medicareClass = claim.medicare_status == 'completed' ? 'medicare-completed' : 'medicare-pending';
+            const medicareText = claim.medicare_status == 'completed' ? 'Completed' : 'Pending';
+            const medicareIcon = claim.medicare_status == 'completed' ?
+                '<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' :
+                '<svg class="w-3 h-3 animate-spin" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path></svg>';
+
+            // Added by info
+            const addedByInfo = getAddedByInfo(claim.done_by, claim.done_by_id);
+
+            // Parse response data
+            const claimDetails = claim.claim_response.claim ? claim.claim_response.claim[0] : {};
+            const messages = claimDetails.messages || [];
+
+            // Format date
+            const formattedDate = new Date(claim.created_at).toLocaleString();
+
+            // Action buttons
+            let actionButtons = '';
+            if (claim.claim_status == 'A') {
+                actionButtons = `
+                    <a href="/admin/mark-appointment-proceed/${claim.appointment_uid}" 
+                       class="action-btn bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                        Proceed Appointment
+                    </a>
+                `;
+            }
+
+            actionButtons += `
+                <button onclick="viewClaimDetails('${claim.id}')" 
+                   class="action-btn bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                    View Details
+                </button>
+                <button onclick="deleteClaim('${claim.id}')" 
+                   class="action-btn bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
+                    Delete Claim
+                </button>
+            `;
+
             return `
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Inbound ID</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filename</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Count</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">` +
-                (Array.isArray(files) ? files : [files]).map(file => {
-                    return `
-                            <tr class="hover:bg-gray-50" id="file-row-${file.inboundid}">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${file.inboundid || 'N/A'}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">${file.filename || 'N/A'}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">${file.file_count || 'N/A'}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">${file.file_amount || 'N/A'}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    ${file.uploadtime ? new Date(file.uploadtime * 1000).toLocaleString() : 'N/A'}
-                                </td>
-                            </tr>`;
-                }).join('') +
-                `</tbody>
-                        </table>
-                    </div>`;
+                <div class="claim-card ${cardClass} bg-white rounded-lg shadow-sm p-5">
+                    <div class="lg:flex justify-between items-start">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-lg">${claim.patient_name} - ${claim.appointment_uid}</h3>
+                            <div class="status-row mt-2">
+                                <span class="${statusClass} status-badge">${statusText}</span>
+                                <span class="${medicareClass} medicare-badge">
+                                    ${medicareIcon}
+                                    Appointment Process: ${medicareText}
+                                </span>
+                                <span class="text-gray-600 text-sm">${formattedDate}</span>
+                            </div>
+                            ${messages.length ? `
+                                                <div class="mt-3">
+                                                    <p class="text-sm font-medium">Primary Message:</p>
+                                                    <p class="text-sm text-gray-700">${messages[0].message || 'No message'}</p>
+                                                </div>
+                                            ` : ''}
+                            <div class="info-section">
+                                <div class="info-row">
+                                    <span class="${addedByInfo.badgeClass} added-by-badge">
+                                        ${addedByInfo.icon}
+                                        Added By: ${addedByInfo.displayText}
+                                    </span>
+                                    ${claim.claimmd_id ? `<span class="text-xs text-gray-500">ClaimMD ID: ${claim.claimmd_id}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 mt-4 gap-2 lg:mt-0 lg:gap-0 lg:flex lg:space-x-2 lg:ml-4">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
+        // View claim details
+        function viewClaimDetails(claimId) {
+            $('#modalContent').html('<p>Loading details...</p>');
+            $('#claimModal').removeClass('hidden');
 
-        // <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-        //     <button onclick="downloadFile('${file.inboundid}', '${file.filename || 'File'}')" 
-        //         class="text-blue-600 hover:text-blue-900">
-        //         Download
-        //     </button>
-        //     <button onclick="deleteFile('${file.inboundid}')" 
-        //         class="text-red-600 hover:text-red-900">
-        //         Delete
-        //     </button>
-        // </td>
+            $.ajax({
+                url: `/admin/claim-md/get-claim/${claimId}`,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const claim = response.data;
+                        const claimDetails = claim.claim_response.claim ? claim.claim_response.claim[0] : {};
+                        const addedByInfo = getAddedByInfo(claim.done_by, claim.done_by_id);
 
+                        let detailsHtml = `
+                            <div class="space-y-4">
+                                <div>
+                                    <h4 class="font-semibold">Appointment UID:</h4>
+                                    <p>${claim.appointment_uid}</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Patient:</h4>
+                                    <p>${claim.patient_info.name} (ID: ${claim.patient_info.patient_id})</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Claim Status:</h4>
+                                    <p>${getClaimStatusText(claim.claim_status)}</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Appointment Process:</h4>
+                                    <p>${claim.medicare_status == 'completed' ? 'Completed' : 'Pending'}</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Added By:</h4>
+                                    <span class="${addedByInfo.badgeClass} added-by-badge">
+                                        ${addedByInfo.icon}
+                                        ${addedByInfo.displayText}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">ClaimMD ID:</h4>
+                                    <p>${claim.claimmd_id || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Submitted At:</h4>
+                                    <p>${new Date(claim.created_at).toLocaleString()}</p>
+                                </div>
+                        `;
 
-        function downloadFile(fileId, filename) {
-            // Show loading indicator
-            toastr.info('Preparing download...');
+                        if (claimDetails.messages && claimDetails.messages.length) {
+                            detailsHtml += `
+                                <div>
+                                    <h4 class="font-semibold">Messages:</h4>
+                                    <ul class="list-disc pl-5 space-y-1">`;
 
-            // Create a temporary iframe for the download
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = `/admin/claim-md/downloadfile?file_id=${fileId}&filename=${encodeURIComponent(filename)}`;
-            document.body.appendChild(iframe);
+                            claimDetails.messages.forEach(msg => {
+                                detailsHtml += `
+                                    <li class="${msg.status == 'R' ? 'text-red-600' : msg.status == 'W' ? 'text-yellow-600' : 'text-green-600'}">
+                                        <strong>${msg.mesgid || 'Message'}:</strong> ${msg.message || 'No message'}
+                                    </li>`;
+                            });
 
-            // Remove the iframe after a delay
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-            }, 5000);
+                            detailsHtml += `</ul></div>`;
+                        }
+
+                        detailsHtml += `
+                                <div>
+                                    <h4 class="font-semibold">Raw Response:</h4>
+                                    <pre class="bg-gray-100 p-3 rounded-md text-xs overflow-auto">${JSON.stringify(claim.claim_response, null, 2)}</pre>
+                                </div>
+                            </div>
+                        `;
+
+                        $('#modalContent').html(detailsHtml);
+                        $('#modalTitle').text(`Claim Details: ${claim.appointment_uid}`);
+                    } else {
+                        $('#modalContent').html(`<p class="text-red-500">Error loading claim details</p>`);
+                    }
+                },
+                error: function() {
+                    $('#modalContent').html(`<p class="text-red-500">Error loading claim details</p>`);
+                }
+            });
         }
+
+        // Delete claim
+        function deleteClaim(claimId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will also delete it from ClaimMD. This action cannot be undone!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/admin/claim-md/delete-claim/${claimId}`,
+                        type: 'DELETE',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire(
+                                    'Deleted!',
+                                    'Claim has been deleted.',
+                                    'success'
+                                );
+                                fetchList();
+                            } else {
+                                Swal.fire(
+                                    'Error!',
+                                    response.message || 'Failed to delete claim',
+                                    'error'
+                                );
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || xhr.statusText,
+                                'error'
+                            );
+                        }
+                    });
+                }
+            });
+        }
+
+        // Close modal
+        function closeModal() {
+            $('#claimModal').addClass('hidden');
+        }
+
+        // Initial load
+        $(document).ready(function() {
+            fetchList();
+        });
+
+        $(".patinet_biller").addClass('font-semibold');
     </script>
 @endsection

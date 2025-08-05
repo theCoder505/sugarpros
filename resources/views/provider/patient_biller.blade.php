@@ -1,12 +1,100 @@
 @extends('layouts.provider')
 
-@section('title', 'Upload Claims')
+@section('title', 'Patient Claims Biller Responses')
 
 @section('style')
     <style>
-        .form-input:focus {
-            border-color: #0ea5e9;
-            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-accepted {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-rejected {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .status-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .medicare-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .medicare-completed {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 2px solid #10b981;
+        }
+
+        .medicare-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 2px solid #f59e0b;
+        }
+
+        .claim-card {
+            transition: all 0.2s ease;
+            border-left: 4px solid;
+        }
+
+        .claim-card.accepted {
+            border-left-color: #10b981;
+        }
+
+        .claim-card.rejected {
+            border-left-color: #ef4444;
+        }
+
+        .claim-card.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .action-btn {
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            margin: 0 auto;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #2d92b3;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .status-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
         }
     </style>
 @endsection
@@ -14,371 +102,300 @@
 @section('content')
     @include('layouts.provider_header')
 
-    <div class="min-h-screen bg-gray-100 py-6">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Header -->
-            <div class="bg-white rounded-lg shadow-sm mb-6">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-8">
-                            <div class="flex items-center space-x-2">
-                                <div class="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium">
-                                    EMR System
-                                </div>
-                                <span class="text-gray-400">|</span>
-                                <span class="text-blue-600 font-medium">SugarPros AI</span>
-                                <span class="text-gray-400">|</span>
-                                <span class="text-gray-600">Patient Claims Biller</span>
-                                <span class="text-gray-400">|</span>
-                                <span class="text-gray-600">Active Appointments</span>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            <button class="p-2 text-gray-400 hover:text-gray-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9h6v6H9z"></path>
-                                </svg>
-                            </button>
-                            <button class="p-2 text-gray-400 hover:text-gray-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                </svg>
-                            </button>
-                            <button class="p-2 text-gray-400 hover:text-gray-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                </svg>
-                            </button>
-                            <div class="bg-blue-600 text-white px-3 py-2 rounded">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="px-6 py-3 bg-gray-50 flex items-center justify-between text-sm">
-                    <div class="flex items-center space-x-6">
-                        <div>
-                            <span class="text-gray-600">Encounter:</span>
-                            <span class="font-medium">07/18/2025</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-600">Bill Date:</span>
-                            <span class="font-medium">07/18/2025</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-600">Bill ID:</span>
-                            <span class="font-medium">98-4581-W95G24-09</span>
-                        </div>
-                    </div>
-                </div>
+
+    <div class="container px-6 lg:px-0 py-8 max-w-7xl mx-auto">
+        <div class="lg:flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Patient Claims Biller Responses</h1>
+            <div class="flex space-x-4">
+                <button onclick="fetchList()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 w-full lg:w-auto mt-2 lg:mt-0">
+                    Refresh List
+                </button>
             </div>
+        </div>
 
-            <!-- Main Content -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Patient Information -->
-                <div class="lg:col-span-1">
-                    <div class="bg-white rounded-lg shadow-sm">
-                        <div class="px-6 py-4 border-b border-gray-200">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-medium text-gray-900">Patient</h3>
-                                <button class="text-blue-600 hover:text-blue-700">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="px-6 py-4 space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                                    <input type="text" value="Lorem Ipsum" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">DOB</label>
-                                    <input type="text" value="04/21/1960" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Patient ID</label>
-                                    <input type="text" value="YLS45681" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                                    <input type="text" value="Male" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                                <input type="text" value="(901) 832-8878" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                                <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" rows="2" readonly>725 LOEB ST,
-Memphis, TN 38111</textarea>
-                            </div>
-                        </div>
-                    </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="spinner"></div>
 
-                    <!-- Insurance Information -->
-                    <div class="bg-white rounded-lg shadow-sm mt-6">
-                        <div class="px-6 py-4 border-b border-gray-200">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-medium text-gray-900">Insurance</h3>
-                                <button class="text-blue-600 hover:text-blue-700">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="px-6 py-4 space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Coverage type</label>
-                                    <input type="text" value="Medical" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Primary</label>
-                                    <input type="text" value="Tennessee Medicare" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Plan name</label>
-                                    <input type="text" value="Medicare" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Plan type</label>
-                                    <input type="text" value="Medicare" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Insurance ID</label>
-                                    <input type="text" value="3G56Q19A71" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Group ID</label>
-                                    <input type="text" value="--" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Effective date</label>
-                                    <input type="text" value="06/05/2025" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Eligibility</label>
-                                    <input type="text" value="Not available" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Claims address</label>
-                                <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" rows="3" readonly>PO BOX 100306,
-Columbia, SC
-29202-3306</textarea>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Guarantor</label>
-                                <input type="text" value="Self" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" readonly>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Services Section -->
-                <div class="lg:col-span-2">
-                    <div class="bg-white rounded-lg shadow-sm">
-                        <!-- Service 1 -->
-                        <div class="px-6 py-4 border-b border-gray-200">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-medium text-gray-900">Service 1</h3>
-                                <div class="flex items-center space-x-3">
-                                    <button class="text-blue-600 hover:text-blue-700 text-sm">Clear all</button>
-                                    <button class="text-blue-600 hover:text-blue-700 text-sm">Duplicate</button>
-                                    <button class="text-red-600 hover:text-red-700 text-sm">Delete</button>
-                                    <button class="text-gray-400 hover:text-gray-600">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="px-6 py-6 space-y-6">
-                            <!-- Modifiers -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Modifiers</label>
-                                <div class="relative">
-                                    <input type="text" placeholder="Search here" class="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md form-input">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Billing Code -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">BILLING CODE*</label>
-                                <div class="flex items-center space-x-2">
-                                    <select class="px-3 py-2 border border-gray-300 rounded-md form-input">
-                                        <option>99214</option>
-                                    </select>
-                                    <span class="text-sm text-gray-500">Office or other outpatient visit for the evaluation...</span>
-                                </div>
-                            </div>
-
-                            <!-- ICD-10 Diagnoses -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">ICD-10 DIAGNOSES</label>
-                                <div class="space-y-2">
-                                    <div class="flex items-center space-x-2">
-                                        <select class="px-3 py-2 border border-gray-300 rounded-md form-input">
-                                            <option>E11.9</option>
-                                        </select>
-                                        <span class="text-sm text-gray-500">Office or other outpatient visit for the evaluation...</span>
-                                    </div>
-                                    
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between p-3 bg-blue-50 rounded-md">
-                                            <div class="flex items-center space-x-2">
-                                                <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
-                                                <span class="text-sm font-medium">E11.65 - Type 2 diabetes mellitus with hyperglycemia</span>
-                                            </div>
-                                            <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
-                                        </div>
-                                        
-                                        <div class="flex items-center justify-between p-3 bg-blue-50 rounded-md">
-                                            <div class="flex items-center space-x-2">
-                                                <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
-                                                <span class="text-sm font-medium">E66.9 - Obesity, unspecified</span>
-                                            </div>
-                                            <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
-                                        </div>
-                                        
-                                        <div class="flex items-center justify-between p-3 bg-blue-50 rounded-md">
-                                            <div class="flex items-center space-x-2">
-                                                <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
-                                                <span class="text-sm font-medium">Z68.42 - Body mass index (BMI) 45.0-49.9, adult</span>
-                                            </div>
-                                            <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
-                                        </div>
-                                        
-                                        <div class="flex items-center justify-between p-3 bg-blue-50 rounded-md">
-                                            <div class="flex items-center space-x-2">
-                                                <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
-                                                <span class="text-sm font-medium">I10 - Essential (primary) hypertension</span>
-                                            </div>
-                                            <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Date Fields -->
-                            <div class="grid grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">START DATE*</label>
-                                    <input type="text" placeholder="MM/DD/YYYY" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">END DATE*</label>
-                                    <input type="text" placeholder="MM/DD/YYYY" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input">
-                                </div>
-                            </div>
-
-                            <!-- Units and Quantity -->
-                            <div class="grid grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">UNITS</label>
-                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md form-input">
-                                        <option>MM/DD/YYYY</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">QTY</label>
-                                    <input type="number" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input">
-                                </div>
-                            </div>
-
-                            <!-- Billed Charge -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">BILLED CHARGE</label>
-                                <input type="text" value="$0.00" class="w-full px-3 py-2 border border-gray-300 rounded-md form-input">
-                            </div>
-                        </div>
-
-                        <!-- Service 2 -->
-                        <div class="border-t border-gray-200">
-                            <div class="px-6 py-4">
-                                <div class="flex items-center justify-between">
-                                    <h3 class="text-lg font-medium text-gray-900">Service 2</h3>
-                                    <button class="text-gray-400 hover:text-gray-600">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Add Service Button -->
-                        <div class="border-t border-gray-200 px-6 py-4">
-                            <button class="w-full flex items-center justify-center py-3 px-4 border-2 border-dashed border-gray-300 rounded-md text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                </svg>
-                                Add service
-                            </button>
-                        </div>
-
-                        <!-- Notes Section -->
-                        <div class="border-t border-gray-200 px-6 py-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                            <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md form-input" rows="3" placeholder="Type here"></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="flex justify-end space-x-4 mt-6">
-                        <button class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
-                            Save
-                        </button>
-                        <button class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                            Send to Biller
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <div id="claimsList" class="space-y-4"></div>
         </div>
     </div>
 
+    <!-- Modal for Claim Details -->
+    <div id="claimModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold" id="modalTitle">Claim Details</h3>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="modalContent" class="space-y-4"></div>
+        </div>
+    </div>
 @endsection
 
 @section('script')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        $(".claims").addClass('text-black');
-        
-        // Add any additional JavaScript functionality here
-        document.addEventListener('DOMContentLoaded', function() {
-            // Handle form interactions
-            const form = document.querySelector('form');
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    // Handle form submission
-                });
+        // Fetch claims list
+        function fetchList() {
+            $('#claimsList').html('');
+            $('.spinner').show();
+
+            $.ajax({
+                url: '/provider/claim-md/get-claims',
+                type: 'GET',
+                success: function(response) {
+                    $('.spinner').hide();
+                    if (response.success && response.data.length) {
+                        response.data.forEach(claim => {
+                            $('#claimsList').append(formatClaimCard(claim));
+                        });
+                    } else {
+                        $('#claimsList').html(`
+                            <div class="text-center py-8 text-gray-500">
+                                No claims found in the system
+                            </div>
+                        `);
+                    }
+                },
+                error: function(xhr) {
+                    $('.spinner').hide();
+                    $('#claimsList').html(`
+                        <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
+                            Error loading claims: ${xhr.responseJSON?.message || xhr.statusText}
+                        </div>
+                    `);
+                }
+            });
+        }
+
+        // Get claim status text
+        function getClaimStatusText(statusCode) {
+            const statusMap = {
+                'A': 'Accepted',
+                'R': 'Rejected',
+                'W': 'Warning'
+            };
+            return statusMap[statusCode] || statusCode;
+        }
+
+        // Format claim card
+        function formatClaimCard(claim) {
+            const statusClass = {
+                'A': 'status-accepted',
+                'R': 'status-rejected',
+                'W': 'status-warning'
+            } [claim.claim_status] || 'status-rejected';
+
+            const statusText = getClaimStatusText(claim.claim_status);
+
+            const cardClass = {
+                'A': 'accepted',
+                'R': 'rejected',
+                'W': 'warning'
+            } [claim.claim_status] || 'rejected';
+
+            // Medicare status badge
+            const medicareClass = claim.medicare_status == 'completed' ? 'medicare-completed' : 'medicare-pending';
+            const medicareText = claim.medicare_status == 'completed' ? 'Completed' : 'Pending';
+            const medicareIcon = claim.medicare_status == 'completed' ?
+                '<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' :
+                '<svg class="w-3 h-3 animate-spin" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path></svg>';
+
+            // Parse response data
+            const claimDetails = claim.claim_response.claim ? claim.claim_response.claim[0] : {};
+            const messages = claimDetails.messages || [];
+
+            // Format date
+            const formattedDate = new Date(claim.created_at).toLocaleString();
+
+            // Action buttons
+            let actionButtons = '';
+            if (claim.claim_status == 'A') {
+                actionButtons = `
+                    <a href="/provider/mark-appointment-proceed/${claim.appointment_uid}" 
+                       class="action-btn bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                        Proceed Appointment
+                    </a>
+                `;
             }
+
+            actionButtons += `
+                <button onclick="viewClaimDetails('${claim.id}')" 
+                   class="action-btn bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                    View Details
+                </button>
+                <button onclick="deleteClaim('${claim.id}')" 
+                   class="action-btn bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
+                    Delete Claim
+                </button>
+            `;
+
+            return `
+                <div class="claim-card ${cardClass} bg-white rounded-lg shadow-sm p-5">
+                    <div class="lg:flex justify-between items-start">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-lg">${claim.patient_name} - ${claim.appointment_uid}</h3>
+                            <div class="status-row mt-2">
+                                <span class="${statusClass} status-badge">${statusText}</span>
+                                <span class="${medicareClass} medicare-badge">
+                                    ${medicareIcon}
+                                    Appointment Process: ${medicareText}
+                                </span>
+                                <span class="text-gray-600 text-sm">${formattedDate}</span>
+                            </div>
+                            ${messages.length ? `
+                                                <div class="mt-3">
+                                                    <p class="text-sm font-medium">Primary Message:</p>
+                                                    <p class="text-sm text-gray-700">${messages[0].message || 'No message'}</p>
+                                                </div>
+                                            ` : ''}
+                        </div>
+                        <div class="grid grid-cols-2 mt-4 gap-2 lg:mt-0 lg:gap-0 lg:flex lg:space-x-2 lg:ml-4">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // View claim details
+        function viewClaimDetails(claimId) {
+            $('#modalContent').html('<p>Loading details...</p>');
+            $('#claimModal').removeClass('hidden');
+
+            $.ajax({
+                url: `/provider/claim-md/get-claim/${claimId}`,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const claim = response.data;
+                        const claimDetails = claim.claim_response.claim ? claim.claim_response.claim[0] : {};
+
+                        let detailsHtml = `
+                            <div class="space-y-4">
+                                <div>
+                                    <h4 class="font-semibold">Appointment UID:</h4>
+                                    <p>${claim.appointment_uid}</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Patient:</h4>
+                                    <p>${claim.patient_info.name} (ID: ${claim.patient_info.patient_id})</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Claim Status:</h4>
+                                    <p>${getClaimStatusText(claim.claim_status)}</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Appointment Process:</h4>
+                                    <p>${claim.medicare_status == 'completed' ? 'Completed' : 'Pending'}</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">ClaimMD ID:</h4>
+                                    <p>${claim.claimmd_id || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Submitted At:</h4>
+                                    <p>${new Date(claim.created_at).toLocaleString()}</p>
+                                </div>
+                        `;
+
+                        if (claimDetails.messages && claimDetails.messages.length) {
+                            detailsHtml += `
+                                <div>
+                                    <h4 class="font-semibold">Messages:</h4>
+                                    <ul class="list-disc pl-5 space-y-1">`;
+
+                            claimDetails.messages.forEach(msg => {
+                                detailsHtml += `
+                                    <li class="${msg.status == 'R' ? 'text-red-600' : msg.status == 'W' ? 'text-yellow-600' : 'text-green-600'}">
+                                        <strong>${msg.mesgid || 'Message'}:</strong> ${msg.message || 'No message'}
+                                    </li>`;
+                            });
+
+                            detailsHtml += `</ul></div>`;
+                        }
+
+                        detailsHtml += `
+                                <div>
+                                    <h4 class="font-semibold">Raw Response:</h4>
+                                    <pre class="bg-gray-100 p-3 rounded-md text-xs overflow-auto">${JSON.stringify(claim.claim_response, null, 2)}</pre>
+                                </div>
+                            </div>
+                        `;
+
+                        $('#modalContent').html(detailsHtml);
+                        $('#modalTitle').text(`Claim Details: ${claim.appointment_uid}`);
+                    } else {
+                        $('#modalContent').html(`<p class="text-red-500">Error loading claim details</p>`);
+                    }
+                },
+                error: function() {
+                    $('#modalContent').html(`<p class="text-red-500">Error loading claim details</p>`);
+                }
+            });
+        }
+
+        // Delete claim
+        function deleteClaim(claimId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will also delete it from ClaimMD. This action cannot be undone!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/provider/claim-md/delete-claim/${claimId}`,
+                        type: 'DELETE',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire(
+                                    'Deleted!',
+                                    'Claim has been deleted.',
+                                    'success'
+                                );
+                                fetchList();
+                            } else {
+                                Swal.fire(
+                                    'Error!',
+                                    response.message || 'Failed to delete claim',
+                                    'error'
+                                );
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire(
+                                'Error!',
+                                xhr.responseJSON?.message || xhr.statusText,
+                                'error'
+                            );
+                        }
+                    });
+                }
+            });
+        }
+
+        // Close modal
+        function closeModal() {
+            $('#claimModal').addClass('hidden');
+        }
+
+        // Initial load
+        $(document).ready(function() {
+            fetchList();
         });
+
+
+        $(".claims").addClass('font-semibold');
     </script>
 @endsection

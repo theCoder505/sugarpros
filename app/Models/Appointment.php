@@ -35,6 +35,7 @@ class Appointment extends Model
         'plan',
         'insurance_card_front',
         'insurance_card_back',
+        'medicare_status',
         // done new fields from booking page
 
         'meet_link',
@@ -53,8 +54,12 @@ class Appointment extends Model
         'payment_status',
         'amount',
         'currency',
-
-
-
     ];
+
+
+
+    public function claimsBillerData()
+    {
+        return $this->hasMany(ClaimsBillerFormData::class, 'appointment_uid', 'appointment_uid');
+    }
 }

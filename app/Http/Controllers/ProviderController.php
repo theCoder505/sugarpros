@@ -14,6 +14,7 @@ use App\Models\Provider;
 use App\Models\QuestLab;
 use App\Models\Settings;
 use App\Models\SignupTrial;
+use App\Models\SubscriptionPlan;
 use App\Models\SugarprosAIChat;
 use App\Models\User;
 use App\Models\UserDetails;
@@ -1897,11 +1898,28 @@ class ProviderController extends Controller
 
 
 
+    public function fetchSubscription(Request $request)
+    {
+        $user_id = $request['user_id'];
+        $recurring_option = SubscriptionPlan::where('availed_by_uid', $user_id)->value('recurring_option');
+        $plan = SubscriptionPlan::where('availed_by_uid', $user_id)->value('plan');
+
+        return [
+            'plan' => $plan,
+            'recurring_option' => $recurring_option
+        ];
+    }
+
+
+
 
     public function fetchRelatedChats(Request $request)
     {
         $provider_id = Auth::guard('provider')->user()->provider_id;
         $message_with = $request['message_with'];
+
+          $recurring_option = SubscriptionPlan::where('availed_by_uid', $message_with)->value('recurring_option');
+        $plan = SubscriptionPlan::where('availed_by_uid', $message_with)->value('plan');
 
         $chats = ChatRecord::where(function ($query) use ($provider_id, $message_with) {
             $query->where('sent_by', $provider_id)
