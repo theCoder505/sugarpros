@@ -1,4 +1,4 @@
-<header class="pb-4 relative w-full z-20 bg-[#133A59]/10 lg:bg-[unset] headerpage">
+<header class="pb-4 relative w-full z-20 bg-[#133A59]/10 lg:bg-[unset] headerpage top-0 left-0">
     <div class="px-4 mx-auto max-w-[1420px] sm:px-6 lg:px-8 relative z-20">
         <div class="flex items-center justify-between h-16">
             <!-- Logo -->
@@ -16,6 +16,9 @@
                 <a href="{{ route('reviews') }}" class="hover:text-button Reviews">Patient Reviews</a>
                 <a href="/our-blogs" class="hover:text-button Blog">Blog</a>
                 <a href="{{ route('faq') }}" class="hover:text-button FAQs">FAQs</a>
+                @if (Auth::guard('biller-admin')->check())
+                    <a href="/biller-admin/appointments" class="hover:text-button appointments">Appointments</a>
+                @endif
             </nav>
 
             <!-- Actions -->
@@ -27,6 +30,20 @@
                             class="hidden px-4 py-2 bg-white border border-gray-200 rounded-lg md:inline-block text-button hover:bg-gray-100">
                             Dashboard
                         </a>
+                    @elseif (Auth::guard('biller-admin')->check())
+                        <div class="flex gap-4">
+                            <a href="/biller-admin/dashboard"
+                                class="hidden px-4 py-2 bg-white border border-gray-200 rounded-lg md:inline-block text-button hover:bg-gray-100 dashboard">
+                                Dashboard
+                            </a>
+                            <form action="{{ route('biller-admin.logout') }}" method="POST">
+                                @csrf
+                                <button type="submit"
+                                    class="px-4 py-2 bg-red-50 text-red-500 border-2 border-red-400 rounded-lg font-normal hover:bg-red-400 hover:text-white">
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
                     @elseif (Auth::check())
                         <a href="/dashboard"
                             class="hidden px-4 py-2 bg-white border border-gray-200 rounded-lg md:inline-block text-button hover:bg-gray-100">

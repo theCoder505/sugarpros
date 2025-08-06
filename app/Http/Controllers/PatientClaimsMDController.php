@@ -81,6 +81,31 @@ class PatientClaimsMDController extends Controller
     }
 
 
+    public function patientClaimsBillerAdminBiller()
+    {
+        try {
+            $credentials = [
+                'CLAIM_MD_CLIENT_ID' => Settings::value('CLAIM_MD_CLIENT_ID'),
+                'CLAIM_MD_API_KEY' => Settings::value('CLAIM_MD_API_KEY'),
+                'CLAIM_MD_ENV' => Settings::value('CLAIM_MD_ENV')
+            ];
+
+            if (
+                empty($credentials['CLAIM_MD_CLIENT_ID']) ||
+                empty($credentials['CLAIM_MD_API_KEY']) ||
+                empty($credentials['CLAIM_MD_ENV'])
+            ) {
+                throw new \Exception("Claim MD credentials are not fully configured");
+            }
+
+            return view('biller_admin.dashboard', $credentials);
+        } catch (\Exception $e) {
+            Log::error("PatientClaimsBiller Error: " . $e->getMessage());
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+
 
 
 
@@ -286,6 +311,21 @@ class PatientClaimsMDController extends Controller
                 'claims_biller',
                 'services_data'
             ));
+        } elseif (Auth::guard('biller-admin')->check()) {
+            $biller_id = Auth::guard('biller-admin')->user()->biller_admin_id;
+            return view('biller_admin.spec_patient_claim_biller', compact(
+                'appointment',
+                'appointment_uid',
+                'CLAIM_MD_CLIENT_ID',
+                'CLAIM_MD_API_KEY',
+                'CLAIM_MD_ENV',
+                'appointer_patient_id',
+                'appointer_dob',
+                'appointer_gender',
+                'address',
+                'claims_biller',
+                'services_data'
+            ));
         } else {
             return view('admin.spec_patient_claim_biller', compact(
                 'appointment',
@@ -317,6 +357,9 @@ class PatientClaimsMDController extends Controller
         if (Auth::guard('provider')->check()) {
             $done_by = 'provider';
             $done_by_id = Auth::guard('provider')->user()->provider_id;
+        } elseif (Auth::guard('biller-admin')->check()) {
+            $done_by = 'biller';
+            $done_by_id = Auth::guard('biller-admin')->user()->biller_admin_id;
         } else {
             $done_by = 'admin';
             $done_by_id = '1';

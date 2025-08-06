@@ -22,6 +22,11 @@ return [
             'provider' => 'admins',
         ],
 
+        'biller-admin' => [  // New guard for biller admins
+            'driver' => 'session',
+            'provider' => 'biller-admins',
+        ],
+
         'api' => [ // New Guard For API | Patinets
             'driver' => 'jwt',
             'provider' => 'users',
@@ -48,6 +53,11 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\Admin::class,
         ],
+
+        'biller-admins' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\BillerAdmin::class,
+        ],
     ],
 
     'passwords' => [
@@ -67,6 +77,13 @@ return [
 
         'admins' => [  // Password reset for admins
             'provider' => 'admins',
+            'table' => 'password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        'biller-admins' => [
+            'provider' => 'biller-admins',
             'table' => 'password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,

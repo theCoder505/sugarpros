@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminCredentialsController;
+use App\Http\Controllers\BillerAdminController;
+use App\Http\Controllers\BillerAuthController;
 use App\Http\Controllers\BlogsController;
 use App\Http\Controllers\CredentialsController;
 use App\Http\Controllers\DexcomController;
@@ -695,11 +697,32 @@ Route::post('/admin/update-blog', [BlogsController::class, 'updateBlog'])->middl
 Route::post('/admin/delete-blog/{blog_id}', [BlogsController::class, 'deleteBlog'])->middleware('admin_loggedin');
 
 
+// Biller Admins
+Route::get('/admin/biller-admins', [BillerAdminController::class, 'billerAdmins'])->middleware('admin_loggedin');
+Route::post('/admin/add-new-biller-admin', [BillerAdminController::class, 'addNewBillerAdmin'])->middleware('admin_loggedin');
+Route::post('/admin/biller-admin/edit', [BillerAdminController::class, 'updateBillerData'])->middleware('admin_loggedin');
+Route::get('/admin/biller-admin/remove/{biller_admin_id}', [BillerAdminController::class, 'removeBiller'])->middleware('admin_loggedin');
 
 
 
 
+// Biller Admin Auth Routes
+Route::prefix('biller-admin')->group(function () {
+    Route::get('/login', [BillerAuthController::class, 'showLoginForm'])->name('biller-admin.login.form');
+    Route::post('/login', [BillerAuthController::class, 'login'])->name('biller-admin.login');
+    Route::post('/logout', [BillerAuthController::class, 'logout'])->name('biller-admin.logout');
 
+    Route::get('/appointments', [BillerAuthController::class, 'appointments'])->name('biller-admin.appointments')->middleware('auth:biller-admin');
+    Route::get('/dashboard', [PatientClaimsMDController::class, 'patientClaimsBillerAdminBiller'])->name('biller-admin.dashboard')->middleware('auth:biller-admin');
+
+    Route::get('/patient-claims-biller/{appointment_uid}', [PatientClaimsMDController::class, 'specificPatientClaimsBiller']);
+    Route::post('/add-new-patient-claims-md', [PatientClaimsMDController::class, 'addNewPatientClaimsMD']);
+
+    Route::get('/claim-md/get-claims', [PatientClaimsMDController::class, 'getClaims']);
+    Route::get('/claim-md/get-claim/{id}', [PatientClaimsMDController::class, 'getClaim']);
+    Route::delete('/claim-md/delete-claim/{id}', [PatientClaimsMDController::class, 'deleteClaim']);
+    Route::get('/mark-appointment-proceed/{appointment_uid}', [PatientClaimsMDController::class, 'markAppointmentProceed']);
+});
 
 
 

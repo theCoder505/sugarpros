@@ -1,6 +1,6 @@
 @extends('layouts.admin_app')
 
-@section('title', 'All Providers')
+@section('title', 'All Appointments')
 
 @section('link')
     <!-- jQuery -->
