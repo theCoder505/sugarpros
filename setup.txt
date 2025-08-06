@@ -266,3 +266,53 @@ sudo ufw reload
 
 
 http://31.97.14.107:8080
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// new Process:
+mysql -u root -p
+SugarPros@369
+# Once connected to MySQL:
+USE sugarpros;
+
+
+
+-- First get all table names in one command
+SELECT GROUP_CONCAT(table_name) INTO @tables 
+FROM information_schema.tables 
+WHERE table_schema = 'sugarpros';
+
+-- Then dynamically generate the DROP statement
+SET @sql = CONCAT('DROP TABLE IF EXISTS ', @tables);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+nano /root/sugarpros_db.sql 
+nano /root/e_prescription.sql 
+Then paste the database SQL codes there 
+Then below:
+mysql -u root -p sugarpros < /root/sugarpros_db.sql
+mysql -u root -p sugarpros < /root/e_prescription.sql
+
+
+
+
+
+
+
+
+
+
