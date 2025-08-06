@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Settings;
+use App\Models\SubscriptionPlan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use GuzzleHttp\Client;
 use Carbon\Carbon;
+use Stripe\Subscription;
 
 class DexcomController extends Controller
 {
@@ -23,13 +25,37 @@ class DexcomController extends Controller
         $this->redirectUri = Settings::where('id', 1)->value('DEXCOM_REDIRECT_URI');
     }
 
-    /**
-     * Main Dexcom dashboard
-     */
+
+
+
+    public function sendToDexcom()
+    {
+        $patient = Auth::user();
+        $subscription = SubscriptionPlan::where('availed_by_uid', $patient->patient_id)->first();
+        if (!$subscription) {
+            return redirect()->back()->with('error', 'No subscription found!');
+        }
+        if ($subscription->recurring_option == 'monthly') {
+            $nextBillingDate = Carbon::parse($subscription->last_recurrent_date)->addMonth();
+            if (now()->gt($nextBillingDate)) {
+                return redirect()->back()->with('error', 'Subscription Expired!');
+            }
+        } elseif ($subscription->recurring_option == 'annually') {
+            $nextBillingDate = Carbon::parse($subscription->last_recurrent_date)->addYear();
+            if (now()->gt($nextBillingDate)) {
+                return redirect()->back()->with('error', 'Subscription Expired!');
+            }
+        }
+        if ($subscription->plan == 'Basic') {
+            return redirect()->back()->with('error', 'Your Basic Subscription Doesn\'t Support Dexcom');
+        }
+        return redirect('/dexcom');
+    }
+
+
     public function dexcom()
     {
         $patient = Auth::user();
-
         // Check if token needs refresh
         if ($this->tokenNeedsRefresh($patient)) {
             if (!$this->refreshToken($patient)) {
@@ -61,7 +87,6 @@ class DexcomController extends Controller
                 'history' => $readings,
                 'deviceInfo' => $deviceInfo
             ]);
-
         } catch (\Exception $e) {
             return $this->handleDexcomError($e);
         }
@@ -128,7 +153,6 @@ class DexcomController extends Controller
 
             return redirect()->route('dexcom')
                 ->with('success', 'Dexcom account connected successfully!');
-
         } catch (\Exception $e) {
             return redirect()->route('dexcom')
                 ->with('error', 'Failed to connect Dexcom: ' . $e->getMessage());
@@ -177,7 +201,6 @@ class DexcomController extends Controller
             $patient->save();
 
             return true;
-
         } catch (\Exception $e) {
             // Clear invalid tokens
             $user = \App\Models\User::find($patient->id);

@@ -386,9 +386,10 @@
             // Initialize the DataTable
             var table = $('#appointmentsTable').DataTable({
                 "pagingType": "simple_numbers",
+                "ordering": false,
                 "language": {
                     "search": "_INPUT_",
-                    "searchPlaceholder": "Search something...",
+                    "searchPlaceholder": "Search appointment...",
                     "paginate": {
                         "previous": "←",
                         "next": "→"

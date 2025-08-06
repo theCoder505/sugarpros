@@ -23,7 +23,7 @@
                     </svg>
                 </button>
                 <div class="absolute z-10 hidden p-2 mt-0 bg-white rounded shadow-md dropdown_items min-w-[225px]">
-                    <a href="/dexcom" class="block px-4 py-2 hover:bg-gray-100 dexcom">Dexcom/Libre Results</a>
+                    <a href="/send-to-dexcom" class="block px-4 py-2 hover:bg-gray-100 dexcom">Dexcom/Libre Results</a>
                     <a href="/nutrition-tracker" class="block px-4 py-2 hover:bg-gray-100 fatsecret">Nutrition Tracker</a>
                     <a href="/clinical-notes" class="block px-4 py-2 hover:bg-gray-100 dexcom">Clinical Notes</a>
                     <a href="/quest-lab" class="block px-4 py-2 hover:bg-gray-100 dexcom">Quest Lab</a>
@@ -121,7 +121,7 @@
                 <i class="fas fa-chevron-down"></i>
             </button>
             <div class="hidden pl-4 space-y-2">
-                <a href="/dexcom" class="block py-2 hover:bg-gray-100 dexcom">Dexcom/Libre Results</a>
+                <a href="/send-to-dexcom" class="block py-2 hover:bg-gray-100 dexcom">Dexcom/Libre Results</a>
                 <a href="/nutrition-tracker" class="block py-2 hover:bg-gray-100 fatsecret">Nutrition Tracker</a>
                 <a href="/clinical-notes" class="block py-2 hover:bg-gray-100 dexcom">Clinical Notes</a>
                 <a href="/quest-lab" class="block py-2 hover:bg-gray-100 dexcom">Quest Lab</a>

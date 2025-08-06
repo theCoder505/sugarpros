@@ -174,6 +174,7 @@ Route::post('/clear-chat-session', [HomeController::class, 'clearChatSession'])-
 
 
 // Patients MY RESULTS PAGES ---------------------
+Route::get('/send-to-dexcom', [DexcomController::class, 'sendToDexcom'])->name('send_dexcom')->middleware('patient_loggedin', 'check_if_forms_filled');
 Route::get('/dexcom', [DexcomController::class, 'dexcom'])->name('dexcom')->middleware('patient_loggedin', 'check_if_forms_filled', 'check_dexcom');
 Route::get('/connect-dexcom', [DexcomController::class, 'redirectToDexcom'])->name('connect.dexcom');
 Route::get('/dexcom-callback', [DexcomController::class, 'handleDexcomCallback']);
