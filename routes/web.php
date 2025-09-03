@@ -713,16 +713,16 @@ Route::prefix('biller-admin')->group(function () {
     Route::post('/login', [BillerAuthController::class, 'login'])->name('biller-admin.login');
     Route::post('/logout', [BillerAuthController::class, 'logout'])->name('biller-admin.logout');
 
-    Route::get('/appointments', [BillerAuthController::class, 'appointments'])->name('biller-admin.appointments')->middleware('auth:biller-admin');
-    Route::get('/dashboard', [PatientClaimsMDController::class, 'patientClaimsBillerAdminBiller'])->name('biller-admin.dashboard')->middleware('auth:biller-admin');
+    Route::get('/appointments', [BillerAuthController::class, 'appointments'])->name('biller-admin.appointments')->middleware('biller-admin');
+    Route::get('/dashboard', [PatientClaimsMDController::class, 'patientClaimsBillerAdminBiller'])->name('biller-admin.dashboard')->middleware('biller-admin');
 
-    Route::get('/patient-claims-biller/{appointment_uid}', [PatientClaimsMDController::class, 'specificPatientClaimsBiller']);
-    Route::post('/add-new-patient-claims-md', [PatientClaimsMDController::class, 'addNewPatientClaimsMD']);
+    Route::get('/patient-claims-biller/{appointment_uid}', [PatientClaimsMDController::class, 'specificPatientClaimsBiller'])->middleware('biller-admin');
+    Route::post('/add-new-patient-claims-md', [PatientClaimsMDController::class, 'addNewPatientClaimsMD'])->middleware('biller-admin');
 
-    Route::get('/claim-md/get-claims', [PatientClaimsMDController::class, 'getClaims']);
-    Route::get('/claim-md/get-claim/{id}', [PatientClaimsMDController::class, 'getClaim']);
-    Route::delete('/claim-md/delete-claim/{id}', [PatientClaimsMDController::class, 'deleteClaim']);
-    Route::get('/mark-appointment-proceed/{appointment_uid}', [PatientClaimsMDController::class, 'markAppointmentProceed']);
+    Route::get('/claim-md/get-claims', [PatientClaimsMDController::class, 'getClaims'])->middleware('biller-admin');
+    Route::get('/claim-md/get-claim/{id}', [PatientClaimsMDController::class, 'getClaim'])->middleware('biller-admin');
+    Route::delete('/claim-md/delete-claim/{id}', [PatientClaimsMDController::class, 'deleteClaim'])->middleware('biller-admin');
+    Route::get('/mark-appointment-proceed/{appointment_uid}', [PatientClaimsMDController::class, 'markAppointmentProceed'])->middleware('biller-admin');
 });
 
 

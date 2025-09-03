@@ -6,12 +6,16 @@ use App\Http\Middleware\Patient;
 use App\Models\Appointment;
 use App\Models\ChatRecord;
 use App\Models\ClinicalNotes;
+use App\Models\ComplianceForm;
 use App\Models\EPrescription;
+use App\Models\FinancialAggreemrnt;
 use App\Models\NoteOnNotetaker;
 use App\Models\Notetaker;
 use App\Models\Notification;
+use App\Models\PrivacyForm;
 use App\Models\Provider;
 use App\Models\QuestLab;
+use App\Models\SelPaymentForm;
 use App\Models\Settings;
 use App\Models\SignupTrial;
 use App\Models\SubscriptionPlan;
@@ -21,9 +25,11 @@ use App\Models\UserDetails;
 use App\Models\VirtualNotes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Smalot\PdfParser\Parser;
 
 class ProviderController extends Controller
 {
@@ -244,12 +250,16 @@ class ProviderController extends Controller
 
         if ($provider) {
             if (password_verify($request->password, $provider->password)) {
-                $last_login = Provider::where('email', $request->email)->update([
-                    'last_logged_in' => now(),
-                ]);
-                Auth::guard('provider')->login($provider);
-                $request->session()->regenerate();
-                return redirect('/provider/dashboard')->with('success', 'Login successful!');
+                if ($provider->activity_status == '0') {
+                    return redirect()->back()->with('error', 'Your account is not verified, please contact support!')->with('email', $request->email)->with('password', $request->password);
+                } else {
+                    $last_login = Provider::where('email', $request->email)->update([
+                        'last_logged_in' => now(),
+                    ]);
+                    Auth::guard('provider')->login($provider);
+                    $request->session()->regenerate();
+                    return redirect('/provider/dashboard')->with('success', 'Login successful!');
+                }
             } else {
                 return redirect()->back()->with('error', 'Incorrect Password, please try again.')->with('email', $request->email)->with('password', $request->password);
             }
@@ -376,7 +386,7 @@ class ProviderController extends Controller
 
 
 
-    public function patientRecords()
+    public function patientRecordsOLD()
     {
         $provider_id = Auth::guard('provider')->user()->provider_id;
         $pod_name = Auth::guard('provider')->user()->pod_name;
@@ -396,6 +406,41 @@ class ProviderController extends Controller
 
 
         return view('provider.patient_records', compact('provider_id', 'patients', 'userdetails'));
+    }
+
+
+    public function patientRecords()
+    {
+        $provider_id = Auth::guard('provider')->user()->provider_id;
+        $pod_name = Auth::guard('provider')->user()->pod_name;
+        $all_patient_ids = User::orderBy('id')->pluck('patient_id')->toArray();
+        $chunks = array_chunk($all_patient_ids, 500);
+        $pod_index = 0;
+        $len = strlen($pod_name);
+        for ($i = 0; $i < $len; $i++) {
+            $pod_index *= 26;
+            $pod_index += ord($pod_name[$i]) - 65 + 1;
+        }
+        $pod_index -= 1;
+        $patient_ids_for_pod = $chunks[$pod_index] ?? [];
+        $patients = User::whereIn('patient_id', $patient_ids_for_pod)->orderBy('id', 'DESC')->get();
+
+        $patientDetails = UserDetails::all();
+        $financilas = FinancialAggreemrnt::all();
+        $slepayments = SelPaymentForm::all();
+        $complianceform = ComplianceForm::all();
+        $privacyform = PrivacyForm::all();
+
+
+        $appointments = Appointment::all();
+        $virtual_notes = VirtualNotes::all();
+        $clinical_notes = ClinicalNotes::all();
+        $eprescriptions = EPrescription::all();
+        $questlabs = QuestLab::all();
+
+
+
+        return view('provider.patient_records', compact('patients', 'patientDetails', 'appointments', 'virtual_notes', 'clinical_notes', 'eprescriptions', 'questlabs', 'financilas', 'slepayments', 'complianceform', 'privacyform'));
     }
 
 
@@ -1918,7 +1963,7 @@ class ProviderController extends Controller
         $provider_id = Auth::guard('provider')->user()->provider_id;
         $message_with = $request['message_with'];
 
-          $recurring_option = SubscriptionPlan::where('availed_by_uid', $message_with)->value('recurring_option');
+        $recurring_option = SubscriptionPlan::where('availed_by_uid', $message_with)->value('recurring_option');
         $plan = SubscriptionPlan::where('availed_by_uid', $message_with)->value('plan');
 
         $chats = ChatRecord::where(function ($query) use ($provider_id, $message_with) {
@@ -2215,6 +2260,8 @@ class ProviderController extends Controller
 
 
 
+
+
     public function providerChatgptResponse(Request $request)
     {
         $OPENAI_API_KEY = Settings::where('id', 1)->value('OPENAI_API_KEY');
@@ -2233,6 +2280,7 @@ class ProviderController extends Controller
 
         $lowerMessage = strtolower($userMessage);
 
+        // Check for predefined responses first
         if (str_contains($lowerMessage, 'who are you') || str_contains($lowerMessage, 'what are you')) {
             $aiReply = 'I am SugarPros AI';
         } elseif (str_contains($lowerMessage, 'company') || str_contains($lowerMessage, 'overview')) {
@@ -2250,6 +2298,9 @@ class ProviderController extends Controller
         } elseif (str_contains($lowerMessage, 'target market') || str_contains($lowerMessage, 'accessibility') || str_contains($lowerMessage, 'who can use')) {
             $aiReply = 'Target Market and Accessibility: SugarPros serves diabetes patients who seek convenient, affordable, and comprehensive care without the typical barriers of traditional healthcare. The dual pricing approach (Medicare and subscription) ensures accessibility across different patient demographics, while the virtual delivery model removes geographical constraints and scheduling difficulties that often prevent consistent diabetes management.';
         } else {
+            // Process PDFs and search for relevant content
+            $pdfContext = $this->getPDFContext($userMessage);
+
             // Get last 10 messages for context
             $previousMessages = SugarprosAIChat::where('message_of_uid', $provider_id)
                 ->orderBy('created_at', 'desc')
@@ -2259,17 +2310,26 @@ class ProviderController extends Controller
 
             // Prepare chat history for OpenAI
             $chatHistory = [];
+
+            // Add system message with PDF context - tailored for providers
+            $systemMessage = 'You are SugarPros AI, a medical assistant specialized in diabetes care for healthcare providers. ';
+            $systemMessage .= 'Provide professional, clinically accurate information focused on diabetes management. ';
+            $systemMessage .= 'You are assisting healthcare providers, so use appropriate medical terminology. ';
+
+            if (!empty($pdfContext)) {
+                $systemMessage .= "Use the following information from our clinical documents and resources:\n\n";
+                $systemMessage .= $pdfContext;
+                $systemMessage .= "\n\nIf the user's question is not covered in the documents, respond based on your medical knowledge but indicate when information is from general medical knowledge rather than specific SugarPros protocols.";
+            } else {
+                $systemMessage .= 'Respond based on current medical knowledge about diabetes care, treatment protocols, and best practices.';
+            }
+
+            $chatHistory[] = ['role' => 'system', 'content' => $systemMessage];
+
+            // Add previous conversation history
             foreach ($previousMessages as $msg) {
                 $role = ($msg->requested_to === 'AI') ? 'user' : 'assistant';
                 $chatHistory[] = ['role' => $role, 'content' => $msg->message];
-            }
-
-            // Add system message if empty history
-            if (empty($chatHistory)) {
-                $chatHistory[] = [
-                    'role' => 'system',
-                    'content' => 'You are SugarPros AI, a helpful medical assistant specialized in diabetes care. Keep your responses professional and focused on diabetes management unless asked about other topics.'
-                ];
             }
 
             // Add current user message
@@ -2277,19 +2337,27 @@ class ProviderController extends Controller
 
             // Send to OpenAI
             $client = new \GuzzleHttp\Client();
-            $response = $client->post('https://api.openai.com/v1/chat/completions', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
-                    'Content-Type' => 'application/json',
-                ],
-                'json' => [
-                    'model' => 'gpt-4o',
-                    'messages' => $chatHistory,
-                ],
-            ]);
+            try {
+                $response = $client->post('https://api.openai.com/v1/chat/completions', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
+                        'Content-Type' => 'application/json',
+                    ],
+                    'json' => [
+                        'model' => 'gpt-4o',
+                        'messages' => $chatHistory,
+                        'max_tokens' => 1000,
+                        'temperature' => 0.7,
+                    ],
+                ]);
 
-            $data = json_decode($response->getBody(), true);
-            $aiReply = $data['choices'][0]['message']['content'];
+                $data = json_decode($response->getBody(), true);
+                $aiReply = $data['choices'][0]['message']['content'];
+            } catch (\Exception $e) {
+                // Fallback response if OpenAI fails
+                $aiReply = 'I apologize, but I\'m currently experiencing technical difficulties. Please try again shortly.';
+                Log::error('OpenAI API error for provider: ' . $e->getMessage());
+            }
         }
 
         // Save AI response to database
@@ -2304,6 +2372,95 @@ class ProviderController extends Controller
         return response()->json(['message' => $aiReply]);
     }
 
+    /**
+     * Extract text from PDF files and find relevant content (same as patient version)
+     */
+    private function getPDFContext($userMessage)
+    {
+        $pdfDirectory = public_path('assets/ai_responses');
+
+        // Check if directory exists
+        if (!file_exists($pdfDirectory) || !is_dir($pdfDirectory)) {
+            Log::error('PDF directory not found: ' . $pdfDirectory);
+            return '';
+        }
+
+        $pdfFiles = glob($pdfDirectory . '/*.pdf');
+
+        if (empty($pdfFiles)) {
+            Log::warning('No PDF files found in directory: ' . $pdfDirectory);
+            return '';
+        }
+
+        $parser = new Parser();
+        $userMessageLower = strtolower($userMessage);
+        $relevantContent = '';
+        $maxContentLength = 2000; // Limit context length to avoid token limits
+
+        foreach ($pdfFiles as $pdfFile) {
+            try {
+                $pdf = $parser->parseFile($pdfFile);
+                $text = $pdf->getText();
+
+                if (!empty($text)) {
+                    $textLower = strtolower($text);
+
+                    // Simple keyword matching - check if user message contains words from PDF
+                    $words = preg_split('/\s+/', $userMessageLower);
+                    $words = array_filter($words, function ($word) {
+                        return strlen($word) > 3; // Only consider words longer than 3 characters
+                    });
+
+                    $matchFound = false;
+                    foreach ($words as $word) {
+                        if (strpos($textLower, $word) !== false) {
+                            $matchFound = true;
+                            break;
+                        }
+                    }
+
+                    // If match found or if this is a general query, include some content
+                    if ($matchFound || strlen($userMessage) < 20) {
+                        $filename = basename($pdfFile);
+                        $contentSnippet = substr($text, 0, 800); // Take first 800 characters
+
+                        $relevantContent .= "From {$filename}: {$contentSnippet}...\n\n";
+
+                        // Break if we have enough content
+                        if (strlen($relevantContent) >= $maxContentLength) {
+                            break;
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Error processing PDF file ' . $pdfFile . ': ' . $e->getMessage());
+                continue;
+            }
+        }
+
+        return $relevantContent;
+    }
+
+    /**
+     * Alternative method with caching for better performance
+     */
+    private function getPDFContextWithCache($userMessage)
+    {
+        $cacheKey = 'pdf_context_' . md5($userMessage);
+        $cacheTime = 3600; // 1 hour
+
+        // Try to get from cache first
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        $context = $this->getPDFContext($userMessage);
+
+        // Store in cache
+        Cache::put($cacheKey, $context, $cacheTime);
+
+        return $context;
+    }
 
 
 

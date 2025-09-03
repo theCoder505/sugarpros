@@ -62,6 +62,13 @@
             padding: 10px 1rem;
         }
 
+        .appointment_type_dropdown {
+            position: absolute;
+            top: 2.8rem;
+            left: 1rem;
+            z-index: 1;
+        }
+
         #appointmentsTable_filter {
             position: relative;
             margin-top: 1rem;
@@ -123,12 +130,13 @@
                     </div>
                 </div>
 
-                
+
 
                 <!-- Chat Inbox -->
                 <div class="bg-white p-4 rounded-lg shadow">
                     <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-semibold text-20px mb-6 unseen_mesages">Inbox ( <span class="">{{$total_unread}}</span> Unread)</h3>
+                        <h3 class="font-semibold text-20px mb-6 unseen_mesages">Inbox ( <span
+                                class="">{{ $total_unread }}</span> Unread)</h3>
                     </div>
 
                     <div class="relative w-full mb-3">
@@ -145,7 +153,8 @@
 
                     <div class="dashboard_message_list users_list space-y-2">
                         @forelse ($related_providers as $provider)
-                            <a href="/send-to-chats/provider/{{$provider->provider_id}}" class="flex items-center justify-between px-2 py-5 mb-2 bg-gray-100 rounded-lg cursor-pointer chat-item
+                            <a href="/send-to-chats/provider/{{ $provider->provider_id }}"
+                                class="flex items-center justify-between px-2 py-5 mb-2 bg-gray-100 rounded-lg cursor-pointer chat-item
                                 @if ($provider->message_status != 'seen' && $provider->is_sender != Auth::user()->patient_id) unread @endif"
                                 data-id="{{ $provider->provider_id }}">
 
@@ -217,21 +226,25 @@
 
                 <div class="space-y-6 p-6 bg-white rounded-md">
                     <div class="bg-gray-100 rounded-lg shadow relative">
-                        @if ($appointments->isEmpty())
-                            <div class="md:flex justify-between items-center">
-                                <h3 class="text-[20px] font-semibold text-[#000000] appointments_null_text">
+                        <div class="space-y-6 bg-[#f3f4f6] rounded-lg lg:col-span-3 overflow-x-auto relative">
+                            <div class="md:flex justify-between items-center mx-4 pt-4">
+                                <h3 class="text-lg font-semibold text-[#000000]">
                                     Appointments
                                 </h3>
                             </div>
-                        @else
-                            <div class="md:flex justify-between items-center appointments_text">
-                                <h3 class="text-[20px] font-semibold text-[#000000]">
-                                    Appointments
-                                </h3>
+                            <div class="appointment_type_dropdown">
+                                <select name="appointment_type" id="appointmentTypeFilter"
+                                    class="bg-white px-4 py-2 rounded-lg">
+                                    <option id="all-count" value="all">All Appointments</option>
+                                    <option id="active-count" value="active" selected>Active Appointments</option>
+                                    <option id="upcoming-count" value="upcoming">Upcoming Appointments</option>
+                                    <option id="missed-count" value="missed">Missed Appointments</option>
+                                    <option id="unset-count" value="unset">Unset Appointments</option>
+                                    <option id="complete-count" value="complete">Completed Appointments</option>
+                                </select>
                             </div>
-                        @endif
 
-                        <div class="overflow-x-auto">
+
                             <table id="appointmentsTable" class="w-full text-sm text-left">
                                 <thead class="bg-[#ffffff] text-[#00000080]/50">
                                     <tr>
@@ -251,8 +264,41 @@
                                                 $item->date . ' ' . $item->time,
                                             );
                                             $gracePeriodEnd = $appointmentDateTime->copy()->addHour();
+                                            $statusClass = '';
+
+                                            if ($item->status == 0) {
+                                                if ($appointmentDateTime->isFuture()) {
+                                                    $statusText = 'Upcoming';
+                                                    $statusClass = 'upcoming';
+                                                } elseif ($gracePeriodEnd->isFuture()) {
+                                                    if ($item->meet_link) {
+                                                        $statusText = 'Waiting To Start';
+                                                        $statusClass = 'active';
+                                                    } else {
+                                                        $statusText = 'Grace Period (1hr)';
+                                                        $statusClass = 'active';
+                                                    }
+                                                } else {
+                                                    if ($item->meet_link) {
+                                                        $statusText = 'You Absented';
+                                                        $statusClass = 'missed';
+                                                    } else {
+                                                        $statusText = 'Pending Approval';
+                                                        $statusClass = 'unset';
+                                                    }
+                                                }
+                                            } elseif ($item->status == 1) {
+                                                $statusText = 'Started';
+                                                $statusClass = 'active';
+                                            } elseif ($item->status == 5) {
+                                                $statusText = 'Completed';
+                                                $statusClass = 'complete';
+                                            }
                                         @endphp
-                                        <tr class="border-b border-[#000000]/10">
+
+
+                                        <tr class="border-b border-[#000000]/10 appointment-row"
+                                            data-status="{{ $statusClass }}">
                                             <td>{{ $key + 1 }}</td>
                                             <td>{{ $item->appointment_uid }}</td>
                                             <td class="px-4 py-4">
@@ -328,17 +374,40 @@
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
 
     <script>
+        function showSelectedType(selectElement) {
+            var selected = typeof selectElement === 'string' ? selectElement : selectElement.value;
+            var table = $('#appointmentsTable').DataTable();
+
+            if (selected === 'all') {
+                table.columns(5).search('').draw();
+            } else {
+                // Map filter value to status text in table
+                var statusMap = {
+                    'active': 'Waiting To Start|Started|Grace Period \\(1hr\\)',
+                    'upcoming': 'Upcoming',
+                    'missed': 'You Absented',
+                    'unset': 'Pending Approval',
+                    'complete': 'Completed'
+                };
+
+                var searchText = statusMap[selected] || '';
+                table.columns(5).search(searchText, true, false, true).draw();
+            }
+        }
+
         $(document).ready(function() {
-            $('#appointmentsTable').DataTable({
-                "ordering": false,
+            // Initialize the DataTable
+            var table = $('#appointmentsTable').DataTable({
                 "pagingType": "simple_numbers",
+                "ordering": false,
                 "language": {
                     "search": "_INPUT_",
-                    "searchPlaceholder": "Search appointments...",
+                    "searchPlaceholder": "Search something...",
                     "paginate": {
                         "previous": "←",
                         "next": "→"
-                    }
+                    },
+                    "emptyTable": "No appointments found for the selected filter."
                 },
                 "dom": '<"top"f>rt<"bottom"lip><"clear">',
                 "initComplete": function() {
@@ -347,7 +416,32 @@
                         '<i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>'
                     );
                     $('.dataTables_filter input').addClass('pl-8');
+                    updateCounts();
+
+                    // Show only active appointments by default
+                    showSelectedType('active');
                 }
+            });
+
+            // Function to update counts
+            function updateCounts() {
+                const allCount = $('.appointment-row').length;
+                const activeCount = $('.appointment-row[data-status="active"]').length;
+                const upcomingCount = $('.appointment-row[data-status="upcoming"]').length;
+                const missedCount = $('.appointment-row[data-status="missed"]').length;
+                const unsetCount = $('.appointment-row[data-status="unset"]').length;
+                const completeCount = $('.appointment-row[data-status="complete"]').length;
+
+                $('#all-count').text('All Appointments (' + allCount + ')');
+                $('#active-count').text('Active Appointments (' + activeCount + ')');
+                $('#upcoming-count').text('Upcoming Appointments (' + upcomingCount + ')');
+                $('#missed-count').text('Missed Appointments (' + missedCount + ')');
+                $('#unset-count').text('Unset Appointments (' + unsetCount + ')');
+                $('#complete-count').text('Completed Appointments (' + completeCount + ')');
+            }
+
+            $('#appointmentTypeFilter').change(function() {
+                showSelectedType(this);
             });
         });
 

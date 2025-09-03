@@ -15,5 +15,6 @@ class Admin extends Authenticatable
         'password',
         'forget_otp',
         'last_login_time',
+        'last_activity',
     ];
 }

@@ -100,6 +100,41 @@
             gap: 0.75rem;
             align-items: center;
         }
+
+        .user-activity-info {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            margin: 0.5rem 1rem 0.5rem 0;
+        }
+
+        .activity-icon {
+            margin-right: 0.5rem;
+            color: #64748b;
+        }
+
+        .activity-label {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-right: 0.25rem;
+        }
+
+        .activity-value {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #334155;
+        }
     </style>
 @endsection
 
@@ -108,7 +143,31 @@
         <h1 class="text-2xl font-bold text-center text-[#133a59]">Welcome Back
             {{ Auth::guard('biller-admin')->user()->biller_name }}!</h1>
 
-
+        <!-- User Activity Information -->
+        <div class="user-activity-info">
+            <div class="activity-item">
+                <span class="activity-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </span>
+                <span class="activity-label">Last Login:</span>
+                <span class="activity-value" id="lastLoginTime">
+                    {{ Auth::guard('biller-admin')->user()->last_login_time ? \Carbon\Carbon::parse(Auth::guard('biller-admin')->user()->last_login_time)->format('M j, Y g:i A') : 'N/A' }}
+                </span>
+            </div>
+            <div class="activity-item">
+                <span class="activity-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </span>
+                <span class="activity-label">Last Activity:</span>
+                <span class="activity-value" id="lastActivityTime">
+                    {{ Auth::guard('biller-admin')->user()->last_activity ? \Carbon\Carbon::parse(Auth::guard('biller-admin')->user()->last_activity)->format('M j, Y g:i A') : 'N/A' }}
+                </span>
+            </div>
+        </div>
 
         <div class="container px-6 lg:px-0 py-8 max-w-7xl mx-auto">
             <div class="lg:flex justify-between items-center mb-6">
@@ -145,8 +204,6 @@
         </div>
     </div>
 @endsection
-
-
 
 @section('script')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -266,7 +323,7 @@
                                                         </div>
                                                     ` : ''}
                         </div>
-                        <div class="grid grid-cols-2 mt-4 gap-2 lg:mt-0 lg:gap-0 lg:flex lg:space-x-2 lg:ml-4">
+                        <div class="grid lg:grid-cols-2 mt-4 gap-2 lg:mt-0 lg:gap-0 lg:flex lg:space-x-2 lg:ml-4">
                             ${actionButtons}
                         </div>
                     </div>
@@ -330,14 +387,6 @@
 
                             detailsHtml += `</ul></div>`;
                         }
-
-                        detailsHtml += `
-                                <div>
-                                    <h4 class="font-semibold">Raw Response:</h4>
-                                    <pre class="bg-gray-100 p-3 rounded-md text-xs overflow-auto">${JSON.stringify(claim.claim_response, null, 2)}</pre>
-                                </div>
-                            </div>
-                        `;
 
                         $('#modalContent').html(detailsHtml);
                         $('#modalTitle').text(`Claim Details: ${claim.appointment_uid}`);
@@ -405,8 +454,55 @@
         // Initial load
         $(document).ready(function() {
             fetchList();
+            
+            // Update activity times to show relative time
+            // updateRelativeTimes();
         });
 
+        // Function to update relative time display
+        function updateRelativeTimes() {
+            const lastLoginTime = $('#lastLoginTime').text();
+            const lastActivityTime = $('#lastActivityTime').text();
+            
+            if (lastLoginTime !== 'N/A') {
+                $('#lastLoginTime').attr('title', lastLoginTime);
+                $('#lastLoginTime').text(getRelativeTimeString(lastLoginTime));
+            }
+            
+            if (lastActivityTime !== 'N/A') {
+                $('#lastActivityTime').attr('title', lastActivityTime);
+                $('#lastActivityTime').text(getRelativeTimeString(lastActivityTime));
+            }
+        }
+
+        // Function to convert date string to relative time
+        function getRelativeTimeString(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+            
+            if (diffInSeconds < 60) {
+                return 'Just now';
+            }
+            
+            const diffInMinutes = Math.floor(diffInSeconds / 60);
+            if (diffInMinutes < 60) {
+                return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+            }
+            
+            const diffInHours = Math.floor(diffInMinutes / 60);
+            if (diffInHours < 24) {
+                return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+            }
+            
+            const diffInDays = Math.floor(diffInHours / 24);
+            if (diffInDays < 30) {
+                return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+            }
+            
+            // If more than a month, return the formatted date
+            return dateString;
+        }
 
         $(".dashboard").addClass('text-blue-500 font-semibold');
     </script>

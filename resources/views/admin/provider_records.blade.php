@@ -234,12 +234,13 @@
                             <thead class="bg-[#F7F9FB] font-normal text-[#00000080]">
                                 <tr>
                                     <th class="px-1 py-4 font-normal">Serial</th>
-                                    <th class="px-1 py-4 font-normal">Provider ID</th>
-                                    <th class="px-1 py-4 font-normal">Change POD</th>
-                                    <th class="px-1 py-4 font-normal">Username</th>
+                                    <th class="px-1 py-4 font-normal">Provider</th>
+                                    <th class="px-1 py-4 font-normal">Email</th>
+                                    <th class="px-1 py-4 font-normal">POD</th>
+                                    <th class="px-1 py-4 font-normal">Verification</th>
                                     <th class="px-1 py-4 font-normal">Since</th>
                                     <th class="px-1 py-4 font-normal">
-                                        <div class="text-center"> Details </div>
+                                        <div class="text-end"> Action </div>
                                     </th>
                                 </tr>
                             </thead>
@@ -255,63 +256,80 @@
                                 @endphp
                                 @forelse ($providers as $key => $provider)
                                     <tr class="border-b border-[#000000]/10 mb-3">
-                                        <td class="px-1 py-4">{{ $key + 1 }}</td>
-                                        <td class="px-1 py-4">{{ $provider->provider_id }}</td>
-                                        <td class="px-1 py-4 w-[170px]">
-                                            <form action="/admin/change-pod" method="post">
-                                                @csrf
-                                                <input type="hidden" name="provider_id" value="{{ $provider->provider_id }}">
-                                                <input type="text" class="border-1 rounded px-2 py-1 w-full text-center" name="new_pod" value="{{ $provider->pod_name }}">
-                                                <button class="bg-[#133a59] text-white rounded-full px-2 py-1 w-full mt-2 text-sm">Change</button>
-                                            </form>
-                                        </td>
-                                        <td class="px-1 py-4 w-[120px]">
-                                            <span class="w-[120px] text-wrap capitalize">{{ $provider->name }}</span>
-                                        </td>
-                                        <td class="px-1 py-4 w-[120px]">
-                                            {{ \Carbon\Carbon::parse($provider->created_at)->format('jS M, Y') }}
-                                        </td>
-                                        <td class="px-1 py-4">
-                                            <button
-                                                class="bg-blue-400 text-white rounded-full w-[80px] text-sm px-4 py-1 mx-auto block view-provider-btn"
-                                                data-provider-id="{{ $provider->provider_id }}"
-                                                data-provider-name="{{ $provider->name }}"
-                                                data-provider-data="{{ json_encode([
-                                                    'provider_id' => $provider->provider_id,
-                                                    'pod_name' => $provider->pod_name,
-                                                    'name' => $provider->name,
-                                                    'first_name' => $provider->first_name,
-                                                    'last_name' => $provider->last_name,
-                                                    'provider_role' => $provider->provider_role,
-                                                    'prefix_code' => $provider->prefix_code,
-                                                    'mobile' => $provider->mobile,
-                                                    'email' => $provider->email,
-                                                    'language' => $provider->language,
-                                                    'profile_picture' => $provider->profile_picture,
-                                                    'created_at' => \Carbon\Carbon::parse($provider->created_at)->format('jS M, Y'),
-                                                    'last_logged_in' => $provider->last_logged_in
-                                                        ? \Carbon\Carbon::parse($provider->last_logged_in)->format('g.iA jS M, Y')
-                                                        : 'N/A',
-                                                    'last_activity' => $provider->last_activity
-                                                        ? \Carbon\Carbon::parse($provider->last_activity)->format('g.iA jS M, Y')
-                                                        : 'N/A',
-                                                    'upcoming_appointments' => $appointments->where('provider_id', $provider->provider_id)->where('status', 0)->filter(function ($appt) {
-                                                            return \Carbon\Carbon::parse($appt->date)->isFuture();
-                                                        })->count(),
-                                                    'ongoing_appointments' => $appointments->where('provider_id', $provider->provider_id)->where('status', 1)->count(),
-                                                    'missed_appointments' => $appointments->where('provider_id', $provider->provider_id)->where('status', 0)->filter(function ($appt) {
-                                                            return \Carbon\Carbon::parse($appt->date)->isPast();
-                                                        })->count(),
-                                                    'completed_appointments' => $appointments->where('provider_id', $provider->provider_id)->where('status', 5)->count(),
-                                                    'virtual_notes' => $virtual_notes->where('note_by_provider_id', $provider->provider_id)->count(),
-                                                    'clinical_notes' => $clinical_notes->where('note_by_provider_id', $provider->provider_id)->count(),
-                                                    'eprescriptions' => $eprescriptions->where('note_by_provider_id', $provider->provider_id)->count(),
-                                                    'questlabs' => $questlabs->where('note_by_provider_id', $provider->provider_id)->count(),
-                                                    'unread_messages' => $unread_messages->where('received_by', $provider->provider_id)->count(),
-                                                ]) }}">
-                                                View
-                                            </button>
-                                        </td>
+                                        <form action="/admin/change-pod" method="post">
+                                            @csrf
+                                            <input type="hidden" name="provider_id" value="{{ $provider->provider_id }}">
+                                            <td class="px-1 py-4 w-[50px] text-center">{{ $key + 1 }}</td>
+                                            <td class="px-1 py-4 lg:w-[200px]">
+                                                <span class="text-wrap capitalize text-black font-semibold">{{ $provider->name }}</span> <br>
+                                                <span class="text-wrap italic text-gray-700">{{ $provider->provider_id ?? 'N/A' }}</span>
+                                            </td>
+                                            <td class="px-1 py-4 lg:w-[120px]">
+                                                <a href="mailto:{{ $provider->email }}"
+                                                    class="text-blue-500 text-wrap">{{ $provider->email }}</a>
+                                            </td>
+                                            <td class="px-1 py-4 w-[170px]">
+                                                <input type="text" class="border-1 rounded px-2 py-1 w-full text-center"
+                                                    name="new_pod" value="{{ $provider->pod_name }}">
+                                            </td>
+                                            <td class="px-1 py-4 w-[170px]">
+                                                <select name="activity_status" class="border-1 rounded px-2 py-1 w-full text-center bg-white">
+                                                    <option disabled>Change Verification Status</option>
+                                                    <option value="0" {{ $provider->activity_status == 0 ? 'selected' : '' }}>Not Verified</option>
+                                                    <option value="1" {{ $provider->activity_status == 1 ? 'selected' : '' }}>Verified</option>
+                                                </select>
+                                            </td>
+                                            <td class="px-1 py-4 w-[150px]">
+                                                {{ \Carbon\Carbon::parse($provider->created_at)->format('jS M, Y') }}
+                                            </td>
+                                            <td class="px-1 py-4">
+                                                <div class="flex gap-2 justify-center items-center">
+                                                    <button class="bg-[#133a59] text-white rounded text-sm px-4 py-1 block">
+                                                        <i class="fa fa-pencil"></i>
+                                                    </button>
+
+                                                    <button type="button"
+                                                        class="bg-blue-400 text-white rounded text-sm px-4 py-1 block view-provider-btn"
+                                                        data-provider-id="{{ $provider->provider_id }}"
+                                                        data-provider-name="{{ $provider->name }}"
+                                                        data-provider-data="{{ json_encode([
+                                                            'provider_id' => $provider->provider_id,
+                                                            'pod_name' => $provider->pod_name,
+                                                            'name' => $provider->name,
+                                                            'first_name' => $provider->first_name,
+                                                            'last_name' => $provider->last_name,
+                                                            'provider_role' => $provider->provider_role,
+                                                            'prefix_code' => $provider->prefix_code,
+                                                            'mobile' => $provider->mobile,
+                                                            'email' => $provider->email,
+                                                            'language' => $provider->language,
+                                                            'profile_picture' => $provider->profile_picture,
+                                                            'created_at' => \Carbon\Carbon::parse($provider->created_at)->format('jS M, Y'),
+                                                            'last_logged_in' => $provider->last_logged_in
+                                                                ? \Carbon\Carbon::parse($provider->last_logged_in)->format('g.iA jS M, Y')
+                                                                : 'N/A',
+                                                            'last_activity' => $provider->last_activity
+                                                                ? \Carbon\Carbon::parse($provider->last_activity)->format('g.iA jS M, Y')
+                                                                : 'N/A',
+                                                            'upcoming_appointments' => $appointments->where('provider_id', $provider->provider_id)->where('status', 0)->filter(function ($appt) {
+                                                                    return \Carbon\Carbon::parse($appt->date)->isFuture();
+                                                                })->count(),
+                                                            'ongoing_appointments' => $appointments->where('provider_id', $provider->provider_id)->where('status', 1)->count(),
+                                                            'missed_appointments' => $appointments->where('provider_id', $provider->provider_id)->where('status', 0)->filter(function ($appt) {
+                                                                    return \Carbon\Carbon::parse($appt->date)->isPast();
+                                                                })->count(),
+                                                            'completed_appointments' => $appointments->where('provider_id', $provider->provider_id)->where('status', 5)->count(),
+                                                            'virtual_notes' => $virtual_notes->where('note_by_provider_id', $provider->provider_id)->count(),
+                                                            'clinical_notes' => $clinical_notes->where('note_by_provider_id', $provider->provider_id)->count(),
+                                                            'eprescriptions' => $eprescriptions->where('note_by_provider_id', $provider->provider_id)->count(),
+                                                            'questlabs' => $questlabs->where('note_by_provider_id', $provider->provider_id)->count(),
+                                                            'unread_messages' => $unread_messages->where('received_by', $provider->provider_id)->count(),
+                                                        ]) }}">
+                                                        <i class="fa fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </form>
                                     </tr>
                                 @empty
                                     <tr>

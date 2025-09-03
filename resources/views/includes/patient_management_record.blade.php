@@ -369,6 +369,21 @@
                                                                         : 'N/A',
                                                                 ];
                                                             })->toArray(),
+                                                        'privacy_forms' => $privacyform->where('user_id', $patient->id)->map(function ($item) {
+                                                                return [
+                                                                    'fname' => $item->fname,
+                                                                    'lname' => $item->lname,
+                                                                    'date' => $item->date ? \Carbon\Carbon::parse($item->date)->format('jS M, Y') : 'N/A',
+                                                                    'users_message' => $item->users_message,
+                                                                    'notice_of_privacy_practice' => $item->notice_of_privacy_practice,
+                                                                    'patients_name' => $item->patients_name,
+                                                                    'representatives_name' => $item->representatives_name,
+                                                                    'service_taken_date' => $item->service_taken_date
+                                                                        ? \Carbon\Carbon::parse($item->service_taken_date)->format('jS M, Y')
+                                                                        : 'N/A',
+                                                                    'relation_with_patient' => $item->relation_with_patient,
+                                                                ];
+                                                            })->toArray(),
                                                         'compliance_forms' => $complianceform->where('user_id', $patient->id)->map(function ($item) {
                                                                 return [
                                                                     'patients_name' => $item->patients_name,
@@ -395,7 +410,9 @@
                                         <td>N/A</td>
                                         <td>N/A</td>
                                         <td>
-                                            <p class="bg-red-100 px-2 py-1 rounded-full text-red-500 border border-red-500 text-center">Incomplete</p>
+                                            <p
+                                                class="bg-red-100 px-2 py-1 rounded-full text-red-500 border border-red-500 text-center">
+                                                Incomplete</p>
                                         </td>
                                     @endforelse
 
@@ -405,7 +422,9 @@
                                         <td>N/A</td>
                                         <td>N/A</td>
                                         <td>
-                                            <p class="bg-red-100 px-2 py-1 rounded-full text-red-500 border border-red-500 text-center">Incomplete</p>
+                                            <p
+                                                class="bg-red-100 px-2 py-1 rounded-full text-red-500 border border-red-500 text-center">
+                                                Incomplete</p>
                                         </td>
                                     @endif
                                 </tr>

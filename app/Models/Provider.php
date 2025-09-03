@@ -29,6 +29,7 @@ class Provider extends Authenticatable implements JWTSubject
         'profile_picture',
         'about_me',
         'language',
+        'activity_status', // it's the verification status
         'last_logged_in',
         'last_activity',
     ];

@@ -36,7 +36,7 @@
                                 class="hidden px-4 py-2 bg-white border border-gray-200 rounded-lg md:inline-block text-button hover:bg-gray-100 dashboard">
                                 Dashboard
                             </a>
-                            <form action="{{ route('biller-admin.logout') }}" method="POST">
+                            <form action="{{ route('biller-admin.logout') }}" method="POST" class="p-0 m-0">
                                 @csrf
                                 <button type="submit"
                                     class="px-4 py-2 bg-red-50 text-red-500 border-2 border-red-400 rounded-lg font-normal hover:bg-red-400 hover:text-white">

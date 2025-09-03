@@ -24,9 +24,11 @@ use App\Models\UserDetails;
 use App\Models\VirtualNotes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use thiagoalessio\TesseractOCR\TesseractOCR;
+use Smalot\PdfParser\Parser;
 
 class HomeController extends Controller
 {
@@ -37,7 +39,8 @@ class HomeController extends Controller
         $allReviews = Reviews::orderBy('id', 'DESC')->where('status', 1)->limit(3)->get();
         $users = User::all();
         $allServices = Service::orderBy('id', 'ASC')->limit(3)->get();
-        return view('home', compact('allFaqs', 'providers', 'allReviews', 'users', 'allServices'));
+        $to_show = 'custom';
+        return view('home', compact('allFaqs', 'providers', 'allReviews', 'users', 'allServices', 'to_show'));
     }
 
     public function about()
@@ -47,7 +50,8 @@ class HomeController extends Controller
         $allReviews = Reviews::orderBy('id', 'DESC')->where('status', 1)->limit(3)->get();
         $users = User::all();
         $allServices = Service::orderBy('id', 'ASC')->limit(3)->get();
-        return view('about_us', compact('allFaqs', 'providers', 'allReviews', 'users', 'allServices'));
+        $to_show = 'custom';
+        return view('about_us', compact('allFaqs', 'providers', 'allReviews', 'users', 'allServices', 'to_show'));
     }
 
     public function service()
@@ -76,7 +80,8 @@ class HomeController extends Controller
         $users = User::all();
         $allFaqs = Faq::orderBy('id', 'ASC')->get();
         $allServices = Service::orderBy('id', 'ASC')->limit(3)->get();
-        return view('reviews', compact('allReviews', 'users', 'ownReview', 'review_star', 'allFaqs', 'allServices'));
+        $to_show = 'all';
+        return view('reviews', compact('allReviews', 'users', 'ownReview', 'review_star', 'allFaqs', 'allServices', 'to_show'));
     }
 
 
@@ -871,6 +876,8 @@ class HomeController extends Controller
 
 
 
+
+
     public function chatgptResponse(Request $request)
     {
         $OPENAI_API_KEY = Settings::where('id', 1)->value('OPENAI_API_KEY');
@@ -889,6 +896,7 @@ class HomeController extends Controller
 
         $lowerMessage = strtolower($userMessage);
 
+        // Check for predefined responses first
         if (str_contains($lowerMessage, 'who are you') || str_contains($lowerMessage, 'what are you')) {
             $aiReply = 'I am SugarPros AI';
         } elseif (str_contains($lowerMessage, 'company') || str_contains($lowerMessage, 'overview')) {
@@ -906,6 +914,9 @@ class HomeController extends Controller
         } elseif (str_contains($lowerMessage, 'target market') || str_contains($lowerMessage, 'accessibility') || str_contains($lowerMessage, 'who can use')) {
             $aiReply = 'Target Market and Accessibility: SugarPros serves diabetes patients who seek convenient, affordable, and comprehensive care without the typical barriers of traditional healthcare. The dual pricing approach (Medicare and subscription) ensures accessibility across different patient demographics, while the virtual delivery model removes geographical constraints and scheduling difficulties that often prevent consistent diabetes management.';
         } else {
+            // Process PDFs and search for relevant content
+            $pdfContext = $this->getPDFContext($userMessage);
+
             // Get last 10 messages for context
             $previousMessages = SugarprosAIChat::where('message_of_uid', $patient_id)
                 ->orderBy('created_at', 'desc')
@@ -915,17 +926,25 @@ class HomeController extends Controller
 
             // Prepare chat history for OpenAI
             $chatHistory = [];
+
+            // Add system message with PDF context
+            $systemMessage = 'You are SugarPros AI, a helpful medical assistant specialized in diabetes care. ';
+            $systemMessage .= 'Keep your responses professional and focused on diabetes management. ';
+
+            if (!empty($pdfContext)) {
+                $systemMessage .= "Use the following information from our documents to answer the user's question:\n\n";
+                $systemMessage .= $pdfContext;
+                $systemMessage .= "\n\nIf the user's question is not covered in the documents, respond based on your general knowledge but indicate this is general advice.";
+            } else {
+                $systemMessage .= 'Respond based on your knowledge about diabetes care and management.';
+            }
+
+            $chatHistory[] = ['role' => 'system', 'content' => $systemMessage];
+
+            // Add previous conversation history
             foreach ($previousMessages as $msg) {
                 $role = ($msg->requested_to === 'AI') ? 'user' : 'assistant';
                 $chatHistory[] = ['role' => $role, 'content' => $msg->message];
-            }
-
-            // Add system message if empty history
-            if (empty($chatHistory)) {
-                $chatHistory[] = [
-                    'role' => 'system',
-                    'content' => 'You are SugarPros AI, a helpful medical assistant specialized in diabetes care. Keep your responses professional and focused on diabetes management unless asked about other topics.'
-                ];
             }
 
             // Add current user message
@@ -933,19 +952,27 @@ class HomeController extends Controller
 
             // Send to OpenAI
             $client = new \GuzzleHttp\Client();
-            $response = $client->post('https://api.openai.com/v1/chat/completions', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
-                    'Content-Type' => 'application/json',
-                ],
-                'json' => [
-                    'model' => 'gpt-4o',
-                    'messages' => $chatHistory,
-                ],
-            ]);
+            try {
+                $response = $client->post('https://api.openai.com/v1/chat/completions', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
+                        'Content-Type' => 'application/json',
+                    ],
+                    'json' => [
+                        'model' => 'gpt-4o',
+                        'messages' => $chatHistory,
+                        'max_tokens' => 1000,
+                        'temperature' => 0.7,
+                    ],
+                ]);
 
-            $data = json_decode($response->getBody(), true);
-            $aiReply = $data['choices'][0]['message']['content'];
+                $data = json_decode($response->getBody(), true);
+                $aiReply = $data['choices'][0]['message']['content'];
+            } catch (\Exception $e) {
+                // Fallback response if OpenAI fails
+                $aiReply = 'I apologize, but I\'m currently experiencing technical difficulties. Please try again shortly.';
+                Log::error('OpenAI API error: ' . $e->getMessage());
+            }
         }
 
         // Save AI response to database
@@ -958,6 +985,96 @@ class HomeController extends Controller
         ]);
 
         return response()->json(['message' => $aiReply]);
+    }
+
+    /**
+     * Extract text from PDF files and find relevant content
+     */
+    private function getPDFContext($userMessage)
+    {
+        $pdfDirectory = public_path('assets/ai_responses');
+
+        // Check if directory exists
+        if (!file_exists($pdfDirectory) || !is_dir($pdfDirectory)) {
+            Log::error('PDF directory not found: ' . $pdfDirectory);
+            return '';
+        }
+
+        $pdfFiles = glob($pdfDirectory . '/*.pdf');
+
+        if (empty($pdfFiles)) {
+            Log::warning('No PDF files found in directory: ' . $pdfDirectory);
+            return '';
+        }
+
+        $parser = new Parser();
+        $userMessageLower = strtolower($userMessage);
+        $relevantContent = '';
+        $maxContentLength = 2000; // Limit context length to avoid token limits
+
+        foreach ($pdfFiles as $pdfFile) {
+            try {
+                $pdf = $parser->parseFile($pdfFile);
+                $text = $pdf->getText();
+
+                if (!empty($text)) {
+                    $textLower = strtolower($text);
+
+                    // Simple keyword matching - check if user message contains words from PDF
+                    $words = preg_split('/\s+/', $userMessageLower);
+                    $words = array_filter($words, function ($word) {
+                        return strlen($word) > 3; // Only consider words longer than 3 characters
+                    });
+
+                    $matchFound = false;
+                    foreach ($words as $word) {
+                        if (strpos($textLower, $word) !== false) {
+                            $matchFound = true;
+                            break;
+                        }
+                    }
+
+                    // If match found or if this is a general query, include some content
+                    if ($matchFound || strlen($userMessage) < 20) {
+                        $filename = basename($pdfFile);
+                        $contentSnippet = substr($text, 0, 800); // Take first 800 characters
+
+                        $relevantContent .= "From {$filename}: {$contentSnippet}...\n\n";
+
+                        // Break if we have enough content
+                        if (strlen($relevantContent) >= $maxContentLength) {
+                            break;
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Error processing PDF file ' . $pdfFile . ': ' . $e->getMessage());
+                continue;
+            }
+        }
+
+        return $relevantContent;
+    }
+
+    /**
+     * Alternative method with caching for better performance
+     */
+    private function getPDFContextWithCache($userMessage)
+    {
+        $cacheKey = 'pdf_context_' . md5($userMessage);
+        $cacheTime = 3600; // 1 hour
+
+        // Try to get from cache first
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        $context = $this->getPDFContext($userMessage);
+
+        // Store in cache
+        Cache::put($cacheKey, $context, $cacheTime);
+
+        return $context;
     }
 
 
@@ -1099,8 +1216,9 @@ class HomeController extends Controller
         $providers = Provider::orderBy('id', 'DESC')->where('profile_picture', '!=', null)->get();
         $allReviews = Reviews::orderBy('id', 'DESC')->where('status', 1)->get();
         $users = User::all();
+        $to_show = 'all';
 
-        return view('reviews', compact('allReviews', 'review_star', 'ownReview', 'allFaqs', 'providers', 'allReviews', 'users'));
+        return view('reviews', compact('allReviews', 'review_star', 'ownReview', 'allFaqs', 'providers', 'allReviews', 'users', 'to_show'));
     }
 
 

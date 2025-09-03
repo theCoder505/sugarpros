@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Admin;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +19,9 @@ class AdminCredentials
     {
         if (Auth::guard('admin')->check()) {
             $AdminID = Auth::guard('admin')->user()->id;
+            Admin::where('email', Auth::guard('admin')->user()->email)->update([
+                'last_activity' => now()
+            ]);
             return $next($request);
         } else {
             return redirect('/admin/login')->with('error', 'Please login first!');

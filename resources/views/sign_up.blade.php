@@ -23,26 +23,6 @@
                     Enter your credentials to access your account
                 </p>
 
-                <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                    <a href="#"
-                        class="w-full flex items-center justify-center border h-[52px] rounded-md py-2 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        <img src="{{ asset('assets/image/go.png') }}" alt="Google" class="h-5 mr-2" />
-                        Log in with <span class="font-bold pl-1">Google</span>
-                    </a>
-                    <a href="#"
-                        class="w-full flex items-center justify-center border h-[52px] rounded-md py-2 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        <img src="{{ asset('assets/image/i.png') }}" alt="Apple" class="h-5 mr-2" />
-                        Log in with <span class="font-bold pl-1">Apple</span>
-                    </a>
-                </div>
-
-
-                <div class="flex justify-center items-center my-3">
-                    <div class="w-full h-[1px] bg-[#E5E5E5]"></div>
-                    <div class="text-center text-[#737373] text-sm">or</div>
-                    <div class="w-full h-[1px] bg-[#E5E5E5]"></div>
-                </div>
-
                 <form method="POST" action="/signup-new-user" class="space-y-8">
                     @csrf
 

@@ -40,23 +40,38 @@
                     Get Started in 60 Seconds
                 </a>
 
-                <div class="relative max-w-sm p-8 space-x-4 overflow-hidden bg-white shadow-md rounded-xl">
-                    <div
-                        class="w-[200px] h-[200px] absolute right-[-130px] top-[-160px] border border-[#FF6500] rounded-full">
-                    </div>
-                    <div
-                        class="w-[200px] h-[200px] absolute top-[-140px] right-[-109px]  border border-[#FF6500] rounded-full">
-                    </div>
-                    <div
-                        class="w-[250px] h-[250px] absolute top-[-165px] right-[-126px] border border-[#FF6500] rounded-full">
-                    </div>
-                    <img src="https://i.pravatar.cc/40?img=1" alt="User" class="w-12 h-12 mb-5 rounded-full" />
-                    <div style="margin: 0;">
-                        <p class="text-[20px] font-semibold">“The service I received was absolutely amazing”</p>
-                        <a href="/reviews" class="text-sm text-[#298AAB] underline mt-2 inline-block">See More Success
-                            Stories</a>
-                    </div>
-                </div>
+                @forelse ($allReviews as $key1 => $review)
+                    @if ($key1 == 0)
+                        <div class="relative max-w-sm p-8 space-x-4 overflow-hidden bg-white shadow-md rounded-xl">
+                            <div
+                                class="w-[200px] h-[200px] absolute right-[-130px] top-[-160px] border border-[#FF6500] rounded-full">
+                            </div>
+                            <div
+                                class="w-[200px] h-[200px] absolute top-[-140px] right-[-109px]  border border-[#FF6500] rounded-full">
+                            </div>
+                            <div
+                                class="w-[250px] h-[250px] absolute top-[-165px] right-[-126px] border border-[#FF6500] rounded-full">
+                            </div>
+
+                            <div class="flex items-center mb-4">
+                                @forelse ($users as $user)
+                                    @if ($user->patient_id == $review->reviewed_by)
+                                        <img src="{{ $user->profile_picture }}" alt="{{ $user->name }}"
+                                            class="w-12 h-12 mb-5 rounded-full">
+                                    @endif
+                                @empty
+                                @endforelse
+                            </div>
+                            <div style="margin: 0;">
+                                <p class="text-[20px] font-semibold">“{{  \Illuminate\Support\Str::limit($review->main_review, 65, '...') }}”</p>
+                                <a href="/reviews" class="text-sm text-[#298AAB] underline mt-2 inline-block">
+                                    See More Success Stories
+                                </a>
+                            </div>
+                        </div>
+                    @endif
+                @empty
+                @endforelse
             </div>
 
             <div class="md:hidden flex-1 justify-end items-center relative top-[-1.5rem]">
@@ -108,7 +123,7 @@
     @include('includes.providers')
 
     @include('includes.patient_reviews')
-    
+
     @include('includes.services')
 
     @include('includes.faq')

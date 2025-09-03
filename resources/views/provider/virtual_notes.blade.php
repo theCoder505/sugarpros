@@ -33,7 +33,7 @@
                             <label class="block mb-1 text-sm font-medium text-gray-700">Add Virtual Note</label>
                             <textarea name="main_note"
                                 class="w-full  bg-white placeholder:text-[#A3A3A3]  px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none resize-none"
-                                id="" placeholder="Type hare" cols="30" rows="6" required></textarea>
+                                id="" placeholder="Type here" cols="30" rows="6" required></textarea>
                         </div>
 
                         <button class="bg-blue-500 py-4 px-4 text-white uppercase w-full rounded-lg text-2xl">

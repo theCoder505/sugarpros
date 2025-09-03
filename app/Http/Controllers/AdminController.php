@@ -10,6 +10,7 @@ use App\Models\ComplianceForm;
 use App\Models\EPrescription;
 use App\Models\FinancialAggreemrnt;
 use App\Models\Notification;
+use App\Models\PrivacyForm;
 use App\Models\Provider;
 use App\Models\QuestLab;
 use App\Models\SelPaymentForm;
@@ -20,7 +21,11 @@ use App\Models\UserDetails;
 use App\Models\VirtualNotes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Smalot\PdfParser\Parser;
+
 
 class AdminController extends Controller
 {
@@ -96,6 +101,7 @@ class AdminController extends Controller
         $clinical_notes = ClinicalNotes::all();
         $eprescriptions = EPrescription::all();
         $questlabs = QuestLab::all();
+        $privacyform = PrivacyForm::all();
 
         $financilas = FinancialAggreemrnt::all();
         $slepayments = SelPaymentForm::all();
@@ -128,7 +134,8 @@ class AdminController extends Controller
             'questlabs',
             'financilas',
             'slepayments',
-            'complianceform'
+            'complianceform',
+            'privacyform',
         ));
     }
 
@@ -260,18 +267,27 @@ class AdminController extends Controller
     {
         $provider_id = $request['provider_id'];
         $new_pod = $request['new_pod'];
+        $new_activity_status = $request['activity_status'];
+        $old_pod = Provider::where('provider_id', $provider_id)->value('pod_name');
 
         $update = Provider::where('provider_id', $provider_id)->update([
+            'activity_status' => $new_activity_status,
             'pod_name' => $new_pod,
         ]);
+
+        if ($old_pod !== $new_pod) {
+            $notification = 'Admin assigned you to a new POD. Which is POD ' . $new_pod . ' & your account verification status got updated.';
+        } else {
+            $notification = 'Your account verification status got updated by Admin.';
+        }
 
         Notification::insert([
             'user_id' => $provider_id,
             'user_type' => 'provider',
-            'notification' => 'Admin assigned you to a new POD. Which is POD ' . $new_pod,
+            'notification' => $notification,
         ]);
 
-        return redirect()->back()->with('success', 'Provider ' . $provider_id . ' POD changed to POD ' . $new_pod);
+        return redirect()->back()->with('success', 'Changes Updated!');
     }
 
 
@@ -336,7 +352,8 @@ class AdminController extends Controller
         $financilas = FinancialAggreemrnt::all();
         $slepayments = SelPaymentForm::all();
         $complianceform = ComplianceForm::all();
-        return view('admin.patient_records', compact('patients', 'patientDetails', 'appointments', 'virtual_notes', 'clinical_notes', 'eprescriptions', 'questlabs', 'financilas', 'slepayments', 'complianceform'));
+        $privacyform = PrivacyForm::all();
+        return view('admin.patient_records', compact('patients', 'patientDetails', 'appointments', 'virtual_notes', 'clinical_notes', 'eprescriptions', 'questlabs', 'financilas', 'slepayments', 'complianceform', 'privacyform'));
     }
 
 
@@ -881,6 +898,7 @@ class AdminController extends Controller
 
 
 
+
     public function adminChatgptResponse(Request $request)
     {
         $OPENAI_API_KEY = Settings::where('id', 1)->value('OPENAI_API_KEY');
@@ -897,9 +915,9 @@ class AdminController extends Controller
             'message' => $userMessage,
         ]);
 
-        // Check for specific queries and provide predefined responses
         $lowerMessage = strtolower($userMessage);
 
+        // Check for predefined responses first
         if (str_contains($lowerMessage, 'who are you') || str_contains($lowerMessage, 'what are you')) {
             $aiReply = 'I am SugarPros AI';
         } elseif (str_contains($lowerMessage, 'company') || str_contains($lowerMessage, 'overview')) {
@@ -917,6 +935,9 @@ class AdminController extends Controller
         } elseif (str_contains($lowerMessage, 'target market') || str_contains($lowerMessage, 'accessibility') || str_contains($lowerMessage, 'who can use')) {
             $aiReply = 'Target Market and Accessibility: SugarPros serves diabetes patients who seek convenient, affordable, and comprehensive care without the typical barriers of traditional healthcare. The dual pricing approach (Medicare and subscription) ensures accessibility across different patient demographics, while the virtual delivery model removes geographical constraints and scheduling difficulties that often prevent consistent diabetes management.';
         } else {
+            // Process PDFs and search for relevant content
+            $pdfContext = $this->getPDFContext($userMessage);
+
             // Get last 10 messages for context
             $previousMessages = SugarprosAIChat::where('message_of_uid', $admin_id)
                 ->orderBy('created_at', 'desc')
@@ -926,17 +947,26 @@ class AdminController extends Controller
 
             // Prepare chat history for OpenAI
             $chatHistory = [];
-            foreach ($previousMessages as $msg) {
-                $role = ($msg->requested_to == 'AI') ? 'user' : 'assistant';
-                $chatHistory[] = ['role' => $role, 'content' => $msg->message];
+
+            // Add system message with PDF context - tailored for admin
+            $systemMessage = 'You are SugarPros AI, an administrative assistant specialized in diabetes care for platform administrators. ';
+            $systemMessage .= 'Provide comprehensive information about business operations, platform management, and administrative functions. ';
+            $systemMessage .= 'You are assisting administrators, so focus on operational and administrative aspects. ';
+
+            if (!empty($pdfContext)) {
+                $systemMessage .= "Use the following information from our administrative documents and resources:\n\n";
+                $systemMessage .= $pdfContext;
+                $systemMessage .= "\n\nIf the user's question is not covered in the documents, respond based on your knowledge but indicate when information is from general knowledge rather than specific SugarPros documentation.";
+            } else {
+                $systemMessage .= 'Respond based on your knowledge about diabetes care platform administration, business operations, and management best practices.';
             }
 
-            // Add system message if empty history
-            if (empty($chatHistory)) {
-                $chatHistory[] = [
-                    'role' => 'system',
-                    'content' => 'You are SugarPros AI, a helpful medical assistant specialized in diabetes care. Keep your responses professional and focused on diabetes management unless asked about other topics.'
-                ];
+            $chatHistory[] = ['role' => 'system', 'content' => $systemMessage];
+
+            // Add previous conversation history
+            foreach ($previousMessages as $msg) {
+                $role = ($msg->requested_to === 'AI') ? 'user' : 'assistant';
+                $chatHistory[] = ['role' => $role, 'content' => $msg->message];
             }
 
             // Add current user message
@@ -944,19 +974,27 @@ class AdminController extends Controller
 
             // Send to OpenAI
             $client = new \GuzzleHttp\Client();
-            $response = $client->post('https://api.openai.com/v1/chat/completions', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
-                    'Content-Type' => 'application/json',
-                ],
-                'json' => [
-                    'model' => 'gpt-4o',
-                    'messages' => $chatHistory,
-                ],
-            ]);
+            try {
+                $response = $client->post('https://api.openai.com/v1/chat/completions', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $OPENAI_API_KEY,
+                        'Content-Type' => 'application/json',
+                    ],
+                    'json' => [
+                        'model' => 'gpt-4o',
+                        'messages' => $chatHistory,
+                        'max_tokens' => 1000,
+                        'temperature' => 0.7,
+                    ],
+                ]);
 
-            $data = json_decode($response->getBody(), true);
-            $aiReply = $data['choices'][0]['message']['content'];
+                $data = json_decode($response->getBody(), true);
+                $aiReply = $data['choices'][0]['message']['content'];
+            } catch (\Exception $e) {
+                // Fallback response if OpenAI fails
+                $aiReply = 'I apologize, but I\'m currently experiencing technical difficulties. Please try again shortly.';
+                Log::error('OpenAI API error for admin: ' . $e->getMessage());
+            }
         }
 
         // Save AI response to database
@@ -969,6 +1007,96 @@ class AdminController extends Controller
         ]);
 
         return response()->json(['message' => $aiReply]);
+    }
+
+    /**
+     * Extract text from PDF files and find relevant content (same as patient and provider versions)
+     */
+    private function getPDFContext($userMessage)
+    {
+        $pdfDirectory = public_path('assets/ai_responses');
+
+        // Check if directory exists
+        if (!file_exists($pdfDirectory) || !is_dir($pdfDirectory)) {
+            Log::error('PDF directory not found: ' . $pdfDirectory);
+            return '';
+        }
+
+        $pdfFiles = glob($pdfDirectory . '/*.pdf');
+
+        if (empty($pdfFiles)) {
+            Log::warning('No PDF files found in directory: ' . $pdfDirectory);
+            return '';
+        }
+
+        $parser = new Parser();
+        $userMessageLower = strtolower($userMessage);
+        $relevantContent = '';
+        $maxContentLength = 2000; // Limit context length to avoid token limits
+
+        foreach ($pdfFiles as $pdfFile) {
+            try {
+                $pdf = $parser->parseFile($pdfFile);
+                $text = $pdf->getText();
+
+                if (!empty($text)) {
+                    $textLower = strtolower($text);
+
+                    // Simple keyword matching - check if user message contains words from PDF
+                    $words = preg_split('/\s+/', $userMessageLower);
+                    $words = array_filter($words, function ($word) {
+                        return strlen($word) > 3; // Only consider words longer than 3 characters
+                    });
+
+                    $matchFound = false;
+                    foreach ($words as $word) {
+                        if (strpos($textLower, $word) !== false) {
+                            $matchFound = true;
+                            break;
+                        }
+                    }
+
+                    // If match found or if this is a general query, include some content
+                    if ($matchFound || strlen($userMessage) < 20) {
+                        $filename = basename($pdfFile);
+                        $contentSnippet = substr($text, 0, 800); // Take first 800 characters
+
+                        $relevantContent .= "From {$filename}: {$contentSnippet}...\n\n";
+
+                        // Break if we have enough content
+                        if (strlen($relevantContent) >= $maxContentLength) {
+                            break;
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Error processing PDF file ' . $pdfFile . ': ' . $e->getMessage());
+                continue;
+            }
+        }
+
+        return $relevantContent;
+    }
+
+    /**
+     * Alternative method with caching for better performance
+     */
+    private function getPDFContextWithCache($userMessage)
+    {
+        $cacheKey = 'pdf_context_' . md5($userMessage);
+        $cacheTime = 3600; // 1 hour
+
+        // Try to get from cache first
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        $context = $this->getPDFContext($userMessage);
+
+        // Store in cache
+        Cache::put($cacheKey, $context, $cacheTime);
+
+        return $context;
     }
 
 

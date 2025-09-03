@@ -1,12 +1,9 @@
 @extends('layouts.provider')
 
-@section('title', 'provider dashboard')
+@section('title', 'All Providers')
 
 @section('link')
-    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <!-- DataTables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 @endsection
@@ -38,16 +35,9 @@
             box-shadow: none !important;
         }
 
-
         table.dataTable.display>tbody>tr.even>.sorting_1,
         table.dataTable.order-column.stripe>tbody>tr.even>.sorting_1 {
             box-shadow: none !important;
-        }
-
-        table.dataTable thead th,
-        table.dataTable thead td {
-            padding: 16px !important;
-            border-bottom: none !important;
         }
 
         .dataTables_wrapper .dataTables_paginate .paginate_button.current {
@@ -64,7 +54,6 @@
             font-weight: initial;
             text-transform: none !important;
         }
-
 
         .dataTables_wrapper .dataTables_filter input {
             padding-left: 32px;
@@ -96,7 +85,7 @@
 
         table.dataTable thead th,
         table.dataTable thead td {
-            padding: 20px;
+            padding: 1rem;
             border-bottom: 0px;
             font-weight: 500;
             font-size: 1rem;
@@ -117,12 +106,13 @@
             padding: 10px 1rem;
         }
 
-        #appointmentsTable_filter {
+        #providersTable_filter {
             position: relative;
             margin-top: 1rem;
             margin-bottom: 1rem;
             border: none;
             margin-right: 1rem;
+            float: right;
         }
 
         .appointments_text {
@@ -160,179 +150,327 @@
             font-weight: 500;
             color: #000000;
         }
-    </style>
-@endsection
 
+        #providersTable_paginate {
+            display: flex;
+            justify-content: end;
+            align-items: center;
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 100%;
+            max-width: 1000px;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        .modal-body {
+            padding: 20px 0;
+        }
+
+        .modal-header {
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-footer {
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            text-align: right;
+        }
+
+        .document-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border-left: 4px solid #2889AA;
+        }
+
+        .document-section h3 {
+            margin-top: 0;
+            color: #2889AA;
+        }
+
+        .document-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .document-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+    </style>
+
+@endsection
 
 @section('content')
     @include('layouts.provider_header')
+    <div class="mx-auto bg-gray-100 border-2">
+        <div class="min-h-screen p-4 md:p-6 md:max-w-6xl mx-auto my-12">
+            <div class="space-y-6 rounded-md">
 
+                <div class="bg-gray-100 rounded-lg shadow relative overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <div class="p-4 bg-white rounded shadow">
+                            <div class="overflow-x-auto bg-white rounded-lg p-4">
+                                <div class="mb-4">
+                                    <h2 class="text-xl font-semibold">Patient Management Record</h2>
+                                </div>
 
+                                <div id="pa_Table_wrapper" class="dataTables_wrapper no-footer">
+                                    <table id="pa_Table" class="display w-full text-sm text-left dataTable no-footer">
+                                        <thead class="pt-4 bg-[#F3F4F6] ">
+                                            <tr>
+                                                <th class="text-left cursor-pointer">Serial</th>
+                                                <th class="text-left cursor-pointer">Unique ID</th>
+                                                <th class="text-left cursor-pointer">Patient Name</th>
+                                                <th class="text-left cursor-pointer">DOB</th>
+                                                <th class="text-left cursor-pointer">Age</th>
+                                                <th class="text-left cursor-pointer">Gender</th>
+                                                <th class="px-1 py-4 cursor-pointer font-normal">Since</th>
+                                                <th class="text-left cursor-pointer">
+                                                    <div class="text-center">Details</div>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="text-sm text-[#000000] bg-[#FFFFFF]">
+                                            @php
+                                                if (!function_exists('getPodCode')) {
+                                                    function getPodCode($index)
+                                                    {
+                                                        $letters = '';
+                                                        do {
+                                                            $letters = chr(65 + ($index % 26)) . $letters;
+                                                            $index = intdiv($index, 26) - 1;
+                                                        } while ($index >= 0);
+                                                        return $letters;
+                                                    }
+                                                }
+                                            @endphp
+                                            @forelse ($patients as $key => $patient)
+                                                <tr>
+                                                    <td>{{ $key + 1 }}</td>
+                                                    <td>{{ $patient->patient_id }}</td>
+                                                    <td>{{ $patient->name }}</td>
+                                                    @forelse ($patientDetails as $details)
+                                                        @if ($details->user_id == $patient->id)
+                                                            <td>
+                                                                {{ \Carbon\Carbon::parse($details->dob)->format('d/m/Y') }}
+                                                            </td>
+                                                            <td>
+                                                                {{ \Carbon\Carbon::parse($details->dob)->age }}
+                                                            </td>
+                                                            <td>
+                                                                <span class="capitalize">{{ $details->gender }}</span>
+                                                            </td>
+                                                            <td class="px-1 py-4 w-[120px]">
+                                                                {{ \Carbon\Carbon::parse($patient->created_at)->format('jS M, Y') }}
+                                                            </td>
+                                                            <td>
+                                                                <button
+                                                                    class="bg-blue-400 text-white rounded-full w-[80px] text-sm px-4 py-1 mx-auto block view-details-btn"
+                                                                    data-patient-id="{{ $patient->id }}"
+                                                                    data-patient-name="{{ $patient->name }}"
+                                                                    data-patient-data="{{ json_encode([
+                                                                        'patient_id' => $patient->patient_id,
+                                                                        'dob' => \Carbon\Carbon::parse($details->dob)->format('d/m/Y'),
+                                                                        'age' => \Carbon\Carbon::parse($details->dob)->age,
+                                                                        'gender' => $details->gender,
+                                                                        'created_at' => \Carbon\Carbon::parse($patient->created_at)->format('jS M, Y'),
+                                                                        'profile_picture' => $patient->profile_picture,
+                                                                        'fname' => $details->fname,
+                                                                        'mname' => $details->mname,
+                                                                        'lname' => $details->lname,
+                                                                        'zip_code' => $details->zip_code,
+                                                                        'street' => $details->street,
+                                                                        'city' => $details->city,
+                                                                        'state' => $details->state,
+                                                                        'phone' => $details->phone,
+                                                                        'email' => $details->email,
+                                                                        'medicare_number' => $details->medicare_number,
+                                                                        'group_number' => $details->group_number,
+                                                                        'ssn' => $details->ssn,
+                                                                        'language' => $patient->language,
+                                                                        'emmergency_name' => $details->emmergency_name,
+                                                                        'emmergency_relationship' => $details->emmergency_relationship,
+                                                                        'emmergency_phone' => $details->emmergency_phone,
+                                                                        'insurance_provider' => $details->insurance_provider,
+                                                                        'insurance_plan_number' => $details->insurance_plan_number,
+                                                                        'insurance_group_number' => $details->insurance_group_number,
+                                                                        'license' => $details->license,
+                                                                        'last_logged_in' => $patient->last_logged_in
+                                                                            ? \Carbon\Carbon::parse($patient->last_logged_in)->format('g.iA jS M, Y')
+                                                                            : 'N/A',
+                                                                        'last_activity' => $patient->last_activity
+                                                                            ? \Carbon\Carbon::parse($patient->last_activity)->format('g.iA jS M, Y')
+                                                                            : 'N/A',
+                                                                        'upcoming_appointments' => $appointments->where('patient_id', $patient->patient_id)->where('status', 0)->filter(function ($appt) {
+                                                                                return \Carbon\Carbon::parse($appt->date)->isFuture();
+                                                                            })->count(),
+                                                                        'ongoing_appointments' => $appointments->where('patient_id', $patient->patient_id)->where('status', 1)->count(),
+                                                                        'missed_appointments' => $appointments->where('patient_id', $patient->patient_id)->where('status', 0)->filter(function ($appt) {
+                                                                                return \Carbon\Carbon::parse($appt->date)->isPast();
+                                                                            })->count(),
+                                                                        'completed_appointments' => $appointments->where('patient_id', $patient->patient_id)->where('status', 5)->count(),
+                                                                        'virtual_notes' => $virtual_notes->where('patient_id', $patient->patient_id)->count(),
+                                                                        'clinical_notes' => $clinical_notes->where('patient_id', $patient->patient_id)->count(),
+                                                                        'eprescriptions' => $eprescriptions->where('patient_id', $patient->patient_id)->count(),
+                                                                        'questlabs' => $questlabs->where('patient_id', $patient->patient_id)->count(),
+                                                                        'financial_agreements' => $financilas->where('user_id', $patient->id)->map(function ($item) {
+                                                                                return [
+                                                                                    'user_name' => $item->user_name,
+                                                                                    'patients_name' => $item->patients_name,
+                                                                                    'patients_signature_date' => $item->patients_signature_date
+                                                                                        ? \Carbon\Carbon::parse($item->patients_signature_date)->format('jS M, Y')
+                                                                                        : 'N/A',
+                                                                                ];
+                                                                            })->toArray(),
+                                                                        'sle_payments' => $slepayments->where('user_id', $patient->id)->map(function ($item) {
+                                                                                return [
+                                                                                    'user_name' => $item->user_name,
+                                                                                    'patients_name' => $item->patients_name,
+                                                                                    'patients_signature_date' => $item->patients_signature_date
+                                                                                        ? \Carbon\Carbon::parse($item->patients_signature_date)->format('jS M, Y')
+                                                                                        : 'N/A',
+                                                                                ];
+                                                                            })->toArray(),
+                                                                        'privacy_forms' => $privacyform->where('user_id', $patient->id)->map(function ($item) {
+                                                                                return [
+                                                                                    'fname' => $item->fname,
+                                                                                    'lname' => $item->lname,
+                                                                                    'date' => $item->date ? \Carbon\Carbon::parse($item->date)->format('jS M, Y') : 'N/A',
+                                                                                    'users_message' => $item->users_message,
+                                                                                    'notice_of_privacy_practice' => $item->notice_of_privacy_practice,
+                                                                                    'patients_name' => $item->patients_name,
+                                                                                    'representatives_name' => $item->representatives_name,
+                                                                                    'service_taken_date' => $item->service_taken_date ? \Carbon\Carbon::parse($item->service_taken_date)->format('jS M, Y') : 'N/A',
+                                                                                    'relation_with_patient' => $item->relation_with_patient,
+                                                                                ];
+                                                                            })->toArray(),
+                                                                        'compliance_forms' => $complianceform->where('user_id', $patient->id)->map(function ($item) {
+                                                                                return [
+                                                                                    'patients_name' => $item->patients_name,
+                                                                                    'dob' => $item->dob ? \Carbon\Carbon::parse($item->dob)->format('jS M, Y') : 'N/A',
+                                                                                    'patients_signature' => $item->patients_signature,
+                                                                                    'patients_dob' => $item->patients_dob
+                                                                                        ? \Carbon\Carbon::parse($item->patients_dob)->format('jS M, Y')
+                                                                                        : 'N/A',
+                                                                                    'representative_signature' => $item->representative_signature,
+                                                                                    'representative_dob' => $item->representative_dob
+                                                                                        ? \Carbon\Carbon::parse($item->representative_dob)->format('jS M, Y')
+                                                                                        : 'N/A',
+                                                                                    'nature_with_patient' => $item->nature_with_patient,
+                                                                                ];
+                                                                            })->toArray(),
+                                                                    ]) }}">
+                                                                    View
+                                                                </button>
+                                                            </td>
+                                                        @endif
+                                                    @empty
+                                                        <td>N/A</td>
+                                                        <td>N/A</td>
+                                                        <td>N/A</td>
+                                                        <td>N/A</td>
+                                                        <td>
+                                                            <p
+                                                                class="bg-red-100 px-2 py-1 rounded-full text-red-500 border border-red-500 text-center">
+                                                                Incomplete</p>
+                                                        </td>
+                                                    @endforelse
 
-    <div class="min-h-screen p-4 bg-gray-100 md:p-6">
-        <div class="mb-6 space-y-6 rounded-md">
-
-            <div class="bg-gray-100 rounded-lg shadow relative pt-2">
-                <div style="margin: 1rem;">
-                    <div class="text-xl font-semibold">Patient Records</div>
+                                                    @if ($patientDetails->isEmpty() || !$patientDetails->contains('user_id', $patient->id))
+                                                        <td>N/A</td>
+                                                        <td>N/A</td>
+                                                        <td>N/A</td>
+                                                        <td>N/A</td>
+                                                        <td>
+                                                            <p
+                                                                class="bg-red-100 px-2 py-1 rounded-full text-red-500 border border-red-500 text-center">
+                                                                Incomplete</p>
+                                                        </td>
+                                                    @endif
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="text-center no-patients-message">
+                                                        No patients found.
+                                                    </td>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
 
-                <div class="overflow-x-auto">
-                    <table id="appointmentsTable" class="w-full text-sm text-left display">
-                        <thead class="bg-[#F7F9FB] font-normal text-[#00000080]">
-                            <tr>
-                                <th class="px-1 py-4 font-normal">Patient Name</th>
-                                <th class="px-1 py-4 font-normal">Unique ID</th>
-                                <th class="px-1 py-4 font-normal">DOB</th>
-                                <th class="px-1 py-4 font-normal">Age</th>
-                                <th class="px-1 py-4 font-normal">Gender</th>
-                                <th class="px-1 py-4 font-normal">Patient Results</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-sm text-[#000000]">
-                            @forelse ($patients as $patient)
-                                <tr class="border-b border-[#000000]/10 mb-3">
-                                    <td class="px-1 py-4 w-[160px]">{{ $patient->name }}</td>
-                                    <td class="px-1 py-4 w-[120px]">{{ $patient->patient_id }}</td>
 
-                                    @php
-                                        $found = false;
-                                    @endphp
-                                    @foreach ($userdetails as $details)
-                                        @if ($details->user_id == $patient->id)
-                                            @php $found = true; @endphp
-                                            <td class="px-1 py-4 w-[140px]">
-                                                {{ \Carbon\Carbon::parse($details->dob)->format('jS F, Y') }}
-                                            </td>
-                                            <td class="px-1 py-4 w-[80px] capitalize">
-                                                {{ \Carbon\Carbon::parse($details->dob)->age }}
-                                            </td>
-                                            <td class="px-1 py-4 w-[100px] capitalize">{{ $details->gender }}</td>
-                                            @break
-                                        @endif
-                                    @endforeach
-                                    @if (!$found)
-                                        <td class="px-4 py-4 text-gray-400">&mdash;</td>
-                                        <td class="px-4 py-4 text-gray-400">&mdash;</td>
-                                        <td class="px-4 py-4 text-gray-400">&mdash;</td>
-                                    @endif
 
-                                    <td class="px-1 py-4 w-[160px]">
-                                        <select name="patient_result"
-                                            class="flex items-center gap-2 text-[#2889AA] font-semibold bg-transparent px-2"
-                                            onchange="if(this.value) window.location.href=this.value">
-                                            <option disabled selected>View More</option>
-                                            <option value="/provider/dexcom">Dexcom/Libre</option>
-                                            <option value="/provider/passio-ai">Passio AI</option>
-                                            <option value="/patient/{{ $patient->patient_id }}/results/virtual-notes">
-                                                Virtual notes</option>
-                                            <option value="/patient/{{ $patient->patient_id }}/results/clinical-notes">
-                                                Clinical notes</option>
-                                            <option value="/patient/{{ $patient->patient_id }}/results/quest-lab">Quest Lab
-                                            </option>
-                                            <option value="/patient/{{ $patient->patient_id }}/results/e-prescription">
-                                                E-Prescriptions</option>
-                                        </select>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="6">
-                                        <center class="text-gray-500 text-lg">
-                                            No Patient Been Added To Your POD Yet!
-                                        </center>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <!-- The Modal -->
+                <div id="patientModal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <span class="close">&times;</span>
+                            <h2 class="text-xl font-semibold">Patient Details</h2>
+                        </div>
+                        <div class="modal-body" id="modalPatientContent">
+                            <!-- Content will be loaded here dynamically -->
+                        </div>
+                    </div>
                 </div>
             </div>
-
-
         </div>
     </div>
-
-
 @endsection
+
 
 @section('script')
     <!-- DataTables JS -->
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
 
-    <script>
-        $(document).ready(function() {
-            const table = $('#apiTable').DataTable({
-                paging: true,
-                searching: true,
-                info: false,
-                lengthChange: false,
-                pageLength: 10,
-                language: {
-                    search: "",
-                    searchPlaceholder: "Search...",
-                },
-                dom: 't<"flex justify-center mt-4"p>',
-            });
-
-            $('#tableSearch').on('keyup', function() {
-                table.search(this.value).draw();
-            });
-        });
-    </script>
-
-
-
+    <script src="/assets/js/patient_records_on_provider.js"></script>
 
     <script>
-        $(document).ready(function() {
-            $('#appointmentsTable').DataTable({
-                "pagingType": "simple_numbers",
-                "language": {
-                    "search": "_INPUT_",
-                    "searchPlaceholder": "Search something...",
-                    "paginate": {
-                        "previous": "←",
-                        "next": "→"
-                    }
-                },
-                "dom": '<"top"f>rt<"bottom"lip><"clear">',
-                "initComplete": function() {
-                    // Add the search icon to the search input
-                    $('.dataTables_filter input').before(
-                        '<i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>'
-                    );
-                    $('.dataTables_filter input').addClass('pl-8');
-                }
-            });
-        });
-
-
-
-        function copyProviderId(element) {
-            const providerId = element.getAttribute('data-provider-id');
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(providerId).then(function() {
-                    showCopyFeedback(element);
-                });
-            } else {
-                // fallback for older browsers
-                const tempInput = document.createElement('input');
-                tempInput.value = providerId;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempInput);
-                showCopyFeedback(element);
-            }
-        }
-
-        function showCopyFeedback(element) {
-            $('.copy_icon').addClass('text-green-500');
-            setTimeout(() => {
-                $('.copy_icon').removeClass('text-green-500');
-            }, 500);
-        }
+        $(".patients").addClass("font-semibold");
     </script>
 @endsection

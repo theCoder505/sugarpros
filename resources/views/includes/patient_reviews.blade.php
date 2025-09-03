@@ -7,10 +7,12 @@
             We have served in love and our patients have poured endless testimonials for our work.
         </h2>
 
-        <a href="/all-reviews"
-            class="hidden px-4 py-2 text-white rounded-lg md:inline-block bg-button_lite hover:opacity-90 text-center w-[250px]">
-            View all reviews
-        </a>
+        @if ($to_show != 'all')
+            <a href="/all-reviews"
+                class="hidden px-4 py-2 text-white rounded-lg md:inline-block bg-button_lite hover:opacity-90 text-center w-[250px]">
+                View all reviews
+            </a>
+        @endif
     </div>
 
 
@@ -20,14 +22,14 @@
                 <div class="flex items-center mb-4">
                     @forelse ($users as $user)
                         @if ($user->patient_id == $review->reviewed_by)
-                        <img src="{{ $user->profile_picture }}" alt="{{$user->name}}" class="w-12 h-12 mr-3 rounded-full">
-                        <div>
-                            <p class="text-lg font-semibold text-[#1E2939]">{{$user->name}}</p>
-                            <p class="text-sm text-gray-600">{{ $review->created_at->diffForHumans() }}</p>
-                        </div>
+                            <img src="{{ $user->profile_picture }}" alt="{{ $user->name }}"
+                                class="w-12 h-12 mr-3 rounded-full">
+                            <div>
+                                <p class="text-lg font-semibold text-[#1E2939]">{{ $user->name }}</p>
+                                <p class="text-sm text-gray-600">{{ $review->created_at->diffForHumans() }}</p>
+                            </div>
                         @endif
                     @empty
-                        
                     @endforelse
                 </div>
                 <p class="text-[18px] text-gray-800 line-clamp-4 review">
@@ -40,7 +42,7 @@
             </div>
         @empty
         @endforelse
-
+    </div>
 
 </section>
 

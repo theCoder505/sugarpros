@@ -70,6 +70,8 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Password</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Last Activity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Last Login</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions</th>
@@ -101,6 +103,9 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-gray-600">
                                             {{ $biller->last_login_time ? \Carbon\Carbon::parse($biller->last_login_time)->format('M j, Y g:i A') : 'Never' }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-600">
+                                            {{ $biller->last_activity ? \Carbon\Carbon::parse($biller->last_activity)->format('M j, Y g:i A') : 'Never' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex space-x-3">

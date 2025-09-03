@@ -21,7 +21,7 @@
             <div class="flex flex-col col-span-1 px-4 mb-4 border rounded-md md:border-none md:mb-0 md:rounded-none">
                 <div class="flex flex-col col-span-1 first_part">
                     <h1 class="text-[24px] font-bold text-[#000000] mb-6">SugarPros Chats</h1>
-                    <a href="/sugarpro-ai"
+                    <a href="/provider/sugarpros-ai"
                         class="relative rounded-xl p-4 text-[#FF6400] text-center bg-gray-100 mb-3 font-bold">
                         Talk to {{ $brandname }} AI
                     </a>

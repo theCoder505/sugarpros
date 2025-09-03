@@ -171,9 +171,6 @@
                     @foreach ($foods as $food)
                         <div class="food-item bg-gray-100 rounded-xl shadow-sm flex flex-col sm:flex-row items-center justify-between p-4 gap-4 cursor-pointer"
                             data-food-id="{{ $food['id'] ?? '' }}">
-                            <img src="{{ asset('assets/image/nutrition_img.png') }}" alt="Food"
-                                class="rounded-lg w-[92px] h-[90px] object-cover shrink-0" />
-
                             <div class="flex-1 px-2 w-full">
                                 <h3 class="text-[18px] font-semibold">{{ $food['name'] ?? 'Unknown Food' }}</h3>
                                 @if (isset($food['brand']) && $food['brand'])
@@ -208,6 +205,13 @@
 
                                 @if (isset($food['serving_description']))
                                     <p class="text-xs text-gray-500 mt-1">{{ $food['serving_description'] }}</p>
+                                @endif
+
+                                @if (!empty($food['food_url']))
+                                    <a href="{{ $food['food_url'] }}" target="_blank"
+                                       class="inline-block mt-3 px-3 py-1 bg-[#133A59] text-white rounded-full shadow hover:bg-[#1d4e7a] transition font-normal text-xs">
+                                        See Details
+                                    </a>
                                 @endif
                             </div>
 
@@ -379,48 +383,54 @@
 
                 foods.forEach(food => {
                     const foodHtml = `
-                        <div class="food-item bg-gray-100 rounded-xl shadow-sm flex flex-col sm:flex-row items-center justify-between p-4 gap-4 cursor-pointer" 
+                        <div class="food-item bg-gray-100 rounded-xl shadow-sm p-4 gap-4 cursor-pointer" 
                              data-food-id="${food.id}">
-                            <img src="{{ asset('assets/image/food-placeholder.jpg') }}" alt="Food"
-                                class="rounded-lg w-[92px] h-[90px] object-cover shrink-0" />
+                            <div class="flex flex-col sm:flex-row items-center justify-between">
+                                <div class="flex-1 px-2 w-full">
+                                    <h3 class="text-[18px] font-semibold">${food.name}</h3>
+                                    ${food.brand ? `<p class="text-xs text-gray-500">${food.brand}</p>` : ''}
 
-                            <div class="flex-1 px-2 w-full">
-                                <h3 class="text-[18px] font-semibold">${food.name}</h3>
-                                ${food.brand ? `<p class="text-xs text-gray-500">${food.brand}</p>` : ''}
+                                    <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 text-xs mt-2">
+                                        <div class="flex items-center justify-center gap-1 text-black w-16 h-6 bg-[#EAB3081A]/10 rounded-full">
+                                            <img src="{{ asset('assets/image/ao1.png') }}" class="w-[15px]" alt="Protein"> 
+                                            ${parseFloat(food.protein || 0).toFixed(1)}g
+                                        </div>
+                                        <div class="flex items-center justify-center gap-1 text-black w-16 h-6 bg-[#00356612] rounded-full">
+                                            <img src="{{ asset('assets/image/ao2.png') }}" class="w-[13px]" alt="Carbs"> 
+                                            ${parseFloat(food.carbs || 0).toFixed(1)}g
+                                        </div>
+                                        <div class="flex items-center justify-center gap-1 text-black w-16 h-6 bg-[#F8717117] rounded-full">
+                                            <img src="{{ asset('assets/image/ao3.png') }}" class="w-[11px]" alt="Fat"> 
+                                            ${parseFloat(food.fat || 0).toFixed(1)}g
+                                        </div>
+                                    </div>
 
-                                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 text-xs mt-2">
-                                    <div class="flex items-center justify-center gap-1 text-black w-16 h-6 bg-[#EAB3081A]/10 rounded-full">
-                                        <img src="{{ asset('assets/image/ao1.png') }}" class="w-[15px]" alt="Protein"> 
-                                        ${parseFloat(food.protein || 0).toFixed(1)}g
-                                    </div>
-                                    <div class="flex items-center justify-center gap-1 text-black w-16 h-6 bg-[#00356612] rounded-full">
-                                        <img src="{{ asset('assets/image/ao2.png') }}" class="w-[13px]" alt="Carbs"> 
-                                        ${parseFloat(food.carbs || 0).toFixed(1)}g
-                                    </div>
-                                    <div class="flex items-center justify-center gap-1 text-black w-16 h-6 bg-[#F8717117] rounded-full">
-                                        <img src="{{ asset('assets/image/ao3.png') }}" class="w-[11px]" alt="Fat"> 
-                                        ${parseFloat(food.fat || 0).toFixed(1)}g
-                                    </div>
+                                    <p class="text-xs text-[#1C1917] mt-2">
+                                        ${Math.round(food.calories || 0)} <span class="text-[12px] text-[#737373]">kcal</span>
+                                    </p>
+                                    
+                                    ${food.serving_description ? `<p class="text-xs text-gray-500 mt-1">${food.serving_description}</p>` : ''}
                                 </div>
 
-                                <p class="text-xs text-[#1C1917] mt-2">
-                                    ${Math.round(food.calories || 0)} <span class="text-[12px] text-[#737373]">kcal</span>
-                                </p>
-                                
-                                ${food.serving_description ? `<p class="text-xs text-gray-500 mt-1">${food.serving_description}</p>` : ''}
+                                <div class="relative w-10 h-10">
+                                    <svg class="w-full h-full md:w-[40px] md:h-[40px]" viewBox="0 0 36 36">
+                                        <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
+                                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path class="text-green-500" stroke="currentColor" stroke-width="4" 
+                                            stroke-dasharray="${food.health_score || 80}, 100" fill="none"
+                                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-green-600">
+                                        ${food.health_score || 80}%
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="relative w-10 h-10">
-                                <svg class="w-full h-full md:w-[40px] md:h-[40px]" viewBox="0 0 36 36">
-                                    <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
-                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                    <path class="text-green-500" stroke="currentColor" stroke-width="4" 
-                                        stroke-dasharray="${food.health_score || 80}, 100" fill="none"
-                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                </svg>
-                                <div class="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-green-600">
-                                    ${food.health_score || 80}%
-                                </div>
+                            <div class="w-full mt-2">
+                                <a href="${food.food_url}" target="_blank"
+                                    class="inline-block px-3 py-1 bg-[#133A59] text-white rounded-full shadow hover:bg-[#1d4e7a] transition font-normal text-xs">
+                                    See Details
+                                </a>
                             </div>
                         </div>
                     `;

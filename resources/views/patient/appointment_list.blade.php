@@ -81,6 +81,36 @@
             border-radius: 0.25rem;
             font-size: 0.875rem;
         }
+
+        .appointment_type_dropdown {
+            position: absolute;
+            top: 2.8rem;
+            left: 1rem;
+            z-index: 1;
+        }
+
+        .dataTables_empty {
+            padding: 2rem !important;
+        }
+
+        @media (max-width: 600px) {
+            .appointment_type_dropdown {
+                position: relative;
+                top: 0;
+                left: unset;
+                z-index: 1;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                padding-top: 1.5rem;
+            }
+
+            #appointmentsTable_filter i {
+                position: relative;
+                top: 0.7rem;
+                left: 1.7rem;
+            }
+        }
     </style>
 
 @endsection
@@ -97,7 +127,18 @@
 
         <div class="max-w-7xl mx-auto bg-white p-6 rounded-md mt-10 mb-16">
             <div class="bg-gray-100 rounded-lg shadow relative p-6 pt-0">
-                <div class="overflow-x-auto">
+                <div class="space-y-6 bg-[#f3f4f6] rounded-lg lg:col-span-3 overflow-x-auto relative">
+                    <div class="appointment_type_dropdown">
+                        <select name="appointment_type" id="appointmentTypeFilter" class="bg-white px-4 py-2 rounded-lg">
+                            <option id="all-count" value="all">All Appointments</option>
+                            <option id="active-count" value="active" selected>Active Appointments</option>
+                            <option id="upcoming-count" value="upcoming">Upcoming Appointments</option>
+                            <option id="missed-count" value="missed">Missed Appointments</option>
+                            <option id="unset-count" value="unset">Unset Appointments</option>
+                            <option id="complete-count" value="complete">Completed Appointments</option>
+                        </select>
+                    </div>
+
                     <table id="appointmentsTable" class="w-full text-sm text-left">
                         <thead class="bg-[#ffffff] text-[#00000080]/50">
                             <tr>
@@ -115,8 +156,39 @@
                                 @php
                                     $appointmentDateTime = \Carbon\Carbon::parse($item->date . ' ' . $item->time);
                                     $gracePeriodEnd = $appointmentDateTime->copy()->addHour();
+                                    $statusClass = '';
+
+                                    if ($item->status == 0) {
+                                        if ($appointmentDateTime->isFuture()) {
+                                            $statusText = 'Upcoming';
+                                            $statusClass = 'upcoming';
+                                        } elseif ($gracePeriodEnd->isFuture()) {
+                                            if ($item->meet_link) {
+                                                $statusText = 'Waiting To Start';
+                                                $statusClass = 'active';
+                                            } else {
+                                                $statusText = 'Grace Period (1hr)';
+                                                $statusClass = 'active';
+                                            }
+                                        } else {
+                                            if ($item->meet_link) {
+                                                $statusText = 'You Absented';
+                                                $statusClass = 'missed';
+                                            } else {
+                                                $statusText = 'Pending Approval';
+                                                $statusClass = 'unset';
+                                            }
+                                        }
+                                    } elseif ($item->status == 1) {
+                                        $statusText = 'Started';
+                                        $statusClass = 'active';
+                                    } elseif ($item->status == 5) {
+                                        $statusText = 'Completed';
+                                        $statusClass = 'complete';
+                                    }
                                 @endphp
-                                <tr class="border-b border-[#000000]/10">
+
+                                <tr class="border-b border-[#000000]/10 appointment-row" data-status="{{ $statusClass }}">
                                     <td>{{ $key + 1 }}</td>
                                     <td>{{ $item->appointment_uid }}</td>
                                     <td class="px-4 py-4">
@@ -193,17 +265,40 @@
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
 
     <script>
+        function showSelectedType(selectElement) {
+            var selected = typeof selectElement === 'string' ? selectElement : selectElement.value;
+            var table = $('#appointmentsTable').DataTable();
+
+            if (selected === 'all') {
+                table.columns(5).search('').draw();
+            } else {
+                // Map filter value to status text in table
+                var statusMap = {
+                    'active': 'Waiting To Start|Started|Grace Period \\(1hr\\)',
+                    'upcoming': 'Upcoming',
+                    'missed': 'You Absented',
+                    'unset': 'Pending Approval',
+                    'complete': 'Completed'
+                };
+
+                var searchText = statusMap[selected] || '';
+                table.columns(5).search(searchText, true, false, true).draw();
+            }
+        }
+
         $(document).ready(function() {
-            $('#appointmentsTable').DataTable({
-                "ordering": false,
+            // Initialize the DataTable
+            var table = $('#appointmentsTable').DataTable({
                 "pagingType": "simple_numbers",
+                "ordering": false,
                 "language": {
                     "search": "_INPUT_",
-                    "searchPlaceholder": "Search appointments...",
+                    "searchPlaceholder": "Search something...",
                     "paginate": {
                         "previous": "←",
                         "next": "→"
-                    }
+                    },
+                    "emptyTable": "No appointments found for the selected filter."
                 },
                 "dom": '<"top"f>rt<"bottom"lip><"clear">',
                 "initComplete": function() {
@@ -212,7 +307,32 @@
                         '<i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>'
                     );
                     $('.dataTables_filter input').addClass('pl-8');
+                    updateCounts();
+
+                    // Show only active appointments by default
+                    showSelectedType('active');
                 }
+            });
+
+            // Function to update counts
+            function updateCounts() {
+                const allCount = $('.appointment-row').length;
+                const activeCount = $('.appointment-row[data-status="active"]').length;
+                const upcomingCount = $('.appointment-row[data-status="upcoming"]').length;
+                const missedCount = $('.appointment-row[data-status="missed"]').length;
+                const unsetCount = $('.appointment-row[data-status="unset"]').length;
+                const completeCount = $('.appointment-row[data-status="complete"]').length;
+
+                $('#all-count').text('All Appointments (' + allCount + ')');
+                $('#active-count').text('Active Appointments (' + activeCount + ')');
+                $('#upcoming-count').text('Upcoming Appointments (' + upcomingCount + ')');
+                $('#missed-count').text('Missed Appointments (' + missedCount + ')');
+                $('#unset-count').text('Unset Appointments (' + unsetCount + ')');
+                $('#complete-count').text('Completed Appointments (' + completeCount + ')');
+            }
+
+            $('#appointmentTypeFilter').change(function() {
+                showSelectedType(this);
             });
         });
     </script>

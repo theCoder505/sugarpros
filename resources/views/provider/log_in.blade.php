@@ -19,25 +19,6 @@
                     Enter your credentials to access your account
                 </p>
 
-                <div class="flex flex-col gap-4 mb-4 sm:flex-row">
-                    <a href="#"
-                        class="w-full flex items-center justify-center border h-[52px] rounded-md py-2 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        <img src="{{ asset('assets/image/go.png') }}" alt="Google" class="h-5 mr-2" />
-                        Log in with <span class="pl-1 font-bold">Google</span>
-                    </a>
-                    <a href="#"
-                        class="w-full flex items-center justify-center border h-[52px] rounded-md py-2 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        <img src="{{ asset('assets/image/i.png') }}" alt="Apple" class="h-5 mr-2" />
-                        Log in with <span class="pl-1 font-bold">Apple</span>
-                    </a>
-                </div>
-
-
-                <div class="flex items-center justify-center my-3">
-                    <div class="w-full h-[1px] bg-[#E5E5E5]"></div>
-                    <div class="text-center text-[#737373] text-sm">or</div>
-                    <div class="w-full h-[1px] bg-[#E5E5E5]"></div>
-                </div>
 
                 @if (session('email'))
                     @php

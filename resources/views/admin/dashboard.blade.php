@@ -139,6 +139,54 @@
                     </div>
                 </div>
             </div>
+
+
+            <!-- Last Activity Card -->
+            <div class="bg-white rounded-xl shadow p-4 flex flex-col justify-between">
+                <div class="flex justify-between items-center">
+                    <div class="space-y-3">
+                        <div class="bg-cyan-50 w-[45px] h-[45px] p-2 rounded-md flex items-center justify-center">
+                            <i class="fas fa-bolt text-cyan-500 text-xl"></i>
+                        </div>
+                        <span class="text-gray-500 text-sm">Last Activity</span>
+                        <div class="text-sm font-normal text-gray-700 mt-1">
+                            {{ Auth::guard('admin')->user()->last_activity
+                                ? \Carbon\Carbon::parse(Auth::guard('admin')->user()->last_activity)->diffForHumans()
+                                : 'N/A' }}
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 pt-2 border-t border-gray-100">
+                    <div class="flex items-center text-xs text-gray-500">
+                        <i class="fas fa-info-circle text-cyan-400 mr-2"></i>
+                        <span>Recent activity for your account</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Last Login Card -->
+            <div class="bg-white rounded-xl shadow p-4 flex flex-col justify-between">
+                <div class="flex justify-between items-center">
+                    <div class="space-y-3">
+                        <div class="bg-blue-50 w-[45px] h-[45px] p-2 rounded-md flex items-center justify-center">
+                            <i class="fas fa-user-clock text-blue-500 text-xl"></i>
+                        </div>
+                        <span class="text-gray-500 text-sm">Your Last Login</span>
+                        <div class="text-sm font-normal text-gray-700 mt-1">
+                            {{ Auth::guard('admin')->user()->last_login_time
+                                ? \Carbon\Carbon::parse(Auth::guard('admin')->user()->last_login_time)->format('jS F Y, g:i A')
+                                : 'N/A' }}
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 pt-2 border-t border-gray-100">
+                    <div class="flex items-center text-xs text-gray-500">
+                        <i class="fas fa-info-circle text-blue-400 mr-2"></i>
+                        <span>Last login time for your account</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
 
@@ -222,7 +270,8 @@
                                     class="flex items-center justify-between bg-[#DBEAFE] text-gray-800 px-3 sm:px-4 py-2 rounded-[42px] mt-3 text-xs sm:text-sm font-semibold">
                                     <p class="text-blue-600">
                                         Join Meeting:
-                                        <a href="{{ $meeting_web_root_url . '/room/' . $item->appointment_uid }}" class="truncate hover:underline" target="_blank">
+                                        <a href="{{ $meeting_web_root_url . '/room/' . $item->appointment_uid }}"
+                                            class="truncate hover:underline" target="_blank">
                                             {{ $meeting_web_root_url . '/room/' . $item->appointment_uid }}
                                         </a>
                                     </p>
@@ -311,8 +360,8 @@
 
 
         {{-- @include('includes.api_health_integration') --}}
-        
-        
+
+
         <div class="h-12"></div>
 
     </main>

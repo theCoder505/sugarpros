@@ -35,7 +35,7 @@
                             <label class="block mb-1 text-sm font-medium text-gray-700">Add Virtual Note</label>
                             <textarea name="main_note"
                                 class="w-full  bg-white placeholder:text-[#A3A3A3]  px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none resize-none"
-                                id="" placeholder="Type hare" cols="30" rows="6" required>{{ $main_note }}</textarea>
+                                id="" placeholder="Type here" cols="30" rows="6" required>{{ $main_note }}</textarea>
                         </div>
 
                         <div class="flex gap-4 justify-end">

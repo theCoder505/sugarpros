@@ -23,7 +23,8 @@ class FatSecretController extends Controller
     {
         // Get some popular foods to display initially
         $initialFoods = $this->searchFoods('chicken soup', 6);
-        
+        // return $initialFoods;
+
         return view('patient.fatsecret_ai', [
             'FATSECRET_KEY' => $this->consumerKey,
             'FATSECRET_SECRET' => $this->consumerSecret,

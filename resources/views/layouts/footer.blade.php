@@ -1,4 +1,4 @@
-<footer class="bg-font_color  text-white min-h-[23rem] md:min-h-full py-10 md:px-12 lg:px-24 text-[16px]">
+<footer class="bg-font_color  text-white py-10 md:px-12 lg:px-24 text-[16px]">
     <div class="flex items-start justify-between px-4 md:block">
         <div class="flex flex-wrap gap-6 pb-6 md:justify-start">
             <ul class="flex-wrap gap-6 md:flex">
