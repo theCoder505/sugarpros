@@ -313,6 +313,8 @@ mysql -u root -p sugarpros < /root/e_prescription.sql
 
 
 
-
+DROP TABLE IF EXISTS admins;
+DROP TABLE IF EXISTS providers;
+DROP TABLE IF EXISTS biller_admins;
 
 
