@@ -7,6 +7,7 @@ use App\Http\Controllers\BillerAuthController;
 use App\Http\Controllers\BlogsController;
 use App\Http\Controllers\CredentialsController;
 use App\Http\Controllers\DexcomController;
+use App\Http\Controllers\EPrescriptionController;
 use App\Http\Controllers\FatSecretController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PatientClaimsMDController;
@@ -193,6 +194,7 @@ Route::get('/quest-lab', [HomeController::class, 'QuestLab'])->middleware('patie
 Route::get('/e-prescriptions', [HomeController::class, 'ePrescription'])->middleware('patient_loggedin', 'check_if_forms_filled');
 
 
+
 // ------------------------- Probably unnecessary ---------------------
 // Route::get('/join-meeting', [HomeController::class, 'join_meeting'])->name('join_meeting')->middleware('patient_loggedin', 'check_if_forms_filled');
 Route::get('/meeting-room', [HomeController::class, 'meeting_room'])->name('meeting_room')->middleware('patient_loggedin', 'check_if_forms_filled');
@@ -204,6 +206,12 @@ Route::get('/end-meeting/{message}', [HomeController::class, 'endMeeting'])->nam
 
 
 
+// E-Prescription Routes (protected by patient auth middleware)
+Route::get('/eprescriptions', [EPrescriptionController::class, 'eprescriptionIndex'])->name('patient.eprescription');
+
+Route::post('/eprescription/authenticate', [EPrescriptionController::class, 'authenticate'])->name('eprescription.authenticate');
+
+Route::post('/webhook/dxscript/hl7', [EPrescriptionController::class, 'receiveHL7Message'])->name('dxscript.webhook');
 
 
 

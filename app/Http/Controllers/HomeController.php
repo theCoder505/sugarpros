@@ -1167,6 +1167,11 @@ class HomeController extends Controller
 
 
 
+
+
+
+
+
     public function settings()
     {
         $userID = Auth::user()->id;
