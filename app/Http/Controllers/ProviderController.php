@@ -251,7 +251,7 @@ class ProviderController extends Controller
         if ($provider) {
             if (password_verify($request->password, $provider->password)) {
                 if ($provider->activity_status == '0') {
-                    return redirect()->back()->with('error', 'Your account is not verified, please contact support!')->with('email', $request->email)->with('password', $request->password);
+                    return redirect()->back()->with('warning', 'Account under verification process! Once we verify you can access.')->with('email', $request->email)->with('password', $request->password);
                 } else {
                     $last_login = Provider::where('email', $request->email)->update([
                         'last_logged_in' => now(),
@@ -748,7 +748,6 @@ class ProviderController extends Controller
         $email = $request['email'];
         $prefix_code = $request['prefix_code'];
         $phone_number = $request['phone_number'];
-        $about_me = $request['about_me'];
         $language = $request['language'];
 
 
@@ -758,7 +757,7 @@ class ProviderController extends Controller
             'email' => $email,
             'prefix_code' => $prefix_code,
             'mobile' => $phone_number,
-            'about_me' => $about_me,
+            'about_me' => '',
             'language' => $language,
         ]);
 

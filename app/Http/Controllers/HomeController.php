@@ -61,7 +61,8 @@ class HomeController extends Controller
         $allReviews = Reviews::orderBy('id', 'DESC')->where('status', 1)->limit(3)->get();
         $users = User::all();
         $allServices = Service::orderBy('id', 'ASC')->get();
-        return view('service', compact('allFaqs', 'providers', 'allReviews', 'users', 'allServices'));
+        $to_show = 'custom';
+        return view('service', compact('allFaqs', 'providers', 'allReviews', 'users', 'allServices', 'to_show'));
     }
 
 
@@ -401,7 +402,8 @@ class HomeController extends Controller
     public function appointment_list()
     {
         $userID = Auth::user()->id;
-        $appointments = Appointment::where('booked_by', $userID)->orderBy('id', 'DESC')->get();
+        $patient_id = Auth::user()->patient_id;
+        $appointments = Appointment::where('patient_id', $patient_id)->orderBy('id', 'DESC')->get();
         $all_providers = Provider::all();
         $meeting_web_root_url = Settings::where('id', 1)->value('meeting_web_root_url');
         return view('patient.appointment_list', compact('appointments', 'all_providers', 'meeting_web_root_url'));

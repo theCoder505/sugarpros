@@ -19,10 +19,20 @@ class ProviderSignedUP
     {
         if (Auth::guard('provider')->check()) {
             $userID = Auth::guard('provider')->user()->provider_id;
-            Provider::where('provider_id', $userID)->update([
-                'last_activity' => now()
-            ]);
-            return $next($request);
+            $activity_status = Auth::guard('provider')->user()->activity_status;
+
+            
+            if ($activity_status == '0') {
+                Auth::guard('provider')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return redirect('/provider/login')->with('warning', 'Account under verification process! Once we verify you can access.');
+            } else {
+                Provider::where('provider_id', $userID)->update([
+                    'last_activity' => now()
+                ]);
+                return $next($request);
+            }
         } else {
             return redirect('/provider/login')->with('error', 'Please login first!');
         }

@@ -193,13 +193,12 @@
 
 
     <div class="min-h-screen p-4 bg-gray-100 md:p-6">
-        <div class="mb-6 text-xl font-semibold">Provider Dashboard</div>
-
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
             <!-- Left Sidebar -->
             <div class="space-y-6 lg:col-span-1">
+                <div class="mb-6 text-xl font-medium">Provider Dashboard</div>
                 <div class="p-4 bg-white rounded-lg shadow">
-                    <h3 class="mb-6 font-semibold text-20px">Profile</h3>
+                    <h3 class="mb-6 font-medium text-20px">Profile</h3>
                     <div class="flex flex-col items-center text-center">
                         @php
                             if (Auth::guard('provider')->user()->profile_picture == null) {
@@ -325,128 +324,135 @@
                 </div>
             </div>
 
-            <div class="mb-6 space-y-6 rounded-md lg:col-span-3">
-                <div class="text-xl font-semibold mb-6">Welcome, {{ Auth::guard('provider')->user()->name }}</div>
+            <div class="mb-6 lg:col-span-3">
+                <div class="text-xl font-medium mb-6">Welcome, {{ Auth::guard('provider')->user()->name }}</div>
 
-                <div class="bg-gray-100 rounded-lg shadow relative">
-                    <div class="md:flex justify-between items-center mx-4 pt-4">
-                        <h3 class="text-lg font-semibold text-[#000000]">
-                            Appointments
-                        </h3>
-                    </div>
+                <div class="space-y-6 p-6 bg-white rounded-md">
+                    <div class="bg-gray-100 rounded-lg shadow relative">
+                        <div class="space-y-6 bg-[#f3f4f6] rounded-lg lg:col-span-3 overflow-x-auto relative">
+                            <div class="md:flex justify-between items-center mx-4 pt-4">
+                                <h3 class="text-lg font-medium text-[#000000]">
+                                    Appointments
+                                </h3>
+                            </div>
 
+                            <div class="overflow-x-auto">
+                                <div class="appointment_type_dropdown">
+                                    <select name="appointment_type" id="appointmentTypeFilter"
+                                        class="bg-white px-4 py-2 rounded-lg">
+                                        <option id="all-count" value="all">All Appointments</option>
+                                        <option id="active-count" value="active" selected>Active Appointments</option>
+                                        <option id="upcoming-count" value="upcoming">Upcoming Appointments</option>
+                                        <option id="missed-count" value="missed">Missed Appointments</option>
+                                        <option id="unset-count" value="unset">Unset Appointments</option>
+                                        <option id="complete-count" value="complete">Completed Appointments</option>
+                                    </select>
+                                </div>
 
-                    <div class="overflow-x-auto">
-                        <div class="appointment_type_dropdown">
-                            <select name="appointment_type" id="appointmentTypeFilter"
-                                class="bg-white px-4 py-2 rounded-lg">
-                                <option id="all-count" value="all">All Appointments</option>
-                                <option id="active-count" value="active" selected>Active Appointments</option>
-                                <option id="upcoming-count" value="upcoming">Upcoming Appointments</option>
-                                <option id="missed-count" value="missed">Missed Appointments</option>
-                                <option id="unset-count" value="unset">Unset Appointments</option>
-                                <option id="complete-count" value="complete">Completed Appointments</option>
-                            </select>
-                        </div>
+                                <table id="appointmentsTable" class="w-full text-sm text-left">
+                                    <thead class="bg-[#ffffff] text-[#00000080]/50 ">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Appointment UID</th>
+                                            <th>Patient</th>
+                                            <th>Date</th>
+                                            <th>Time</th>
+                                            <th>Status</th>
+                                            <th>Type</th>
+                                            <th>View Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-sm text-[#000000]">
+                                        @foreach ($appointments as $key => $item)
+                                            @php
+                                                $appointmentDateTime = \Carbon\Carbon::parse(
+                                                    $item->date . ' ' . $item->time,
+                                                );
+                                                $gracePeriodEnd = $appointmentDateTime->copy()->addHour();
+                                                $statusClass = '';
 
-                        <table id="appointmentsTable" class="w-full text-sm text-left">
-                            <thead class="bg-[#ffffff] text-[#00000080]/50 ">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Appointment UID</th>
-                                    <th>Patient</th>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Status</th>
-                                    <th>Type</th>
-                                    <th>View Details</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-sm text-[#000000]">
-                                @foreach ($appointments as $key => $item)
-                                    @php
-                                        $appointmentDateTime = \Carbon\Carbon::parse($item->date . ' ' . $item->time);
-                                        $gracePeriodEnd = $appointmentDateTime->copy()->addHour();
-                                        $statusClass = '';
-
-                                        if ($item->status == 0) {
-                                            if ($appointmentDateTime->isFuture()) {
-                                                $statusText = 'Upcoming';
-                                                $statusClass = 'upcoming';
-                                            } elseif ($gracePeriodEnd->isFuture()) {
-                                                if ($item->meet_link) {
-                                                    $statusText = 'Waiting To Start';
+                                                if ($item->status == 0) {
+                                                    if ($appointmentDateTime->isFuture()) {
+                                                        $statusText = 'Upcoming';
+                                                        $statusClass = 'upcoming';
+                                                    } elseif ($gracePeriodEnd->isFuture()) {
+                                                        if ($item->meet_link) {
+                                                            $statusText = 'Waiting To Start';
+                                                            $statusClass = 'active';
+                                                        } else {
+                                                            $statusText = 'Grace Period (1hr)';
+                                                            $statusClass = 'active';
+                                                        }
+                                                    } else {
+                                                        if ($item->meet_link) {
+                                                            $statusText = 'You Absented';
+                                                            $statusClass = 'missed';
+                                                        } else {
+                                                            $statusText = 'Pending Approval meeting';
+                                                            $statusClass = 'unset';
+                                                        }
+                                                    }
+                                                } elseif ($item->status == 1) {
+                                                    $statusText = 'Started';
                                                     $statusClass = 'active';
-                                                } else {
-                                                    $statusText = 'Grace Period (1hr)';
-                                                    $statusClass = 'active';
+                                                } elseif ($item->status == 5) {
+                                                    $statusText = 'Completed';
+                                                    $statusClass = 'complete';
                                                 }
-                                            } else {
-                                                if ($item->meet_link) {
-                                                    $statusText = 'You Absented';
-                                                    $statusClass = 'missed';
-                                                } else {
-                                                    $statusText = 'Pending Approval meeting';
-                                                    $statusClass = 'unset';
-                                                }
-                                            }
-                                        } elseif ($item->status == 1) {
-                                            $statusText = 'Started';
-                                            $statusClass = 'active';
-                                        } elseif ($item->status == 5) {
-                                            $statusText = 'Completed';
-                                            $statusClass = 'complete';
-                                        }
-                                    @endphp
-                                    <tr class="border-b border-[#000000]/10 appointment-row"
-                                        data-status="{{ $statusClass }}">
-                                        <td class="text-center">{{ $key + 1 }}</td>
-                                        <td>{{ $item->appointment_uid }}</td>
-                                        @foreach ($allPatients as $patient)
-                                            @if ($patient->patient_id == $item->patient_id)
-                                                <td class="px-4 py-4">{{ $patient->name }}</td>
-                                            @endif
+                                            @endphp
+                                            <tr class="border-b border-[#000000]/10 appointment-row"
+                                                data-status="{{ $statusClass }}">
+                                                <td class="text-center">{{ $key + 1 }}</td>
+                                                <td>{{ $item->appointment_uid }}</td>
+                                                @foreach ($allPatients as $patient)
+                                                    @if ($patient->patient_id == $item->patient_id)
+                                                        <td class="px-4 py-4">{{ $patient->name }}</td>
+                                                    @endif
+                                                @endforeach
+                                                <td class="px-4 py-4">
+                                                    {{ \Carbon\Carbon::parse($item->date)->format('jS F Y') }}
+                                                </td>
+                                                <td class="px-4 py-4">
+                                                    {{ \Carbon\Carbon::parse($item->time)->format('g:i A') }}
+                                                </td>
+                                                <td class="px-4 py-4 max-w-[100px]">
+                                                    @if ($statusClass == 'active')
+                                                        <span
+                                                            class="status-badge bg-blue-100 text-blue-800">{{ $statusText }}</span>
+                                                    @elseif($statusClass == 'upcoming')
+                                                        <span
+                                                            class="status-badge bg-purple-100 text-purple-800">{{ $statusText }}</span>
+                                                    @elseif($statusClass == 'missed')
+                                                        <span
+                                                            class="status-badge bg-red-100 text-red-800">{{ $statusText }}</span>
+                                                    @elseif($statusClass == 'unset')
+                                                        <span
+                                                            class="status-badge bg-gray-100 text-gray-800">{{ $statusText }}</span>
+                                                    @elseif($statusClass == 'complete')
+                                                        <span
+                                                            class="status-badge bg-green-100 text-green-800">{{ $statusText }}</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    <p class="capitalize px-3">
+                                                        @if ($item->plan == null)
+                                                            Cash
+                                                        @else
+                                                            {{ $item->plan }}
+                                                        @endif
+                                                    </p>
+                                                </td>
+                                                <td class="px-4 py-4">
+                                                    <a href="/provider/view-appointment/{{ $item->appointment_uid }}"
+                                                        class="px-4 py-1 bg-[#f6028b] text-white text-center max-w-[150px] rounded-full text-[0.70rem]">Click
+                                                        Here</a>
+                                                </td>
+                                            </tr>
                                         @endforeach
-                                        <td class="px-4 py-4">{{ \Carbon\Carbon::parse($item->date)->format('jS F Y') }}
-                                        </td>
-                                        <td class="px-4 py-4">{{ \Carbon\Carbon::parse($item->time)->format('g:i A') }}
-                                        </td>
-                                        <td class="px-4 py-4 max-w-[100px]">
-                                            @if ($statusClass == 'active')
-                                                <span
-                                                    class="status-badge bg-blue-100 text-blue-800">{{ $statusText }}</span>
-                                            @elseif($statusClass == 'upcoming')
-                                                <span
-                                                    class="status-badge bg-purple-100 text-purple-800">{{ $statusText }}</span>
-                                            @elseif($statusClass == 'missed')
-                                                <span
-                                                    class="status-badge bg-red-100 text-red-800">{{ $statusText }}</span>
-                                            @elseif($statusClass == 'unset')
-                                                <span
-                                                    class="status-badge bg-gray-100 text-gray-800">{{ $statusText }}</span>
-                                            @elseif($statusClass == 'complete')
-                                                <span
-                                                    class="status-badge bg-green-100 text-green-800">{{ $statusText }}</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <p class="capitalize px-3">
-                                                @if ($item->plan == null)
-                                                    Cash
-                                                @else
-                                                    {{ $item->plan }}
-                                                @endif
-                                            </p>
-                                        </td>
-                                        <td class="px-4 py-4">
-                                            <a href="/provider/view-appointment/{{ $item->appointment_uid }}"
-                                                class="px-4 py-1 bg-[#f6028b] text-white text-center max-w-[150px] rounded-full text-[0.70rem]">Click
-                                                Here</a>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

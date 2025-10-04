@@ -24,7 +24,8 @@
                 </button>
                 <div class="absolute z-10 hidden p-2 mt-0 bg-white rounded shadow-md dropdown_items min-w-[225px]">
                     <a href="/send-to-dexcom" class="block px-4 py-2 hover:bg-gray-100 dexcom">Dexcom/Libre Results</a>
-                    <a href="/nutrition-tracker" class="block px-4 py-2 hover:bg-gray-100 fatsecret">Nutrition Tracker</a>
+                    <a href="/nutrition-tracker" class="block px-4 py-2 hover:bg-gray-100 fatsecret">Nutrition
+                        Tracker</a>
                     <a href="/clinical-notes" class="block px-4 py-2 hover:bg-gray-100 dexcom">Clinical Notes</a>
                     <a href="/quest-lab" class="block px-4 py-2 hover:bg-gray-100 dexcom">Quest Lab</a>
                     <a href="/e-prescriptions" class="block px-4 py-2 hover:bg-gray-100 dexcom">E-Prescriptions</a>
@@ -59,7 +60,9 @@
                         @php
                             use App\Models\ChatRecord;
                             $patient_id = Auth::user()->patient_id;
-                            $unseenChats = ChatRecord::where('received_by', $patient_id)->where('status', 'delivered')->count();
+                            $unseenChats = ChatRecord::where('received_by', $patient_id)
+                                ->where('status', 'delivered')
+                                ->count();
                         @endphp
                         @if ($unseenChats > 0)
                             <span
@@ -88,8 +91,7 @@
                         <div class="flex flex-col">
                             <span
                                 class="text-base font-semibold leading-tight truncate max-w-[150px]">{{ Auth::user()->name }}</span>
-                            <span
-                                class="text-sm text-gray-500 truncate max-w-[150px]">{{ Auth::user()->email }}</span>
+                            <span class="text-sm text-gray-500 truncate max-w-[150px]">{{ Auth::user()->email }}</span>
                         </div>
                     </div>
                     <a href="/account"
@@ -178,12 +180,46 @@
         mobileMenu.classList.toggle('hidden');
     }
 
-
-    function showDropDown(){
+    function showDropDown() {
         $(".dropdown_items").toggleClass("hidden");
+        $(".show_account_info").addClass("hidden");
     }
 
-    function showAccountInfo(){
+    function showAccountInfo() {
         $(".show_account_info").toggleClass("hidden");
+        $(".dropdown_items").addClass("hidden");
     }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdownItems = document.querySelector('.dropdown_items');
+        const accountInfo = document.querySelector('.show_account_info');
+        const myDataButton = document.querySelector('button[onclick="showDropDown(this)"]');
+        const accountNav = document.querySelector('.account_nav');
+
+        // Close dropdowns if click is outside of them and their respective buttons
+        if (dropdownItems && !dropdownItems.classList.contains('hidden')) {
+            if (!dropdownItems.contains(event.target) && !myDataButton.contains(event.target)) {
+                dropdownItems.classList.add('hidden');
+            }
+        }
+
+        if (accountInfo && !accountInfo.classList.contains('hidden')) {
+            if (!accountInfo.contains(event.target) && !accountNav.contains(event.target)) {
+                accountInfo.classList.add('hidden');
+            }
+        }
+    });
+
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', function(event) {
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileMenuButton = document.querySelector('button[onclick="toggleMobileMenu()"]');
+
+        if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+            if (!mobileMenu.contains(event.target) && !mobileMenuButton.contains(event.target)) {
+                mobileMenu.classList.add('hidden');
+            }
+        }
+    });
 </script>

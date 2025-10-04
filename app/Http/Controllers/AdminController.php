@@ -275,10 +275,16 @@ class AdminController extends Controller
             'pod_name' => $new_pod,
         ]);
 
+        if ($new_activity_status == '1') {
+            $verification_notice = 'Your account got verified by SugarPros!';
+        }else{
+            $verification_notice = 'Your account under verification process. Once verified you can access again.';
+        }
+
         if ($old_pod !== $new_pod) {
-            $notification = 'Admin assigned you to a new POD. Which is POD ' . $new_pod . ' & your account verification status got updated.';
+            $notification = 'Admin assigned you to a new POD. Which is POD ' . $new_pod . ' ' . $verification_notice;
         } else {
-            $notification = 'Your account verification status got updated by Admin.';
+            $notification = $verification_notice;
         }
 
         Notification::insert([
