@@ -97,12 +97,53 @@ Route::middleware(['api', 'jwt.patient'])->delete('/notifications', [PatientFirs
 Route::middleware(['api', 'jwt.patient'])->get('/dashboard', [PatientPagesController::class, 'dashboard']);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// To fix API now
 // Appointment Booking Routes
 Route::middleware(['api', 'jwt.patient'])->get('/appointments/patient-details', [AppointmentBookingByPatientController::class, 'getPatientDetails']);
+
+
 Route::middleware(['api', 'jwt.patient'])->post('/appointments/initiate', [AppointmentBookingByPatientController::class, 'initiateBooking']);
 Route::middleware(['api', 'jwt.patient'])->post('/appointments/complete', [AppointmentBookingByPatientController::class, 'completeBooking']);
 Route::middleware(['api', 'jwt.patient'])->get('/appointments/payment/success', [AppointmentBookingByPatientController::class, 'paymentSuccess']);
 Route::middleware(['api', 'jwt.patient'])->get('/appointments/payment/cancel', [AppointmentBookingByPatientController::class, 'paymentCancel']);
+// End fixing API
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 Route::middleware(['api', 'jwt.patient'])->get('/appointments', [PatientPagesController::class, 'appointments']);
@@ -110,6 +151,10 @@ Route::middleware(['api', 'jwt.patient'])->post('/appointments', [PatientPagesCo
 Route::middleware(['api', 'jwt.patient'])->get('/join-meeting/{appointment_uid}', [PatientPagesController::class, 'joinMeeting']);
 Route::middleware(['api', 'jwt.patient'])->post('/search-appointments-by-month', [PatientPagesController::class, 'searchAppointmentByMonth']);
 Route::middleware(['api', 'jwt.patient'])->post('/fetch-specific-range-data', [PatientPagesController::class, 'fetchSpecificRangeAppointmentData']);
+
+
+
+
 
 
 

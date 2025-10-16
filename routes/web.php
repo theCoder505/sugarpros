@@ -374,6 +374,12 @@ Route::get('/provider/dexcom', [ProviderController::class, 'dexcom'])->name('pro
 
 // new works 
 Route::get('/provider/notetaker', [ProviderController::class, 'noteTakerPage'])->middleware('check_if_provider');
+Route::post('/provider/process-audio', [ProviderController::class, 'processAudio'])->name('process.audio');
+
+
+
+
+Route::get('/provider/notetaker-speech-ai', [ProviderController::class, 'noteTakerSpeechAI'])->middleware('check_if_provider');
 
 Route::post('/provider/add-notetaker', [ProviderController::class, 'addNoteTaker'])->middleware('check_if_provider');
 

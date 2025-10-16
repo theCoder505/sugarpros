@@ -2902,13 +2902,6 @@
                 </div>
             </section>
 
-
-
-
-
-
-
-
             <!-- Appointment Booking Section -->
             <section id="appointment-booking" class="section">
                 <div class="section-header">
@@ -2921,7 +2914,7 @@
                         <span class="url">/api/appointments/patient-details</span>
                     </div>
                     <div class="endpoint-description">
-                        <p>Get patient details and subscription status for appointment booking</p>
+                        <p>Get patient details for appointment booking</p>
                     </div>
                     <div class="endpoint-details">
                         <span class="detail-title">Headers:</span>
@@ -2934,18 +2927,14 @@
                             <span class="detail-title">Success Response (200):</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "success",
-    "data": {
-        "patient_id": "PA25060001",
-        "fname": "John",
-        "lname": "Doe",
-        "email": "john@example.com",
-        "has_active_subscription": true,
-        "subscription_plan": "Premium Monthly",
-        "this_month_appointments": 3,
-        "prefix_codes": "PA"
-    }
-}</pre>
+        "type": "success",
+        "data": {
+            "patient_id": "PA25060001",
+            "fname": "John",
+            "lname": "Doe",
+            "email": "john@example.com"
+        }
+    }</pre>
                             </div>
                         </div>
                     </div>
@@ -2957,7 +2946,7 @@
                         <span class="url">/api/appointments/initiate</span>
                     </div>
                     <div class="endpoint-description">
-                        <p>Initiate appointment booking process and check for conflicts. Returns payment information if required based on plan type.</p>
+                        <p>Initiate appointment booking process</p>
                     </div>
                     <div class="endpoint-details">
                         <span class="detail-title">Headers:</span>
@@ -2979,20 +2968,14 @@
                                     <tr>
                                         <td>date</td>
                                         <td>date</td>
-                                        <td class="required">Yes</td>
+                                        <td>Yes</td>
                                         <td>Appointment date (YYYY-MM-DD)</td>
                                     </tr>
                                     <tr>
                                         <td>time</td>
                                         <td>string</td>
-                                        <td class="required">Yes</td>
-                                        <td>Appointment time (HH:MM or HH:MM:SS)</td>
-                                    </tr>
-                                    <tr>
-                                        <td>plan</td>
-                                        <td>string</td>
-                                        <td class="required">Yes</td>
-                                        <td>Payment plan type: "subscription", "medicare", or "cash"</td>
+                                        <td>Yes</td>
+                                        <td>Appointment time (HH:MM)</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -3000,59 +2983,20 @@
                     </div>
                     <div class="request-response">
                         <div class="response">
-                            <span class="detail-title">Success Response (200) - Subscription Plan:</span>
+                            <span class="detail-title">Success Response (200):</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "success",
-    "data": {
-        "requires_payment": false,
-        "stripe_key": null,
-        "amount": 0,
-        "currency": "USD",
-        "booking_details": {
-            "date": "2023-07-15",
-            "time": "10:00",
-            "plan": "subscription"
+        "type": "success",
+        "data": {
+            "stripe_key": "pk_test_1234567890",
+            "amount": 100,
+            "currency": "USD",
+            "booking_details": {
+                "date": "2023-07-15",
+                "time": "10:00"
+            }
         }
-    }
-}</pre>
-                            </div>
-                        </div>
-                        <div class="response">
-                            <span class="detail-title">Success Response (200) - Medicare/Cash Plan:</span>
-                            <div class="code-block">
-                                <pre>{
-    "type": "success",
-    "data": {
-        "requires_payment": true,
-        "stripe_key": "pk_test_1234567890",
-        "amount": 100,
-        "currency": "USD",
-        "booking_details": {
-            "date": "2023-07-15",
-            "time": "10:00",
-            "plan": "medicare"
-        }
-    }
-}</pre>
-                            </div>
-                        </div>
-                        <div class="response">
-                            <span class="detail-title">Error Response (400) - Duplicate Booking:</span>
-                            <div class="code-block">
-                                <pre>{
-    "type": "error",
-    "message": "You already booked an appointment for this date and time"
-}</pre>
-                            </div>
-                        </div>
-                        <div class="response">
-                            <span class="detail-title">Error Response (400) - No Active Subscription:</span>
-                            <div class="code-block">
-                                <pre>{
-    "type": "error",
-    "message": "You need to have an active subscription to book an appointment."
-}</pre>
+    }</pre>
                             </div>
                         </div>
                     </div>
@@ -3064,7 +3008,7 @@
                         <span class="url">/api/appointments/complete</span>
                     </div>
                     <div class="endpoint-description">
-                        <p>Complete appointment booking. For subscription plans, no payment is required. For medicare/cash plans, payment is processed via Stripe.</p>
+                        <p>Complete appointment booking with payment</p>
                     </div>
                     <div class="endpoint-details">
                         <span class="detail-title">Headers:</span>
@@ -3084,160 +3028,52 @@
                                 </thead>
                                 <tbody>
                                     <tr>
+                                        <td>stripe_token</td>
+                                        <td>string</td>
+                                        <td>Yes</td>
+                                        <td>Stripe payment token</td>
+                                    </tr>
+                                    <tr>
                                         <td>date</td>
                                         <td>date</td>
-                                        <td class="required">Yes</td>
+                                        <td>Yes</td>
                                         <td>Appointment date (YYYY-MM-DD)</td>
                                     </tr>
                                     <tr>
                                         <td>time</td>
                                         <td>string</td>
-                                        <td class="required">Yes</td>
-                                        <td>Appointment time (HH:MM or HH:MM:SS)</td>
+                                        <td>Yes</td>
+                                        <td>Appointment time (HH:MM)</td>
                                     </tr>
                                     <tr>
-                                        <td>fname</td>
+                                        <td>full_name</td>
                                         <td>string</td>
-                                        <td class="required">Yes</td>
-                                        <td>Patient first name</td>
+                                        <td>Yes</td>
+                                        <td>Patient full name</td>
                                     </tr>
                                     <tr>
-                                        <td>lname</td>
+                                        <td>address</td>
                                         <td>string</td>
-                                        <td class="required">Yes</td>
-                                        <td>Patient last name</td>
+                                        <td>Yes</td>
+                                        <td>Patient address</td>
                                     </tr>
                                     <tr>
                                         <td>email</td>
                                         <td>string</td>
-                                        <td class="required">Yes</td>
+                                        <td>Yes</td>
                                         <td>Patient email</td>
                                     </tr>
                                     <tr>
-                                        <td>plan</td>
+                                        <td>phone</td>
                                         <td>string</td>
-                                        <td class="required">Yes</td>
-                                        <td>Payment plan: "subscription", "medicare", or "cash"</td>
-                                    </tr>
-                                    <tr>
-                                        <td>stripe_token</td>
-                                        <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
-                                    </tr>
-                                    <tr>
-                                        <td>users_full_name</td>
-                                        <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
-                                    </tr>
-                                    <tr>
-                                        <td>users_address</td>
-                                        <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
-                                    </tr>
-                                    <tr>
-                                        <td>users_email</td>
-                                        <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
-                                    </tr>
-                                    <tr>
-                                        <td>users_phone</td>
-                                        <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
+                                        <td>Yes</td>
+                                        <td>Patient phone</td>
                                     </tr>
                                     <tr>
                                         <td>country_code</td>
                                         <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
-                                    </tr>
-                                    <tr>
-                                        <td>insurance_company</td>
-                                        <td>string</td>
-                                        <td>No</td>
-                                        <td>Insurance company name</td>
-                                    </tr>
-                                    <tr>
-                                        <td>policyholder_name</td>
-                                        <td>string</td>
-                                        <td>No</td>
-                                        <td>Policyholder name</td>
-                                    </tr>
-                                    <tr>
-                                        <td>policy_id</td>
-                                        <td>string</td>
-                                        <td>No</td>
-                                        <td>Insurance policy ID</td>
-                                    </tr>
-                                    <tr>
-                                        <td>group_number</td>
-                                        <td>string</td>
-                                        <td>No</td>
-                                        <td>Insurance group number</td>
-                                    </tr>
-                                    <tr>
-                                        <td>insurance_plan_type</td>
-                                        <td>string</td>
-                                        <td>No</td>
-                                        <td>Type of insurance plan</td>
-                                    </tr>
-                                    <tr>
-                                        <td>chief_complaint</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Chief complaint/reason for visit</td>
-                                    </tr>
-                                    <tr>
-                                        <td>symptom_onset</td>
-                                        <td>string</td>
-                                        <td>No</td>
-                                        <td>When symptoms started</td>
-                                    </tr>
-                                    <tr>
-                                        <td>prior_diagnoses</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Prior medical diagnoses</td>
-                                    </tr>
-                                    <tr>
-                                        <td>current_medications</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Current medications</td>
-                                    </tr>
-                                    <tr>
-                                        <td>allergies</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Known allergies</td>
-                                    </tr>
-                                    <tr>
-                                        <td>past_surgical_history</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Past surgical history</td>
-                                    </tr>
-                                    <tr>
-                                        <td>family_medical_history</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Family medical history</td>
-                                    </tr>
-                                    <tr>
-                                        <td>insurance_card_front</td>
-                                        <td>string</td>
-                                        <td>No</td>
-                                        <td>Base64 encoded front image of insurance card</td>
-                                    </tr>
-                                    <tr>
-                                        <td>insurance_card_back</td>
-                                        <td>string</td>
-                                        <td>No</td>
-                                        <td>Base64 encoded back image of insurance card</td>
+                                        <td>Yes</td>
+                                        <td>Country code</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -3245,49 +3081,22 @@
                     </div>
                     <div class="request-response">
                         <div class="response">
-                            <span class="detail-title">Success Response (201) - Subscription Plan:</span>
+                            <span class="detail-title">Success Response (200):</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "success",
-    "message": "Appointment booked successfully!",
-    "data": {
-        "appointment_id": 1,
-        "appointment_uid": "SA2307-0001",
-        "date": "2023-07-15",
-        "time": "10:00:00",
-        "plan": "subscription"
-    }
-}</pre>
-                            </div>
-                        </div>
-                        <div class="response">
-                            <span class="detail-title">Success Response (201) - Medicare/Cash Plan:</span>
-                            <div class="code-block">
-                                <pre>{
-    "type": "success",
-    "message": "Appointment booked successfully!",
-    "data": {
-        "appointment_id": 1,
-        "appointment_uid": "SA2307-0001",
-        "date": "2023-07-15",
-        "time": "10:00:00",
-        "plan": "medicare",
-        "payment_details": {
-            "amount": 100,
-            "currency": "USD",
-            "charge_id": "ch_3MtwBwLkdIwHu7ix28a3tqPa"
+        "type": "success",
+        "data": {
+            "appointment_id": 1,
+            "appointment_uid": "SA2307-0001",
+            "date": "2023-07-15",
+            "time": "10:00",
+            "payment_details": {
+                "amount": 100,
+                "currency": "USD",
+                "charge_id": "ch_1234567890"
+            }
         }
-    }
-}</pre>
-                            </div>
-                        </div>
-                        <div class="response">
-                            <span class="detail-title">Error Response (400) - Payment Failed:</span>
-                            <div class="code-block">
-                                <pre>{
-    "type": "error",
-    "message": "Payment failed: Your card was declined."
-}</pre>
+    }</pre>
                             </div>
                         </div>
                     </div>
@@ -3299,22 +3108,16 @@
                         <span class="url">/api/appointments/payment/success</span>
                     </div>
                     <div class="endpoint-description">
-                        <p>Payment success callback endpoint (used for redirect after payment)</p>
-                    </div>
-                    <div class="endpoint-details">
-                        <span class="detail-title">Headers:</span>
-                        <div class="code-block">
-                            <pre>Authorization: Bearer [JWT_TOKEN]</pre>
-                        </div>
+                        <p>Payment success callback</p>
                     </div>
                     <div class="request-response">
                         <div class="response">
                             <span class="detail-title">Success Response (200):</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "success",
-    "message": "Payment completed successfully"
-}</pre>
+        "type": "success",
+        "message": "Payment completed successfully"
+    }</pre>
                             </div>
                         </div>
                     </div>
@@ -3326,39 +3129,21 @@
                         <span class="url">/api/appointments/payment/cancel</span>
                     </div>
                     <div class="endpoint-description">
-                        <p>Payment cancellation callback endpoint (used for redirect if payment is cancelled)</p>
-                    </div>
-                    <div class="endpoint-details">
-                        <span class="detail-title">Headers:</span>
-                        <div class="code-block">
-                            <pre>Authorization: Bearer [JWT_TOKEN]</pre>
-                        </div>
+                        <p>Payment cancel callback</p>
                     </div>
                     <div class="request-response">
                         <div class="response">
-                            <span class="detail-title">Response (400):</span>
+                            <span class="detail-title">Success Response (200):</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "error",
-    "message": "Payment was cancelled"
-}</pre>
+        "type": "error",
+        "message": "Payment was cancelled"
+    }</pre>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
-
-
-
-
-
-
-
-
-
-
-
-
 
             <!-- Chat APIs Section -->
             <section id="chat-history" class="section">

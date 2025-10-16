@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Smalot\PdfParser\Parser;
 
 class ProviderController extends Controller
@@ -2103,6 +2104,99 @@ class ProviderController extends Controller
         $notes = NoteOnNotetaker::where('provider_id', $provider_id)->orderBy('id', 'DESC')->get();
         return view('provider.notetaker_page', compact('all_appointments', 'notetakers', 'notes'));
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+    public function noteTakerSpeechAI()
+    {
+        $provider_id = Auth::guard('provider')->user()->provider_id;
+        $all_appointments = Appointment::where('provider_id', $provider_id)->orderBy('date', 'DESC')->get();
+        $notetakers = Notetaker::where('provider_id', $provider_id)->orderBy('id', 'DESC')->get();
+        $notes = NoteOnNotetaker::where('provider_id', $provider_id)->orderBy('id', 'DESC')->get();
+
+        return view('provider.notetaker_speec_to_text_ai_page', compact('all_appointments', 'notetakers', 'notes'));
+    }
+
+    public function processAudio(Request $request)
+    {
+        $request->validate([
+            'audio' => 'required|file|mimes:mp3,wav,m4a,ogg|max:10240', // 10MB max
+            'appointment_id' => 'nullable|exists:appointments,id'
+        ]);
+
+        try {
+            // Save audio file temporarily
+            $audioFile = $request->file('audio');
+            $filename = time() . '_' . $audioFile->getClientOriginalName();
+            $audioPath = $audioFile->storeAs('temp_audio', $filename, 'public');
+
+            // Call Python API
+            $pythonApiUrl = env('PYTHON_API_URL', 'http://localhost:8000');
+
+            $client = new \GuzzleHttp\Client();
+            $response = $client->post($pythonApiUrl . '/generate_soap', [
+                'multipart' => [
+                    [
+                        'name' => 'audio',
+                        'contents' => fopen(storage_path('app/public/' . $audioPath), 'r'),
+                        'filename' => $filename
+                    ]
+                ]
+            ]);
+
+            $result = json_decode($response->getBody(), true);
+
+            // Save to database
+            $note = NoteOnNotetaker::create([
+                'provider_id' => Auth::guard('provider')->user()->provider_id,
+                'appointment_id' => $request->appointment_id,
+                'audio_filename' => $filename,
+                'transcript' => $result['transcript'],
+                'soap_notes' => $result['soap_notes'],
+                'created_at' => now()
+            ]);
+
+            // Clean up temp file
+            Storage::delete('public/' . $audioPath);
+
+            return response()->json([
+                'success' => true,
+                'transcript' => $result['transcript'],
+                'soap_notes' => $result['soap_notes'],
+                'note_id' => $note->id
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Audio processing error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error processing audio: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
