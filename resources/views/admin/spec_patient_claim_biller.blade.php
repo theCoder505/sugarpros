@@ -503,6 +503,7 @@
     @endforelse
 @endsection
 
+
 @section('scripts')
     <script src="/assets/js/pcb.js"></script>
     <script>
@@ -577,6 +578,42 @@
             $('.diagnosis_input_wrapper').each(function() {
                 initICD10Dropdown($(this));
             });
+
+            // Initialize services array with existing data
+            @if (isset($services_data))
+                if (typeof services === 'undefined') {
+                    window.services = [];
+                }
+                
+                @foreach ($services_data['billing_code'] ?? [] as $index => $billing_code)
+                    // Use jQuery to safely get the service element
+                    const serviceElement = $('.service[data-index="{{ $index }}"]');
+                    if (serviceElement.length) {
+                        // Get diagnoses from the DOM for this service
+                        const diagnoses = serviceElement.find('.all_diagnoses .inline-block').map(function() {
+                            return $(this).find('span').text();
+                        }).get();
+                        
+                        // Initialize the service data
+                        window.services[{{ $index }}] = {
+                            modifiers: "{{ $services_data['modifiers'][$index] ?? '' }}",
+                            billing_code: "{{ $billing_code }}",
+                            billing_text: "{{ $services_data['billing_text'][$index] ?? '' }}",
+                            diagnoses: diagnoses,
+                            start_date: "{{ $services_data['start_date'][$index] ?? '' }}",
+                            end_date: "{{ $services_data['end_date'][$index] ?? '' }}",
+                            units: "{{ $services_data['units'][$index] ?? '' }}",
+                            quantity: "{{ $services_data['quantity'][$index] ?? '1' }}",
+                            billed_charge: "{{ $services_data['billed_charge'][$index] ?? '$0.00' }}"
+                        };
+                    }
+                @endforeach
+            @else
+                // Only declare services if it doesn't exist already  
+                if (typeof services === 'undefined') {
+                    window.services = [];
+                }
+            @endif
         });
         
         // Override addNewService to initialize dropdown for new services
@@ -612,40 +649,5 @@
                 });
             }, 100);
         };
-        
-        @if (isset($services_data))
-            // Initialize services array with existing data - avoid redeclaration
-            if (typeof services === 'undefined') {
-                var services = [];
-            }
-            
-            @foreach ($services_data['billing_code'] ?? [] as $index => $billing_code)
-                services[{{ $index }}] = {
-                    modifiers: "{{ $services_data['modifiers'][$index] ?? '' }}",
-                    billing_code: "{{ $billing_code }}",
-                    billing_text: "{{ $services_data['billing_text'][$index] ?? '' }}",
-                    diagnoses: [], // Start with empty array - we'll populate from DOM
-                    start_date: "{{ $services_data['start_date'][$index] ?? '' }}",
-                    end_date: "{{ $services_data['end_date'][$index] ?? '' }}",
-                    units: "{{ $services_data['units'][$index] ?? '' }}",
-                    quantity: "{{ $services_data['quantity'][$index] ?? '1' }}",
-                    billed_charge: "{{ $services_data['billed_charge'][$index] ?? '$0.00' }}"
-                };
-
-                // Get diagnoses from the DOM for this service
-                const serviceElement = $(`.service[data-index="{{ $index }}"]`);
-                if (serviceElement.length) {
-                    services[{{ $index }}].diagnoses = serviceElement.find('.all_diagnoses .inline-block').map(
-                        function() {
-                            return $(this).find('span').text();
-                        }).get();
-                }
-            @endforeach
-        @else
-            // Only declare services if it doesn't exist already  
-            if (typeof services === 'undefined') {
-                var services = [];
-            }
-        @endif
     </script>
 @endsection
