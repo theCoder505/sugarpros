@@ -319,14 +319,6 @@
                             detailsHtml += `</ul></div>`;
                         }
 
-                        detailsHtml += `
-                                <div>
-                                    <h4 class="font-semibold">Raw Response:</h4>
-                                    <pre class="bg-gray-100 p-3 rounded-md text-xs overflow-auto">${JSON.stringify(claim.claim_response, null, 2)}</pre>
-                                </div>
-                            </div>
-                        `;
-
                         $('#modalContent').html(detailsHtml);
                         $('#modalTitle').text(`Claim Details: ${claim.appointment_uid}`);
                     } else {

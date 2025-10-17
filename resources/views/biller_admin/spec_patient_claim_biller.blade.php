@@ -9,10 +9,132 @@
             border-color: #2d92b3;
             box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
         }
+        
+        .icd10-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-top: none;
+            border-radius: 0 0 0.375rem 0.375rem;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 50;
+            display: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .icd10-dropdown.active {
+            display: block;
+        }
+        
+        .icd10-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background-color 0.15s;
+        }
+        
+        .icd10-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .icd10-item:last-child {
+            border-bottom: none;
+        }
+        
+        .icd10-code {
+            font-weight: 600;
+            color: #2d92b3;
+            font-size: 0.875rem;
+        }
+        
+        .icd10-description {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        
+        .no-results {
+            padding: 1rem;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
     </style>
 @endsection
 
 @section('content')
+    @php
+        $icd10Codes = [
+            // Type 2 Diabetes Mellitus
+            ['code' => 'E11.9', 'description' => 'Type 2 diabetes mellitus without complications'],
+            ['code' => 'E11.65', 'description' => 'Type 2 diabetes mellitus with hyperglycemia'],
+            ['code' => 'E11.21', 'description' => 'Type 2 diabetes mellitus with nephropathy'],
+            ['code' => 'E11.22', 'description' => 'Type 2 diabetes mellitus with chronic kidney disease'],
+            ['code' => 'E11.40', 'description' => 'Type 2 diabetes mellitus with neuropathy, unspecified'],
+            ['code' => 'E11.8', 'description' => 'Type 2 diabetes mellitus with other specified complications'],
+            ['code' => 'E13.9', 'description' => 'Other specified diabetes mellitus without complications'],
+            
+            // Type 1 Diabetes Mellitus
+            ['code' => 'E10.9', 'description' => 'Type 1 diabetes mellitus without complications'],
+            ['code' => 'E10.65', 'description' => 'Type 1 diabetes mellitus with hyperglycemia'],
+            ['code' => 'E10.649', 'description' => 'Type 1 diabetes mellitus with hypoglycemia without coma'],
+            ['code' => 'E10.21', 'description' => 'Type 1 diabetes mellitus with nephropathy'],
+            ['code' => 'E10.22', 'description' => 'Type 1 diabetes mellitus with chronic kidney disease'],
+            ['code' => 'E10.40', 'description' => 'Type 1 diabetes mellitus with neuropathy, unspecified'],
+            ['code' => 'E10.42', 'description' => 'Type 1 diabetes mellitus with polyneuropathy'],
+            ['code' => 'E10.51', 'description' => 'Type 1 diabetes mellitus with circulatory complications'],
+            ['code' => 'E10.59', 'description' => 'Type 1 diabetes mellitus with other circulatory complications'],
+            ['code' => 'E10.610', 'description' => 'Type 1 diabetes mellitus with diabetic neuropathic arthropathy'],
+            ['code' => 'E10.618', 'description' => 'Type 1 diabetes mellitus with other musculoskeletal complications'],
+            ['code' => 'E10.621', 'description' => 'Type 1 diabetes mellitus with foot ulcer'],
+            ['code' => 'E10.69', 'description' => 'Type 1 diabetes mellitus with other specified complications'],
+            ['code' => 'E10.8', 'description' => 'Type 1 diabetes mellitus with unspecified complications'],
+            ['code' => 'E10.11', 'description' => 'Type 1 diabetes mellitus with ketoacidosis with coma'],
+            ['code' => 'E10.10', 'description' => 'Type 1 diabetes mellitus with ketoacidosis without coma'],
+            
+            // Obesity and Weight Management
+            ['code' => 'E66.01', 'description' => 'Morbid obesity due to excess calories'],
+            ['code' => 'E66.9', 'description' => 'Obesity, unspecified'],
+            ['code' => 'E66.3', 'description' => 'Overweight'],
+            ['code' => 'Z68.41', 'description' => 'Body mass index (BMI) 40.0-44.9'],
+            ['code' => 'Z68.42', 'description' => 'Body mass index (BMI) 45.0-49.9'],
+            ['code' => 'Z68.43', 'description' => 'Body mass index (BMI) 50.0-59.9'],
+            ['code' => 'Z68.44', 'description' => 'Body mass index (BMI) 60.0-69.9'],
+            ['code' => 'Z68.45', 'description' => 'Body mass index (BMI) 70 or greater'],
+            ['code' => 'Z71.3', 'description' => 'Dietary counseling and surveillance'],
+            
+            // Health Behavior and Psychosocial Factors
+            ['code' => 'Z91.14', 'description' => 'Patient\'s other noncompliance with medication regimen'],
+            ['code' => 'Z91.19', 'description' => 'Patient noncompliance, other specified'],
+            ['code' => 'Z63.6', 'description' => 'Dependent relative needing care'],
+            ['code' => 'Z73.1', 'description' => 'Type A behavior pattern'],
+            ['code' => 'Z73.89', 'description' => 'Other problems related to life management difficulty'],
+            ['code' => 'Z71.89', 'description' => 'Other specified counseling'],
+            ['code' => 'Z60.0', 'description' => 'Social environment problems'],
+            ['code' => 'Z72.4', 'description' => 'Inappropriate diet and eating habits'],
+            ['code' => 'Z71.82', 'description' => 'Exercise counseling'],
+            
+            // Mental Health Diagnoses (for psychotherapy only)
+            ['code' => 'F32.9', 'description' => 'Major depressive disorder, single episode, unspecified'],
+            ['code' => 'F41.1', 'description' => 'Generalized anxiety disorder'],
+            ['code' => 'F43.10', 'description' => 'Post-traumatic stress disorder'],
+            ['code' => 'F50.9', 'description' => 'Eating disorder, unspecified'],
+            ['code' => 'F45.29', 'description' => 'Somatic symptom disorder'],
+            
+            // Common Comorbidities
+            ['code' => 'I10', 'description' => 'Essential (primary) hypertension'],
+            ['code' => 'E78.5', 'description' => 'Hyperlipidemia, unspecified'],
+            ['code' => 'N18.4', 'description' => 'Chronic kidney disease, stage 4'],
+            ['code' => 'N18.9', 'description' => 'Chronic kidney disease, unspecified'],
+            ['code' => 'G47.33', 'description' => 'Obstructive sleep apnea'],
+            ['code' => 'E03.9', 'description' => 'Hypothyroidism, unspecified'],
+        ];
+    @endphp
+
     @forelse ($appointment as $item)
         <form action="/biller-admin/add-new-patient-claims-md" method="post" class="pcbForm">
             @csrf
@@ -242,17 +364,27 @@
                                                     <!-- ICD-10 Diagnoses -->
                                                     <div>
                                                         <label
-                                                            class="block text-sm font-semibold text-gray-700 mb-2">ICD-10
-                                                            DIAGNOSES</label>
+                                                            class="block text-sm font-semibold text-gray-700 mb-2">ICD-10 DIAGNOSES</label>
                                                         <div class="flex gap-2 items-center justify-between mt-2">
-                                                            <div
-                                                                class="flex items-center rounded-md border-2 overflow-hidden w-full diagnosis_input_group">
-                                                                <input type="text"
-                                                                    class="px-3 py-2 border-r border-gray-300 max-w-[75px] outline-none diagnoses_code"
-                                                                    placeholder="E11.9">
-                                                                <input type="text"
-                                                                    class="px-3 py-2 border-l border-gray-300 w-full outline-none diagnoses_text"
-                                                                    placeholder="Type description...">
+                                                            <div class="w-full relative diagnosis_input_wrapper">
+                                                                <div
+                                                                    class="flex items-center rounded-md border-2 overflow-hidden w-full diagnosis_input_group">
+                                                                    <input type="text"
+                                                                        class="px-3 py-2 border-r border-gray-300 max-w-[75px] outline-none diagnoses_code"
+                                                                        placeholder="E11.9">
+                                                                    <input type="text"
+                                                                        class="px-3 py-2 border-l border-gray-300 w-full outline-none diagnoses_text"
+                                                                        placeholder="Search ICD-10 code or description..."
+                                                                        autocomplete="off">
+                                                                </div>
+                                                                <div class="icd10-dropdown">
+                                                                    @foreach($icd10Codes as $icd)
+                                                                        <div class="icd10-item" data-code="{{ $icd['code'] }}" data-description="{{ $icd['description'] }}">
+                                                                            <div class="icd10-code">{{ $icd['code'] }}</div>
+                                                                            <div class="icd10-description">{{ $icd['description'] }}</div>
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
                                                             </div>
                                                             <div class="w-10 h-10 text-white bg-[#2d92b3] rounded cursor-pointer flex items-center justify-center text-lg"
                                                                 onclick="addNewDiagnosis(this)">
@@ -370,14 +502,123 @@
     @endforelse
 @endsection
 
-
-
 @section('script')
     <script src="/assets/js/pcb.js"></script>
     <script>
+        // ICD-10 Codes data
+        const icd10CodesData = @json($icd10Codes);
+        
+        // Initialize ICD-10 dropdown functionality
+        function initICD10Dropdown(wrapper) {
+            const codeInput = wrapper.find('.diagnoses_code');
+            const textInput = wrapper.find('.diagnoses_text');
+            const dropdown = wrapper.find('.icd10-dropdown');
+            
+            // Show dropdown on focus
+            textInput.on('focus', function() {
+                filterICD10Codes('');
+                dropdown.addClass('active');
+            });
+            
+            // Filter on input
+            textInput.on('input', function() {
+                const searchTerm = $(this).val().toLowerCase();
+                filterICD10Codes(searchTerm);
+            });
+            
+            // Handle click on dropdown item
+            dropdown.on('click', '.icd10-item', function() {
+                const code = $(this).data('code');
+                const description = $(this).data('description');
+                
+                codeInput.val(code);
+                textInput.val(description);
+                dropdown.removeClass('active');
+            });
+            
+            // Filter ICD-10 codes
+            function filterICD10Codes(searchTerm) {
+                let html = '';
+                let hasResults = false;
+                
+                icd10CodesData.forEach(function(item) {
+                    const codeMatch = item.code.toLowerCase().includes(searchTerm);
+                    const descMatch = item.description.toLowerCase().includes(searchTerm);
+                    
+                    if (searchTerm === '' || codeMatch || descMatch) {
+                        html += `
+                            <div class="icd10-item" data-code="${item.code}" data-description="${item.description}">
+                                <div class="icd10-code">${item.code}</div>
+                                <div class="icd10-description">${item.description}</div>
+                            </div>
+                        `;
+                        hasResults = true;
+                    }
+                });
+                
+                if (!hasResults) {
+                    html = '<div class="no-results">No matching ICD-10 codes found</div>';
+                }
+                
+                dropdown.html(html);
+            }
+            
+            // Close dropdown when clicking outside
+            $(document).on('click', function(e) {
+                if (!wrapper.is(e.target) && wrapper.has(e.target).length === 0) {
+                    dropdown.removeClass('active');
+                }
+            });
+        }
+        
+        // Initialize all existing dropdowns
+        $(document).ready(function() {
+            $('.diagnosis_input_wrapper').each(function() {
+                initICD10Dropdown($(this));
+            });
+        });
+        
+        // Override addNewService to initialize dropdown for new services
+        const originalAddNewService = window.addNewService;
+        window.addNewService = function(element) {
+            if (originalAddNewService) {
+                originalAddNewService(element);
+            }
+            // Initialize dropdown for the newly added service
+            setTimeout(function() {
+                $('.diagnosis_input_wrapper').each(function() {
+                    if (!$(this).data('initialized')) {
+                        initICD10Dropdown($(this));
+                        $(this).data('initialized', true);
+                    }
+                });
+            }, 100);
+        };
+        
+        // Override duplicateService to initialize dropdown for duplicated services
+        const originalDuplicateService = window.duplicateService;
+        window.duplicateService = function(element) {
+            if (originalDuplicateService) {
+                originalDuplicateService(element);
+            }
+            // Initialize dropdown for the duplicated service
+            setTimeout(function() {
+                $('.diagnosis_input_wrapper').each(function() {
+                    if (!$(this).data('initialized')) {
+                        initICD10Dropdown($(this));
+                        $(this).data('initialized', true);
+                    }
+                });
+            }, 100);
+        };
+        
+        // Initialize services array - don't redeclare if it already exists
         @if (isset($services_data))
-            // Initialize services array with existing data
-            let services = [];
+            // Only declare services if it doesn't exist already
+            if (typeof services === 'undefined') {
+                var services = [];
+            }
+            
             @foreach ($services_data['billing_code'] ?? [] as $index => $billing_code)
                 services[{{ $index }}] = {
                     modifiers: "{{ $services_data['modifiers'][$index] ?? '' }}",
@@ -401,7 +642,10 @@
                 }
             @endforeach
         @else
-            let services = [];
+            // Only declare services if it doesn't exist already  
+            if (typeof services === 'undefined') {
+                var services = [];
+            }
         @endif
     </script>
 @endsection

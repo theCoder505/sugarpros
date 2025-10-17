@@ -48,8 +48,9 @@ function removediagnosis(passedThis) {
     }
 }
 
-// Service Functions
-let services = [];
+if (typeof services === 'undefined') {
+    var services = [];
+}
 
 function updateServiceNumbers() {
     $('.service').each(function (index) {
@@ -123,7 +124,7 @@ function duplicateService(passedThis) {
 
 function getServiceData(serviceElement) {
     const serviceIndex = serviceElement.data('index');
-    const currentDiagnoses = serviceElement.find('.all_diagnoses .inline-block').map(function() {
+    const currentDiagnoses = serviceElement.find('.all_diagnoses .inline-block').map(function () {
         return $(this).find('span').text();
     }).get();
 
@@ -256,7 +257,7 @@ function addNewService(passedThis) {
 
 function prepareFormData() {
     $('[name^="diagnoses["]').remove();
-    $('.service').each(function() {
+    $('.service').each(function () {
         const serviceIndex = $(this).data('index');
         services[serviceIndex] = getServiceData($(this));
         if (services[serviceIndex].diagnoses && services[serviceIndex].diagnoses.length > 0) {
