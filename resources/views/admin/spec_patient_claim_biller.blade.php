@@ -586,11 +586,11 @@
                 }
                 
                 @foreach ($services_data['billing_code'] ?? [] as $index => $billing_code)
-                    // Use jQuery to safely get the service element
-                    const serviceElement = $('.service[data-index="{{ $index }}"]');
-                    if (serviceElement.length) {
+                    // Use a different variable name for each iteration
+                    var serviceEl_{{ $index }} = $('.service[data-index="{{ $index }}"]');
+                    if (serviceEl_{{ $index }}.length) {
                         // Get diagnoses from the DOM for this service
-                        const diagnoses = serviceElement.find('.all_diagnoses .inline-block').map(function() {
+                        var diagnoses_{{ $index }} = serviceEl_{{ $index }}.find('.all_diagnoses .inline-block').map(function() {
                             return $(this).find('span').text();
                         }).get();
                         
@@ -599,7 +599,7 @@
                             modifiers: "{{ $services_data['modifiers'][$index] ?? '' }}",
                             billing_code: "{{ $billing_code }}",
                             billing_text: "{{ $services_data['billing_text'][$index] ?? '' }}",
-                            diagnoses: diagnoses,
+                            diagnoses: diagnoses_{{ $index }},
                             start_date: "{{ $services_data['start_date'][$index] ?? '' }}",
                             end_date: "{{ $services_data['end_date'][$index] ?? '' }}",
                             units: "{{ $services_data['units'][$index] ?? '' }}",
