@@ -265,13 +265,21 @@ class PatientsController extends Controller
 
     public function completeBooking(Request $request)
     {
-        $request->validate([
-            'stripeToken' => 'required',
-            'users_full_name' => 'required',
-            'users_address' => 'required',
-            'users_email' => 'required|email',
-            'users_phone' => 'required',
-        ]);
+        try {
+            $request->validate([
+                'stripeToken' => 'required',
+                'users_full_name' => 'required',
+                'users_address' => 'required',
+                'users_email' => 'required|email',
+                'users_phone' => 'required',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        }
 
         $prefix = 'SA';
         $year = date('y');
