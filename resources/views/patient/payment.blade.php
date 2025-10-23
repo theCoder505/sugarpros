@@ -55,7 +55,6 @@
             <form method="POST" action="/complete-booking" class="space-y-6 mt-8" id="payment-form">
                 @csrf
                 <div class="my-5">
-                    <h2 class="font-bold text-[20px] text-[#292524]">Payment info {{ $stripe_client_id }} </h2>
                     <p class="text-sm text-[#57534E]">
                         Share the specific details below and complete the booking process.
                         You will be charged <span class="text-[#5469D4] font-semibold">{{ $amount . $currency }}</span>
