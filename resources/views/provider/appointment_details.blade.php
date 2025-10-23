@@ -489,7 +489,7 @@
             @endif
 
             <!-- Meeting Management Section -->
-            @if ($appointment['appointmentData'][0]->plan == 'medicare' && $appointment['appointmentData'][0]->medicare_status != 'pending' || $appointment['appointmentData'][0]->plan == 'subscription')
+            {{-- @if ($appointment['appointmentData'][0]->plan == 'medicare' && $appointment['appointmentData'][0]->medicare_status != 'pending' || $appointment['appointmentData'][0]->plan == 'subscription') --}}
                 <div class="mb-8 border-2 p-6 rounded-lg">
                     <h3 class="font-semibold mb-2 text-gray-700">Meeting Management</h3>
                     @if ($appointment['appointmentData'][0]->status == 5)
@@ -582,7 +582,7 @@
                         </form>
                     @endif
                 </div>
-            @endif
+            {{-- @endif --}}
 
 
             <!-- Timestamps -->

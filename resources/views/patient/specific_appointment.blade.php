@@ -242,12 +242,14 @@
                                 class="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded hover:bg-indigo-50 transition">
                                 <i class="fas fa-message"></i> Message Provider
                             </a>
-                            @if ($appointment['appointmentData'][0]->status == 1)
-                                <a href="/join-meeting/{{ $appointment['appointmentData'][0]->appointment_uid }}"
-                                    target="_blank"
-                                    class="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded hover:bg-indigo-50 transition">
-                                    <i class="fas fa-video"></i> Join
-                                </a>
+                            @if (($appointment['appointmentData'][0]->plan == 'medicare' && $appointment['appointmentData'][0]->medicare_status != 'pending') || $appointment['appointmentData'][0]->plan == 'subscription')
+                                @if ($appointment['appointmentData'][0]->status == 1)
+                                    <a href="/join-meeting/{{ $appointment['appointmentData'][0]->appointment_uid }}"
+                                        target="_blank"
+                                        class="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded hover:bg-indigo-50 transition">
+                                        <i class="fas fa-video"></i> Join
+                                    </a>
+                                @endif
                             @endif
                             <button onclick="window.print()"
                                 class="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded hover:bg-indigo-50 transition">
