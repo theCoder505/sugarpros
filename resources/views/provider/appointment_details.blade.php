@@ -489,99 +489,103 @@
             @endif
 
             <!-- Meeting Management Section -->
-            {{-- @if ($appointment['appointmentData'][0]->plan == 'medicare' && $appointment['appointmentData'][0]->medicare_status != 'pending' || $appointment['appointmentData'][0]->plan == 'subscription') --}}
-                <div class="mb-8 border-2 p-6 rounded-lg">
-                    <h3 class="font-semibold mb-2 text-gray-700">Meeting Management</h3>
-                    @if ($appointment['appointmentData'][0]->status == 5)
-                        <div class="px-4 py-2 bg-[#00897B] text-white text-center max-w-[150px] rounded-md">
-                            Meeting Ended
-                        </div>
-                    @else
-                        <form action="/provider/set-meeting-link" method="post">
-                            @csrf
-                            <input type="hidden" name="appointment_id"
-                                value="{{ $appointment['appointmentData'][0]->appointment_uid }}">
-                            <div class="flex gap-2">
-                                @if ($appointment['appointmentData'][0]->status == 0)
-                                    @if ($appointmentDateTime->isFuture())
-                                        @if ($appointment['appointmentData'][0]->meet_link)
-                                            @if ($appointment['appointmentData'][0]->provider_id == Auth::guard('provider')->user()->provider_id)
-                                                <div class="w-full">
-                                                    <div
-                                                        class="flex items-center gap-2 px-4 py-4 justify-center bg-blue-100 text-blue-800 rounded-md text-sm font-semibold border border-blue-300">
-                                                        <i class="fa fa-info-circle"></i>
-                                                        You already scheduled the meeting. You can start from here during
-                                                        the
-                                                        grace period.
-                                                    </div>
+            <p>
+                Pan: {{ $appointment['appointmentData'][0]->plan }} <br>
+                MS: {{ $appointment['appointmentData'][0]->medicare_status }}
+            </p>
+            {{-- @if (($appointment['appointmentData'][0]->plan == 'medicare' && $appointment['appointmentData'][0]->medicare_status != 'pending') || $appointment['appointmentData'][0]->plan == 'subscription') --}}
+            <div class="mb-8 border-2 p-6 rounded-lg">
+                <h3 class="font-semibold mb-2 text-gray-700">Meeting Management</h3>
+                @if ($appointment['appointmentData'][0]->status == 5)
+                    <div class="px-4 py-2 bg-[#00897B] text-white text-center max-w-[150px] rounded-md">
+                        Meeting Ended
+                    </div>
+                @else
+                    <form action="/provider/set-meeting-link" method="post">
+                        @csrf
+                        <input type="hidden" name="appointment_id"
+                            value="{{ $appointment['appointmentData'][0]->appointment_uid }}">
+                        <div class="flex gap-2">
+                            @if ($appointment['appointmentData'][0]->status == 0)
+                                @if ($appointmentDateTime->isFuture())
+                                    @if ($appointment['appointmentData'][0]->meet_link)
+                                        @if ($appointment['appointmentData'][0]->provider_id == Auth::guard('provider')->user()->provider_id)
+                                            <div class="w-full">
+                                                <div
+                                                    class="flex items-center gap-2 px-4 py-4 justify-center bg-blue-100 text-blue-800 rounded-md text-sm font-semibold border border-blue-300">
+                                                    <i class="fa fa-info-circle"></i>
+                                                    You already scheduled the meeting. You can start from here during
+                                                    the
+                                                    grace period.
                                                 </div>
-                                            @else
-                                                <div class="w-full">
-                                                    <div
-                                                        class="flex items-center gap-2 px-4 py-4 justify-center bg-orange-100 text-orange-800 rounded-md text-sm font-semibold border border-orange-300">
-                                                        <i class="fa fa-info-circle"></i>
-                                                        This Appointment Already Scheduled By A Provider.
-                                                    </div>
-                                                </div>
-                                            @endif
+                                            </div>
                                         @else
-                                            <button type="submit"
-                                                class="w-full flex justify-center gap-2 items-center text-center px-4 py-4 mx-auto bg-[#2889AA] text-white rounded hover:bg-cyan-800 text-lg uppercase">
-                                                <i class="fa fa-calendar-alt"></i> Schedule The Meeting
-                                            </button>
-                                        @endif
-                                    @elseif ($gracePeriodEnd->isFuture())
-                                        <!-- In grace period -->
-                                        @if ($appointment['appointmentData'][0]->meet_link)
-                                            @if ($appointment['appointmentData'][0]->provider_id == Auth::guard('provider')->user()->provider_id)
-                                                <a href="/provider/start-meeting/{{ $appointment['appointmentData'][0]->appointment_uid }}"
-                                                    class="w-full flex justify-center gap-2 items-center px-4 py-2 bg-[#f6028b] text-white rounded hover:bg-blue-800 text-[16px] font-bold transition-colors duration-200 hover:text-decoration-none">
-                                                    <i class="fa fa-video-camera"></i> Start The Meeting
-                                                </a>
-                                            @else
-                                                <div class="w-full">
-                                                    <div
-                                                        class="flex items-center gap-2 px-4 py-4 justify-center bg-orange-100 text-orange-800 rounded-md text-sm font-semibold border border-orange-300">
-                                                        <i class="fa fa-exclamation-triangle"></i>
-                                                        This Appointment Already Scheduled By A Provider!
-                                                    </div>
+                                            <div class="w-full">
+                                                <div
+                                                    class="flex items-center gap-2 px-4 py-4 justify-center bg-orange-100 text-orange-800 rounded-md text-sm font-semibold border border-orange-300">
+                                                    <i class="fa fa-info-circle"></i>
+                                                    This Appointment Already Scheduled By A Provider.
                                                 </div>
-                                            @endif
-                                        @else
-                                            <button type="submit"
-                                                class="w-full flex justify-center gap-2 items-center text-center px-4 py-4 mx-auto bg-[#2889AA] text-white rounded hover:bg-cyan-800 text-lg uppercase">
-                                                <i class="fa fa-calendar-alt"></i> Schedule The Meeting
-                                                <small class="capitalize text-sm text-yellow-300 flex items-center gap-1">
-                                                    (<i class="fa fa-exclamation-triangle"></i> In Grace Period, Start
-                                                    Soon! <i class="fa fa-exclamation-triangle"></i>)
-                                                </small>
-                                            </button>
+                                            </div>
                                         @endif
                                     @else
-                                        <!-- Missed meeting -->
-                                        @if ($appointment['appointmentData'][0]->meet_link)
-                                            <div
-                                                class="px-4 py-1 bg-[#f6028b] text-white text-center max-w-[150px] rounded-full text-[0.70rem]">
-                                                Missed Meeting
-                                            </div>
+                                        <button type="submit"
+                                            class="w-full flex justify-center gap-2 items-center text-center px-4 py-4 mx-auto bg-[#2889AA] text-white rounded hover:bg-cyan-800 text-lg uppercase">
+                                            <i class="fa fa-calendar-alt"></i> Schedule The Meeting
+                                        </button>
+                                    @endif
+                                @elseif ($gracePeriodEnd->isFuture())
+                                    <!-- In grace period -->
+                                    @if ($appointment['appointmentData'][0]->meet_link)
+                                        @if ($appointment['appointmentData'][0]->provider_id == Auth::guard('provider')->user()->provider_id)
+                                            <a href="/provider/start-meeting/{{ $appointment['appointmentData'][0]->appointment_uid }}"
+                                                class="w-full flex justify-center gap-2 items-center px-4 py-2 bg-[#f6028b] text-white rounded hover:bg-blue-800 text-[16px] font-bold transition-colors duration-200 hover:text-decoration-none">
+                                                <i class="fa fa-video-camera"></i> Start The Meeting
+                                            </a>
                                         @else
-                                            <div
-                                                class="px-4 py-1 bg-[#f6028b] text-white text-center max-w-[150px] rounded-full text-[0.70rem]">
-                                                Did not schedule!
+                                            <div class="w-full">
+                                                <div
+                                                    class="flex items-center gap-2 px-4 py-4 justify-center bg-orange-100 text-orange-800 rounded-md text-sm font-semibold border border-orange-300">
+                                                    <i class="fa fa-exclamation-triangle"></i>
+                                                    This Appointment Already Scheduled By A Provider!
+                                                </div>
                                             </div>
                                         @endif
+                                    @else
+                                        <button type="submit"
+                                            class="w-full flex justify-center gap-2 items-center text-center px-4 py-4 mx-auto bg-[#2889AA] text-white rounded hover:bg-cyan-800 text-lg uppercase">
+                                            <i class="fa fa-calendar-alt"></i> Schedule The Meeting
+                                            <small class="capitalize text-sm text-yellow-300 flex items-center gap-1">
+                                                (<i class="fa fa-exclamation-triangle"></i> In Grace Period, Start
+                                                Soon! <i class="fa fa-exclamation-triangle"></i>)
+                                            </small>
+                                        </button>
                                     @endif
-                                @elseif ($appointment['appointmentData'][0]->status == 1)
-                                    <a href="/provider/start-meeting/{{ $appointment['appointmentData'][0]->appointment_uid }}"
-                                        target="_blank"
-                                        class="w-full flex justify-center gap-2 items-center px-4 py-4 bg-[#0274f6] text-white rounded hover:bg-blue-800 text-[16px] font-bold transition-colors duration-200 hover:text-decoration-none">
-                                        <i class="fa fa-video-camera"></i> Join Meeting
-                                    </a>
+                                @else
+                                    <!-- Missed meeting -->
+                                    @if ($appointment['appointmentData'][0]->meet_link)
+                                        <div
+                                            class="px-4 py-1 bg-[#f6028b] text-white text-center max-w-[150px] rounded-full text-[0.70rem]">
+                                            Missed Meeting
+                                        </div>
+                                    @else
+                                        <div
+                                            class="px-4 py-1 bg-[#f6028b] text-white text-center max-w-[150px] rounded-full text-[0.70rem]">
+                                            Did not schedule!
+                                        </div>
+                                    @endif
                                 @endif
-                            </div>
-                        </form>
-                    @endif
-                </div>
+                            @elseif ($appointment['appointmentData'][0]->status == 1)
+                                <a href="/provider/start-meeting/{{ $appointment['appointmentData'][0]->appointment_uid }}"
+                                    target="_blank"
+                                    class="w-full flex justify-center gap-2 items-center px-4 py-4 bg-[#0274f6] text-white rounded hover:bg-blue-800 text-[16px] font-bold transition-colors duration-200 hover:text-decoration-none">
+                                    <i class="fa fa-video-camera"></i> Join Meeting
+                                </a>
+                            @endif
+                        </div>
+                    </form>
+                @endif
+            </div>
             {{-- @endif --}}
 
 
