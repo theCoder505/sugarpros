@@ -89,30 +89,46 @@
                 <div class="bg-gray-50 rounded-lg p-6">
                     <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">Patient Information</h2>
                     <div class="space-y-4">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Full Name</p>
-                            <p class="font-medium text-gray-900">{{ $appointment['appointmentData'][0]->fname }}
-                                {{ $appointment['appointmentData'][0]->lname }}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Patient ID</p>
-                            <p class="font-medium text-gray-900">{{ $appointment['appointmentData'][0]->patient_id }}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Email</p>
-                            <p class="font-medium text-gray-900">{{ $appointment['appointmentData'][0]->email }}</p>
-                        </div>
-                         <div>
-                            <p class="text-sm font-medium text-gray-500">Address</p>
-                            <p class="font-medium text-gray-900">
-                                {{ $appointment['appointmentData'][0]->users_address ?? 'N/A' }}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Contact</p>
-                            <p class="font-medium text-gray-900">
-                                {{ $appointment['appointmentData'][0]->users_phone ?? 'N/A' }}</p>
-                        </div>
+                        @forelse ($patients as $patient)
+                            @if ($patient->patient_id == $appointment['appointmentData'][0]->patient_id)
+                                @forelse ($patient_details as $details)
+                                    @if ($details->user_id == $patient->id)
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-500">Full Name</p>
+                                            <p class="font-medium text-gray-900">
+                                                {{ $details->fname }}
+                                                {{ $details->lname }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-500">Patient ID</p>
+                                            <p class="font-medium text-gray-900">
+                                                {{ $appointment['appointmentData'][0]->patient_id }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-500">Email</p>
+                                            <p class="font-medium text-gray-900">
+                                                {{ $details->email }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-500">Address</p>
+                                            <p class="font-medium text-gray-900">
+                                                {{ $details->street ?? 'N/A' }},
+                                                {{ $details->city ?? 'N/A' }},
+                                                {{ $details->state ?? 'N/A' }},
+                                                {{ $details->zip_code ?? 'N/A' }}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-500">Contact</p>
+                                            <p class="font-medium text-gray-900">
+                                                {{ $details->phone ?? 'N/A' }}</p>
+                                        </div>
+                                    @endif
+                                @empty
+                                @endforelse
+                            @endif
+                        @empty
+                        @endforelse
                     </div>
                 </div>
 
@@ -462,7 +478,8 @@
                         </h3>
 
                         <div class="expanded_section hidden mt-4">
-                            <a href="/provider/patient-claims-biller/{{ $appointment['appointmentData'][0]->appointment_uid }}" target="_blank"
+                            <a href="/provider/patient-claims-biller/{{ $appointment['appointmentData'][0]->appointment_uid }}"
+                                target="_blank"
                                 class="inline-block px-4 py-1.5 text-sm font-normal text-white rounded-full bg-blue-500 hover:bg-[#1a4b75] transition-colors">
                                 Manage Patient Claims Biller
                             </a>
@@ -472,7 +489,7 @@
             @endif
 
             <!-- Meeting Management Section -->
-            @if ($appointment['appointmentData'][0]->medicare_status != 'pending')
+            @if ($appointment['appointmentData'][0]->plan == 'medicare' && $appointment['appointmentData'][0]->medicare_status != 'pending' || $appointment['appointmentData'][0]->plan == 'subscription')
                 <div class="mb-8 border-2 p-6 rounded-lg">
                     <h3 class="font-semibold mb-2 text-gray-700">Meeting Management</h3>
                     @if ($appointment['appointmentData'][0]->status == 5)
@@ -493,7 +510,8 @@
                                                     <div
                                                         class="flex items-center gap-2 px-4 py-4 justify-center bg-blue-100 text-blue-800 rounded-md text-sm font-semibold border border-blue-300">
                                                         <i class="fa fa-info-circle"></i>
-                                                        You already scheduled the meeting. You can start from here during the
+                                                        You already scheduled the meeting. You can start from here during
+                                                        the
                                                         grace period.
                                                     </div>
                                                 </div>
@@ -534,8 +552,8 @@
                                                 class="w-full flex justify-center gap-2 items-center text-center px-4 py-4 mx-auto bg-[#2889AA] text-white rounded hover:bg-cyan-800 text-lg uppercase">
                                                 <i class="fa fa-calendar-alt"></i> Schedule The Meeting
                                                 <small class="capitalize text-sm text-yellow-300 flex items-center gap-1">
-                                                    (<i class="fa fa-exclamation-triangle"></i> In Grace Period, Start Soon! <i
-                                                        class="fa fa-exclamation-triangle"></i>)
+                                                    (<i class="fa fa-exclamation-triangle"></i> In Grace Period, Start
+                                                    Soon! <i class="fa fa-exclamation-triangle"></i>)
                                                 </small>
                                             </button>
                                         @endif

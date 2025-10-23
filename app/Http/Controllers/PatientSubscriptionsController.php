@@ -109,15 +109,29 @@ class PatientSubscriptionsController extends Controller
                 ->first();
 
             if ($current_subscription) {
-                // Handle subscription upgrade/downgrade
-                return $this->handleSubscriptionChange(
-                    $current_subscription,
-                    $request,
-                    $recurring_option,
-                    $plan,
-                    $price_key,
-                    $amount
-                );
+                try {
+                    // Try to retrieve Stripe subscription
+                    $stripe_subscription = Stripe\Subscription::retrieve($current_subscription->stripe_charge_id);
+                    
+                    // If found, handle subscription change
+                    return $this->handleSubscriptionChange(
+                        $current_subscription,
+                        $request,
+                        $recurring_option,
+                        $plan,
+                        $price_key,
+                        $amount
+                    );
+                } catch (\Stripe\Exception\InvalidRequestException $e) {
+                    // If Stripe subscription not found, create new one
+                    return $this->createNewSubscription(
+                        $request,
+                        $recurring_option,
+                        $plan,
+                        $price_key,
+                        $amount
+                    );
+                }
             } else {
                 // Create new subscription
                 return $this->createNewSubscription(

@@ -459,6 +459,7 @@ class HomeController extends Controller
     {
         $patient_id = Auth::user()->patient_id;
         $appointment_patient_id = Appointment::where('appointment_uid', $appointment_uid)->value('patient_id');
+        $all_providers = Provider::all();
 
         if ($appointment_patient_id != $patient_id) {
             return redirect()->back()->with('error', 'Invalid Trial!');
@@ -489,7 +490,7 @@ class HomeController extends Controller
                 'eprescription_notes' => $eprescription_notes,
             ];
 
-            return view('patient.specific_appointment', compact('appointment'));
+            return view('patient.specific_appointment', compact('appointment', 'all_providers'));
         }
     }
 

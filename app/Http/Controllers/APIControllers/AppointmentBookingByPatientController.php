@@ -10,6 +10,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserDetails;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Stripe;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -115,11 +116,11 @@ class AppointmentBookingByPatientController extends Controller
             }
 
             $settings = Settings::first();
-            
+
             // Determine amount based on plan
             $amount = 0;
             $requiresPayment = true;
-            
+
             if ($request->plan == 'subscription') {
                 $requiresPayment = false;
             } elseif ($request->plan == 'medicare') {
@@ -149,6 +150,8 @@ class AppointmentBookingByPatientController extends Controller
             ], 500);
         }
     }
+
+
 
     public function completeBooking(Request $request)
     {
@@ -203,21 +206,52 @@ class AppointmentBookingByPatientController extends Controller
 
             // Handle payment based on plan
             if ($request->plan == 'subscription') {
-                // No payment needed for subscription
-                $notification = 'Using Your Subscription Plan, You\'ve booked an appointment at ' . 
-                    date('g:i A', strtotime($request->time)) . ' on ' . 
-                    date('j F, Y', strtotime($request->date));
+                // Verify subscription exists in database
+                $current_subscription = SubscriptionPlan::where('availed_by_uid', $patient_id)
+                    ->whereIn('stripe_status', ['active', 'trialing'])
+                    ->first();
+
+                if (!$current_subscription) {
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'No active subscription found. Please subscribe first.'
+                    ], 400);
+                }
+
+                // Verify subscription exists in Stripe
+                try {
+                    Stripe\Stripe::setApiKey($settings->stripe_secret_key);
+                    $stripe_subscription = Stripe\Subscription::retrieve($current_subscription->stripe_charge_id);
+
+                    // Subscription exists in Stripe, proceed normally
+                    $notification = 'Using Your Subscription Plan, You\'ve booked an appointment at ' .
+                        date('g:i A', strtotime($request->time)) . ' on ' .
+                        date('j F, Y', strtotime($request->date));
+                } catch (\Stripe\Exception\InvalidRequestException $e) {
+                    // Stripe subscription not found, but local record exists
+                    // Allow booking to proceed (subscription might have been deleted in Stripe but is still valid locally)
+                    $notification = 'Using Your Subscription Plan, You\'ve booked an appointment at ' .
+                        date('g:i A', strtotime($request->time)) . ' on ' .
+                        date('j F, Y', strtotime($request->date));
+
+                    // Optional: Log this discrepancy for admin review
+                    Log::warning('Subscription exists locally but not in Stripe', [
+                        'patient_id' => $patient_id,
+                        'subscription_id' => $current_subscription->id,
+                        'stripe_charge_id' => $current_subscription->stripe_charge_id
+                    ]);
+                }
             } else {
                 // Process payment for medicare or cash
                 if ($request->plan == 'medicare') {
                     $amount = $settings->medicare_amount;
-                    $notification = 'Using Medicare Payment, You\'ve booked an appointment at ' . 
-                        date('g:i A', strtotime($request->time)) . ' on ' . 
+                    $notification = 'Using Medicare Payment, You\'ve booked an appointment at ' .
+                        date('g:i A', strtotime($request->time)) . ' on ' .
                         date('j F, Y', strtotime($request->date));
                 } elseif ($request->plan == 'cash') {
                     $amount = $settings->stripe_amount;
-                    $notification = 'Using Direct Cash Payment, You\'ve booked an appointment at ' . 
-                        date('g:i A', strtotime($request->time)) . ' on ' . 
+                    $notification = 'Using Direct Cash Payment, You\'ve booked an appointment at ' .
+                        date('g:i A', strtotime($request->time)) . ' on ' .
                         date('j F, Y', strtotime($request->date));
                 }
 
@@ -323,7 +357,6 @@ class AppointmentBookingByPatientController extends Controller
                 'message' => 'Appointment booked successfully!',
                 'data' => $responseData
             ], 201);
-
         } catch (\Stripe\Exception\CardException $e) {
             return response()->json([
                 'type' => 'error',
@@ -349,21 +382,21 @@ class AppointmentBookingByPatientController extends Controller
             }
 
             $imageData = base64_decode($base64String);
-            
+
             if ($imageData === false) {
                 return null;
             }
 
             $filename = 'insurance_' . $type . '_' . rand(1111111111, 9999999999) . '.' . $extension;
             $path = $type . '/';
-            
+
             // Create directory if it doesn't exist
             if (!file_exists(public_path($path))) {
                 mkdir(public_path($path), 0755, true);
             }
 
             file_put_contents(public_path($path . $filename), $imageData);
-            
+
             return $path . $filename;
         } catch (\Exception $e) {
             return null;

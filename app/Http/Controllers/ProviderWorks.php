@@ -7,6 +7,8 @@ use App\Models\ClinicalNotes;
 use App\Models\EPrescription;
 use App\Models\QuestLab;
 use App\Models\Settings;
+use App\Models\User;
+use App\Models\UserDetails;
 use App\Models\VirtualNotes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +21,8 @@ class ProviderWorks extends Controller
     public function viewAppointment($appointment_uid)
     {
         $provider_id = Auth::guard('provider')->user()->provider_id;
+        $patients = User::all();
+        $patient_details = UserDetails::all();
         $appointmentData = Appointment::where('appointment_uid', $appointment_uid)->get();
 
         $virtual_notes = VirtualNotes::where('appointment_uid', $appointment_uid)
@@ -47,7 +51,7 @@ class ProviderWorks extends Controller
             'eprescription_notes' => $eprescription_notes,
         ];
 
-        return view('provider.appointment_details', compact('appointment', 'meeting_web_root_url', 'appointment_uid'));
+        return view('provider.appointment_details', compact('appointment', 'meeting_web_root_url', 'appointment_uid', 'patients', 'patient_details'));
     }
 
 
