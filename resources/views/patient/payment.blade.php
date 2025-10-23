@@ -55,10 +55,11 @@
             <form method="POST" action="/complete-booking" class="space-y-6 mt-8" id="payment-form">
                 @csrf
                 <div class="my-5">
-                    <h2 class="font-bold text-[20px] text-[#292524]">Payment info {{$stripe_client_id}} </h2>
+                    <h2 class="font-bold text-[20px] text-[#292524]">Payment info {{ $stripe_client_id }} </h2>
                     <p class="text-sm text-[#57534E]">
                         Share the specific details below and complete the booking process.
-                        You will be charged <span class="text-[#5469D4] font-semibold">{{ $amount . $currency }}</span> here.
+                        You will be charged <span class="text-[#5469D4] font-semibold">{{ $amount . $currency }}</span>
+                        here.
                     </p>
                 </div>
 
@@ -207,30 +208,95 @@
     <script>
         const stripe = Stripe("{{ $stripe_client_id }}");
         const elements = stripe.elements();
-        const card = elements.create('card');
-        card.mount("#card-element");
-        const loader = `<div class="loader"></div>`;
+        const cardElement = elements.create('card', {
+            style: {
+                base: {
+                    fontSize: '16px',
+                    color: '#32325d',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    '::placeholder': {
+                        color: '#A3A3A3'
+                    }
+                },
+                invalid: {
+                    color: '#ef4444',
+                    iconColor: '#ef4444'
+                }
+            }
+        });
+        cardElement.mount("#card-element");
+
+        // Display card errors
+        cardElement.on('change', function(event) {
+            const displayError = document.getElementById('card-errors');
+            if (event.error) {
+                if (!displayError) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.id = 'card-errors';
+                    errorDiv.className = 'text-red-500 text-sm mt-2';
+                    errorDiv.textContent = event.error.message;
+                    document.getElementById('card-element').parentNode.appendChild(errorDiv);
+                } else {
+                    displayError.textContent = event.error.message;
+                }
+            } else {
+                if (displayError) {
+                    displayError.textContent = '';
+                }
+            }
+        });
+
+        const loader = `<svg class="animate-spin h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>`;
 
         $(document).ready(function() {
             $("#payment-form").on("submit", async function(e) {
                 e.preventDefault();
 
-                const {
-                    token,
-                    error
-                } = await stripe.createToken(card);
-                if (error) {
-                    alert(error.message);
-                } else {
-                    const formData = new FormData(this);
-                    formData.append('stripeToken', token.id);
+                // Show loader on button
+                const $applyBtn = $('#applyBtn');
+                const originalButtonText = $applyBtn.html();
+                $applyBtn.prop('disabled', true).html(loader);
 
-                    // Show loader on button
-                    const $applyBtn = $('#applyBtn');
-                    if ($applyBtn.length) {
-                        $applyBtn.prop('disabled', true).html(loader);
+                try {
+                    // Create payment method instead of token (better for SCA)
+                    const {
+                        paymentMethod,
+                        error
+                    } = await stripe.createPaymentMethod({
+                        type: 'card',
+                        card: cardElement,
+                        billing_details: {
+                            name: $('input[name="users_full_name"]').val(),
+                            email: $('input[name="users_email"]').val(),
+                            phone: $('input[name="users_phone"]').val(),
+                            address: {
+                                line1: $('input[name="users_address"]').val()
+                            }
+                        }
+                    });
+
+                    if (error) {
+                        // Show error to customer
+                        console.error('Stripe Error:', error);
+                        alert(error.message);
+                        $applyBtn.prop('disabled', false).html(originalButtonText);
+                        return;
                     }
 
+                    console.log('Payment Method Created:', paymentMethod);
+
+                    // Prepare form data
+                    const formData = new FormData(this);
+                    formData.append('stripeToken', paymentMethod.id);
+                    formData.append('payment_method_id', paymentMethod.id);
+
+                    // Log what we're sending
+                    console.log('Submitting payment with method ID:', paymentMethod.id);
+
+                    // Submit to server
                     $.ajax({
                         url: $(this).attr('action'),
                         method: 'POST',
@@ -242,35 +308,51 @@
                         },
                         dataType: 'json',
                         success: function(data) {
-                            if ($applyBtn.length) {
-                                $applyBtn.prop('disabled', false).html('Apply');
-                            }
+                            console.log('Server Response:', data);
+                            $applyBtn.prop('disabled', false).html(originalButtonText);
+
                             if (data.success) {
                                 $('#payment-form')[0].reset();
+                                cardElement.clear();
                                 $('#popupModal').removeClass('hidden').addClass('flex');
                             } else {
-                                alert(data.message || 'Payment failed.');
+                                alert(data.message || 'Payment failed. Please try again.');
                             }
                         },
-                        error: function() {
-                            if ($applyBtn.length) {
-                                $applyBtn.prop('disabled', false).html('Apply');
+                        error: function(xhr, status, error) {
+                            console.error('AJAX Error:', {
+                                xhr,
+                                status,
+                                error
+                            });
+                            console.error('Response:', xhr.responseText);
+
+                            $applyBtn.prop('disabled', false).html(originalButtonText);
+
+                            let errorMessage = 'An error occurred. Please try again.';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                                if (xhr.responseJSON.errors) {
+                                    errorMessage += '\n' + Object.values(xhr.responseJSON
+                                        .errors).flat().join('\n');
+                                }
                             }
-                            alert('An error occurred. Please try again.');
+                            alert(errorMessage);
                         }
                     });
+
+                } catch (err) {
+                    console.error('Unexpected Error:', err);
+                    alert('An unexpected error occurred. Please try again.');
+                    $applyBtn.prop('disabled', false).html(originalButtonText);
                 }
             });
 
-            // Close popup
+            // Close popup handlers
             $('#closeBtn, #completeCheckout').on('click', function() {
                 $('#popupModal').addClass('hidden').removeClass('flex');
+                window.location.href = '/appointments';
             });
-        });
-
-
-        $(document).on('click', '#closeBtn, #completeCheckout', function() {
-            window.location.href = '/appointments';
         });
     </script>
 @endsection
