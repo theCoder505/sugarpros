@@ -13,7 +13,6 @@
 
 @section('style')
     <style>
-        /* Your existing styles remain the same */
         .appoint {
             font-weight: 500;
             color: #000000;
@@ -72,7 +71,6 @@
             font-weight: initial;
             text-transform: none !important;
         }
-
 
         .dataTables_wrapper .dataTables_filter input {
             padding-left: 32px;
@@ -207,7 +205,7 @@
             <div class="space-y-6 bg-[#f3f4f6] rounded-lg lg:col-span-3 overflow-x-auto relative">
                 <div class="appointment_type_dropdown">
                     <select name="appointment_type" id="appointmentTypeFilter" class="bg-white px-4 py-2 rounded-lg">
-                        <option id="all-count" value="all">All Appointments</option>
+                        <option id="all-count" value="all">All Appointments ({{ count($appointments) }})</option>
                         <option id="active-count" value="active" selected>Active Appointments</option>
                         <option id="upcoming-count" value="upcoming">Upcoming Appointments</option>
                         <option id="missed-count" value="missed">Missed Appointments</option>
@@ -230,42 +228,63 @@
                         </tr>
                     </thead>
                     <tbody class="text-sm text-[#000000]">
+                        @php
+                            $activeCount = 0;
+                            $upcomingCount = 0;
+                            $missedCount = 0;
+                            $unsetCount = 0;
+                            $completeCount = 0;
+                        @endphp
+                        
                         @foreach ($appointments as $key => $item)
                             @php
                                 $appointmentDateTime = \Carbon\Carbon::parse($item->date . ' ' . $item->time);
                                 $gracePeriodEnd = $appointmentDateTime->copy()->addHour();
+                                $currentDateTime = \Carbon\Carbon::now();
                                 $statusClass = '';
-
-                                if ($item->status == 0) {
-                                    if ($appointmentDateTime->isFuture()) {
-                                        $statusText = 'Upcoming';
-                                        $statusClass = 'upcoming';
-                                    } elseif ($gracePeriodEnd->isFuture()) {
-                                        if ($item->meet_link) {
-                                            $statusText = 'Waiting To Start';
-                                            $statusClass = 'active';
-                                        } else {
-                                            $statusText = 'Grace Period (1hr)';
-                                            $statusClass = 'active';
-                                        }
-                                    } else {
-                                        if ($item->meet_link) {
-                                            $statusText = 'You Absented';
-                                            $statusClass = 'missed';
-                                        } else {
-                                            $statusText = 'Pending Approval meeting';
-                                            $statusClass = 'unset';
-                                        }
-                                    }
+                                $statusText = '';
+                                
+                                // Fixed status classification logic
+                                if ($item->status == 5) {
+                                    $statusText = 'Completed';
+                                    $statusClass = 'complete';
+                                    $completeCount++;
                                 } elseif ($item->status == 1) {
                                     $statusText = 'Started';
                                     $statusClass = 'active';
-                                } elseif ($item->status == 5) {
-                                    $statusText = 'Completed';
-                                    $statusClass = 'complete';
+                                    $activeCount++;
+                                } elseif ($item->status == 0) {
+                                    if ($appointmentDateTime->isFuture()) {
+                                        $statusText = 'Upcoming';
+                                        $statusClass = 'upcoming';
+                                        $upcomingCount++;
+                                    } elseif ($gracePeriodEnd->isFuture()) {
+                                        // Within grace period (1 hour after appointment time)
+                                        if ($item->meet_link) {
+                                            $statusText = 'Waiting To Start';
+                                            $statusClass = 'active';
+                                            $activeCount++;
+                                        } else {
+                                            $statusText = 'Pending Approval meeting';
+                                            $statusClass = 'unset';
+                                            $unsetCount++;
+                                        }
+                                    } else {
+                                        // Past grace period
+                                        if ($item->meet_link) {
+                                            $statusText = 'You Absented';
+                                            $statusClass = 'missed';
+                                            $missedCount++;
+                                        } else {
+                                            $statusText = 'Pending Approval meeting';
+                                            $statusClass = 'unset';
+                                            $unsetCount++;
+                                        }
+                                    }
                                 }
                             @endphp
-                            <tr class="border-b border-[#000000]/10 appointment-row" data-status="{{ $statusClass }}">
+                            <tr class="border-b border-[#000000]/10 appointment-row" 
+                                data-status="{{ $statusClass }}">
                                 <td class="text-center">{{ $key + 1 }}</td>
                                 <td>{{ $item->appointment_uid }}</td>
                                 @foreach ($allPatients as $patient)
@@ -309,31 +328,62 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Pass PHP counts to JavaScript
+        const appointmentCounts = {
+            all: {{ count($appointments) }},
+            active: {{ $activeCount }},
+            upcoming: {{ $upcomingCount }},
+            missed: {{ $missedCount }},
+            unset: {{ $unsetCount }},
+            complete: {{ $completeCount }}
+        };
+    </script>
 @endsection
 
 @section('script')
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
 
     <script>
-        function showSelectedType(selectElement) {
-            var selected = typeof selectElement === 'string' ? selectElement : selectElement.value;
+        function updateDropdownCounts() {
+            // Always show the fixed counts from server-side calculation
+            $('#all-count').text('All Appointments (' + appointmentCounts.all + ')');
+            $('#active-count').text('Active Appointments (' + appointmentCounts.active + ')');
+            $('#upcoming-count').text('Upcoming Appointments (' + appointmentCounts.upcoming + ')');
+            $('#missed-count').text('Missed Appointments (' + appointmentCounts.missed + ')');
+            $('#unset-count').text('Unset Appointments (' + appointmentCounts.unset + ')');
+            $('#complete-count').text('Completed Appointments (' + appointmentCounts.complete + ')');
+        }
+
+        function filterAppointments(selectedType) {
             var table = $('#appointmentsTable').DataTable();
-
-            if (selected === 'all') {
-                table.columns(5).search('').draw();
+            
+            // Clear any existing filters
+            table.columns().search('').draw();
+            
+            if (selectedType === 'all') {
+                // Show all appointments
+                table.rows().every(function() {
+                    $(this.node()).show();
+                });
             } else {
-                // Map filter value to status text in table
-                var statusMap = {
-                    'active': 'Waiting To Start|Started|Grace Period \\(1hr\\)',
-                    'upcoming': 'Upcoming',
-                    'missed': 'You Absented',
-                    'unset': 'Pending Approval meeting',
-                    'complete': 'Completed'
-                };
-
-                var searchText = statusMap[selected] || '';
-                table.columns(5).search(searchText, true, false, true).draw();
+                // Hide all rows first
+                table.rows().every(function() {
+                    $(this.node()).hide();
+                });
+                
+                // Show only rows with the selected status
+                table.rows().every(function() {
+                    var row = this.node();
+                    if ($(row).data('status') === selectedType) {
+                        $(row).show();
+                    }
+                });
             }
+            
+            // Redraw the table to reflect changes
+            table.draw();
         }
 
         $(document).ready(function() {
@@ -357,32 +407,37 @@
                         '<i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>'
                     );
                     $('.dataTables_filter input').addClass('pl-8');
-                    updateCounts();
-
-                    // Show only active appointments by default
-                    showSelectedType('active');
+                    
+                    // Set initial counts and show active appointments by default
+                    updateDropdownCounts();
+                    filterAppointments('active');
                 }
             });
 
-            // Function to update counts
-            function updateCounts() {
-                const allCount = $('.appointment-row').length;
-                const activeCount = $('.appointment-row[data-status="active"]').length;
-                const upcomingCount = $('.appointment-row[data-status="upcoming"]').length;
-                const missedCount = $('.appointment-row[data-status="missed"]').length;
-                const unsetCount = $('.appointment-row[data-status="unset"]').length;
-                const completeCount = $('.appointment-row[data-status="complete"]').length;
-
-                $('#all-count').text('All Appointments (' + allCount + ')');
-                $('#active-count').text('Active Appointments (' + activeCount + ')');
-                $('#upcoming-count').text('Upcoming Appointments (' + upcomingCount + ')');
-                $('#missed-count').text('Missed Appointments (' + missedCount + ')');
-                $('#unset-count').text('Unset Appointments (' + unsetCount + ')');
-                $('#complete-count').text('Completed Appointments (' + completeCount + ')');
-            }
-
+            // Handle dropdown change
             $('#appointmentTypeFilter').change(function() {
-                showSelectedType(this);
+                filterAppointments(this.value);
+            });
+
+            // Override DataTables search to work with our custom filtering
+            table.on('search.dt', function() {
+                // If there's a search term, show all rows that match search AND current filter
+                var searchTerm = table.search();
+                var currentFilter = $('#appointmentTypeFilter').val();
+                
+                if (searchTerm) {
+                    // Let DataTables handle the search, then apply our filter
+                    setTimeout(function() {
+                        if (currentFilter !== 'all') {
+                            table.rows().every(function() {
+                                var row = this.node();
+                                if ($(row).data('status') !== currentFilter && $(row).is(':visible')) {
+                                    $(row).hide();
+                                }
+                            });
+                        }
+                    }, 100);
+                }
             });
         });
     </script>
