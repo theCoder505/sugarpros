@@ -607,7 +607,7 @@ class PatientFirstSteps extends Controller
 
     public function userDetailsAdding(Request $request)
     {
-        $request->validate([
+        $rules = [
             'fname' => 'required',
             'lname' => 'required',
             'dob' => 'required|date',
@@ -621,7 +621,16 @@ class PatientFirstSteps extends Controller
             'medicare_number' => 'required',
             'ssn' => 'required',
             'notification_type' => 'required'
-        ]);
+        ];
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         $user = JWTAuth::parseToken()->authenticate();
         if (!$user) {
@@ -647,7 +656,7 @@ class PatientFirstSteps extends Controller
 
         $data = [
             'fname' => $request['fname'],
-            'mname' => $request['mname'],
+            'mname' => $request['mname'] ?? '',
             'lname' => $request['lname'],
             'dob' => $request['dob'],
             'gender' => $request['gender'],
@@ -658,7 +667,7 @@ class PatientFirstSteps extends Controller
             'state' => $request['state'],
             'zip_code' => $request['zip_code'],
             'medicare_number' => $request['medicare_number'],
-            'group_number' => $request['group_number'],
+            'group_number' => $request['group_number'] ?? '',
             'ssn' => $request['ssn'],
             'notification_type' => $request['notification_type'],
         ];
@@ -670,8 +679,9 @@ class PatientFirstSteps extends Controller
         $count = UserDetails::where('user_id', $userID)->count();
 
         if ($count > 0) {
-            if (!$licensePath) {
-                $licensePath = UserDetails::where('user_id', $userID)->value('license');
+            // preserve existing license if no new file uploaded
+            if (!isset($data['license'])) {
+                $data['license'] = UserDetails::where('user_id', $userID)->value('license');
             }
             UserDetails::where('user_id', $userID)->update($data);
             $return_text = 'Your details have been updated successfully!';
@@ -681,12 +691,10 @@ class PatientFirstSteps extends Controller
             $return_text = 'Your details have been added successfully!';
         }
 
-
         Notification::insert([
             'user_id' => $patient_id,
             'notification' => $return_text,
         ]);
-
 
         return response()->json([
             'type' => 'success',
