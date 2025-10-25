@@ -620,7 +620,7 @@ class PatientFirstSteps extends Controller
             'zip_code' => 'required',
             'medicare_number' => 'required',
             'ssn' => 'required',
-            'communication' => 'required'
+            'notification_type' => 'required'
         ]);
 
         $user = JWTAuth::parseToken()->authenticate();
@@ -660,7 +660,7 @@ class PatientFirstSteps extends Controller
             'medicare_number' => $request['medicare_number'],
             'group_number' => $request['group_number'],
             'ssn' => $request['ssn'],
-            'notification_type' => $request['communication'],
+            'notification_type' => $request['notification_type'],
         ];
 
         if ($licensePath) {
