@@ -1327,7 +1327,7 @@ class PatientFirstSteps extends Controller
             'insurance_group_number' => $request['insurance_group_number'],
             'license' => $licensePath,
             'ssn' => $request['ssn'],
-            'notification_type' => $request['communication'],
+            'notification_type' => $request['notification_type'],
         ]);
 
         Notification::insert([
