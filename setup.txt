@@ -78,7 +78,7 @@ npm install express ws http
 
 
 
-$socketURL = 'ws://31.97.14.107:3000'; // Or your domain if you have SSL
+$socketURL = 'wss://sugarpros.site/ws/'; // Or your domain if you have SSL
 // If you set up SSL, use:
 // $socketURL = 'wss://yourdomain.com/ws';
 

@@ -5,7 +5,7 @@ const userId = $(".user_type").val() === 'patient'
     : $(".provider_id").val();
 
 function connectWebSocket() {
-    socket = new WebSocket(`ws://31.97.14.107:3000/?userId=${userId}`);
+    socket = new WebSocket(`wss://sugarpros.site/ws/?userId=${userId}`);
 
     socket.onopen = function (e) {
         console.log('Connected to WebSocket server');

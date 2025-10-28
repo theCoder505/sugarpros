@@ -35,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
         // $brandname = 'SugarPros';
         // $brandlogo = '/assets/image/logo.png';
         // $brandicon = '/assets/image/icon.png';
-        $socketURL = 'ws://31.97.14.107:3000';
+        $socketURL = 'wss://sugarpros.site/ws/';
         View::share('brandname', $brandname);
         View::share('brandicon', $brandicon);
         View::share('brandlogo', $brandlogo);
