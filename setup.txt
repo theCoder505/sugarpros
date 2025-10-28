@@ -98,7 +98,7 @@ sudo apt install nginx
 
 sudo nano /etc/nginx/sites-available/websocket
 server {
-    listen 80;
+    listen 8080;
     server_name 31.97.14.107;
 
     # WebSocket configuration
@@ -252,9 +252,32 @@ sudo nano /etc/apache2/sites-available/sugarpros.com.conf
     CustomLog ${APACHE_LOG_DIR}/sugarpros_access.log combined
 </VirtualHost>
 
+
+
+
 sudo nano /etc/apache2/ports.conf
+# If you just change the port or add more ports here, you will likely also
+# have to change the VirtualHost statement in
+# /etc/apache2/sites-enabled/000-default.conf
 
 Listen 8080
+
+<IfModule ssl_module>
+        Listen 443
+</IfModule>
+
+<IfModule mod_gnutls.c>
+        Listen 443
+</IfModule>
+
+
+
+
+
+
+
+
+
 
 sudo a2dissite 000-default.conf
 
@@ -316,5 +339,97 @@ mysql -u root -p sugarpros < /root/e_prescription.sql
 DROP TABLE IF EXISTS admins;
 DROP TABLE IF EXISTS providers;
 DROP TABLE IF EXISTS biller_admins;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sugarpros.site setup as the main website.
+sudo nano /etc/apache2/sites-available/sugarpros.site.conf
+
+<VirtualHost *:80>
+    ServerName sugarpros.site
+    ServerAlias www.sugarpros.site
+    ServerAdmin SugarPros1234@gmail.com
+    DocumentRoot /var/www/sugarpros/public
+
+    <Directory /var/www/sugarpros>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/sugarpros_site_error.log
+    CustomLog ${APACHE_LOG_DIR}/sugarpros_site_access.log combined
+</VirtualHost>
+
+
+Enable the Virtual Hosts
+sudo a2dissite sugarpros.com.conf // disable old config. 
+sudo a2ensite sugarpros.site.conf // enable new config.
+
+
+sudo systemctl stop apache2
+sudo systemctl disable apache2
+
+
+
+sudo nano /etc/nginx/sites-available/sugarpros.site
+server {
+    listen 80;
+    server_name sugarpros.site www.sugarpros.site;
+
+    root /var/www/sugarpros/public;
+    index index.php index.html index.htm;
+
+    # Logs
+    access_log /var/log/nginx/sugarpros_site_access.log;
+    error_log /var/log/nginx/sugarpros_site_error.log;
+
+    # Laravel configuration
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # PHP-FPM configuration
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;  # Adjust PHP version if needed
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    # Deny access to .htaccess files
+    location ~ /\.ht {
+        deny all;
+    }
+
+    # Cache static assets
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+
+
+Response: https://claude.ai/chat/f8be66d9-726f-4c5a-b7b8-c9723002fbf8
+
 
 

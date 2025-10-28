@@ -135,6 +135,21 @@
             ['code' => 'G47.33', 'description' => 'Obstructive sleep apnea'],
             ['code' => 'E03.9', 'description' => 'Hypothyroidism, unspecified'],
         ];
+        
+        $billingCodes = [
+            ['code' => '99204', 'description' => 'New patient visit, moderate complexity decision making, 45-59 mins.'],
+            ['code' => '99205', 'description' => 'New patient visit, high complexity decision making, 60-74 mins.'],
+            ['code' => '99214', 'description' => 'Return visit, moderate complexity decision making, 30-39 mins.'],
+            ['code' => '99215', 'description' => 'Return visit, high complexity decision making, 40-54 mins.'],
+            ['code' => '97802', 'description' => 'MNT initial assessment and intervention, each 15 mins.'],
+            ['code' => '97803', 'description' => 'MNT re-assessment and follow-up intervention, each 15 mins.'],
+            ['code' => 'G0447', 'description' => 'Intensive behavioral therapy for obesity, 15 mins.'],
+            ['code' => '96156', 'description' => 'Health behavior assessment'],
+            ['code' => '96158', 'description' => 'Indiv behavior assessment (1st 30 minutes)'],
+            ['code' => '96159', 'description' => 'Each additional 15 minutes'],
+            ['code' => '95', 'description' => 'Modifier 95: Telemedicine synchronous audio/video must be appended to claim'],
+            ['code' => 'POS 10', 'description' => 'Patient seen at home via telehealth'],
+        ];
     @endphp
 
     @forelse ($appointment as $item)
@@ -350,23 +365,35 @@
                                                     <div>
                                                         <label
                                                             class="block text-sm font-semibold text-gray-700 mb-2">BILLING
-                                                            CODE*</label>
-                                                        <div class="flex items-center rounded-md border-2 overflow-hidden">
-                                                            <input type="text" name="billing_code[]" required
-                                                                class="px-3 py-2 border-r border-gray-300 max-w-[75px] outline-none"
-                                                                placeholder="99214"
-                                                                value="{{ $services_data['billing_code'][$i] ?? '' }}">
-                                                            <input type="text" name="billing_text[]" required
-                                                                class="px-3 py-2 border-l border-gray-300 w-full outline-none"
-                                                                placeholder="Office or other outpatient visit for the evaluation..."
-                                                                value="{{ $services_data['billing_text'][$i] ?? '' }}">
+                                                            CODE (CPT)*</label>
+                                                        <div class="relative billing_code_wrapper">
+                                                            <div class="flex items-center rounded-md border-2 overflow-hidden billing_code_group">
+                                                                <input type="text" name="billing_code[]" required
+                                                                    class="px-3 py-2 border-r border-gray-300 max-w-[75px] outline-none billing_code_input"
+                                                                    placeholder="99214"
+                                                                    value="{{ $services_data['billing_code'][$i] ?? '' }}">
+                                                                <input type="text" name="billing_text[]" required
+                                                                    class="px-3 py-2 border-l border-gray-300 w-full outline-none billing_text_input"
+                                                                    placeholder="Search CPT code or description..."
+                                                                    autocomplete="off"
+                                                                    value="{{ $services_data['billing_text'][$i] ?? '' }}">
+                                                            </div>
+                                                            <div class="icd10-dropdown">
+                                                                @foreach($billingCodes as $cpt)
+                                                                    <div class="icd10-item" data-code="{{ $cpt['code'] }}" data-description="{{ $cpt['description'] }}">
+                                                                        <div class="icd10-code">{{ $cpt['code'] }}</div>
+                                                                        <div class="icd10-description">{{ $cpt['description'] }}</div>
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
                                                         </div>
                                                     </div>
 
                                                     <!-- ICD-10 Diagnoses -->
                                                     <div>
                                                         <label
-                                                            class="block text-sm font-semibold text-gray-700 mb-2">ICD-10 DIAGNOSES</label>
+                                                            class="block text-sm font-semibold text-gray-700 mb-2">ICD-10
+                                                            DIAGNOSES</label>
                                                         <div class="flex gap-2 items-center justify-between mt-2">
                                                             <div class="w-full relative diagnosis_input_wrapper">
                                                                 <div
@@ -510,6 +537,9 @@
         // ICD-10 Codes data
         const icd10CodesData = @json($icd10Codes);
         
+        // Billing Codes data
+        const billingCodesData = @json($billingCodes);
+        
         // Initialize ICD-10 dropdown functionality
         function initICD10Dropdown(wrapper) {
             const codeInput = wrapper.find('.diagnoses_code');
@@ -573,10 +603,88 @@
             });
         }
         
+        // Initialize Billing Code dropdown functionality
+        function initBillingCodeDropdown(wrapper) {
+            const codeInput = wrapper.find('.billing_code_input');
+            const textInput = wrapper.find('.billing_text_input');
+            const dropdown = wrapper.find('.icd10-dropdown');
+            
+            // Show dropdown on focus
+            textInput.on('focus', function() {
+                filterBillingCodes('');
+                dropdown.addClass('active');
+            });
+            
+            // Also show on code input focus
+            codeInput.on('focus', function() {
+                filterBillingCodes('');
+                dropdown.addClass('active');
+            });
+            
+            // Filter on input
+            textInput.on('input', function() {
+                const searchTerm = $(this).val().toLowerCase();
+                filterBillingCodes(searchTerm);
+            });
+            
+            codeInput.on('input', function() {
+                const searchTerm = $(this).val().toLowerCase();
+                filterBillingCodes(searchTerm);
+            });
+            
+            // Handle click on dropdown item
+            dropdown.on('click', '.icd10-item', function() {
+                const code = $(this).data('code');
+                const description = $(this).data('description');
+                
+                codeInput.val(code);
+                textInput.val(description);
+                dropdown.removeClass('active');
+            });
+            
+            // Filter billing codes
+            function filterBillingCodes(searchTerm) {
+                let html = '';
+                let hasResults = false;
+                
+                billingCodesData.forEach(function(item) {
+                    const codeMatch = item.code.toLowerCase().includes(searchTerm);
+                    const descMatch = item.description.toLowerCase().includes(searchTerm);
+                    
+                    if (searchTerm === '' || codeMatch || descMatch) {
+                        html += `
+                            <div class="icd10-item" data-code="${item.code}" data-description="${item.description}">
+                                <div class="icd10-code">${item.code}</div>
+                                <div class="icd10-description">${item.description}</div>
+                            </div>
+                        `;
+                        hasResults = true;
+                    }
+                });
+                
+                if (!hasResults) {
+                    html = '<div class="no-results">No matching billing codes found</div>';
+                }
+                
+                dropdown.html(html);
+            }
+            
+            // Close dropdown when clicking outside
+            $(document).on('click', function(e) {
+                if (!wrapper.is(e.target) && wrapper.has(e.target).length === 0) {
+                    dropdown.removeClass('active');
+                }
+            });
+        }
+        
         // Initialize all existing dropdowns
         $(document).ready(function() {
             $('.diagnosis_input_wrapper').each(function() {
                 initICD10Dropdown($(this));
+            });
+            
+            $('.billing_code_wrapper').each(function() {
+                initBillingCodeDropdown($(this));
             });
 
             // Initialize services array with existing data
@@ -622,11 +730,17 @@
             if (originalAddNewService) {
                 originalAddNewService(element);
             }
-            // Initialize dropdown for the newly added service
+            // Initialize dropdowns for the newly added service
             setTimeout(function() {
                 $('.diagnosis_input_wrapper').each(function() {
                     if (!$(this).data('initialized')) {
                         initICD10Dropdown($(this));
+                        $(this).data('initialized', true);
+                    }
+                });
+                $('.billing_code_wrapper').each(function() {
+                    if (!$(this).data('initialized')) {
+                        initBillingCodeDropdown($(this));
                         $(this).data('initialized', true);
                     }
                 });
@@ -639,11 +753,17 @@
             if (originalDuplicateService) {
                 originalDuplicateService(element);
             }
-            // Initialize dropdown for the duplicated service
+            // Initialize dropdowns for the duplicated service
             setTimeout(function() {
                 $('.diagnosis_input_wrapper').each(function() {
                     if (!$(this).data('initialized')) {
                         initICD10Dropdown($(this));
+                        $(this).data('initialized', true);
+                    }
+                });
+                $('.billing_code_wrapper').each(function() {
+                    if (!$(this).data('initialized')) {
+                        initBillingCodeDropdown($(this));
                         $(this).data('initialized', true);
                     }
                 });
