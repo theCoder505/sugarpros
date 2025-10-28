@@ -364,7 +364,7 @@
                                                     <!-- Billing Code -->
                                                     <div>
                                                         <label
-                                                            class="block text-sm font-semibold text-gray-700 mb-2">BILLING
+                                                            class="block text-sm font-semibold text-gray-700 mb-2">Provider BILLING
                                                             CODE (CPT)*</label>
                                                         <div class="relative billing_code_wrapper">
                                                             <div class="flex items-center rounded-md border-2 overflow-hidden billing_code_group">
