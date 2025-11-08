@@ -176,6 +176,78 @@ class AppointmentBookingByPatientController extends Controller
         }
     }
 
+    public function createNewSubscription($patient_id, $user, $settings)
+    {
+        try {
+            Stripe\Stripe::setApiKey($settings->stripe_secret_key);
+
+            // Create a new customer in Stripe
+            $customer = Stripe\Customer::create([
+                'email' => $user->email,
+                'name' => $user->fname . ' ' . $user->lname,
+                'metadata' => [
+                    'patient_id' => $patient_id,
+                    'user_id' => $user->id
+                ]
+            ]);
+
+            // Create a subscription with a default plan
+            // You might want to make this configurable
+            $subscription = Stripe\Subscription::create([
+                'customer' => $customer->id,
+                'items' => [
+                    [
+                        'price' => $settings->stripe_subscription_price_id, // You'll need to add this to settings
+                    ],
+                ],
+                'payment_behavior' => 'default_incomplete',
+                'expand' => ['latest_invoice.payment_intent'],
+                'metadata' => [
+                    'patient_id' => $patient_id,
+                    'user_id' => $user->id
+                ]
+            ]);
+
+            // Create local subscription record
+            $newSubscription = SubscriptionPlan::create([
+                'availed_by_uid' => $patient_id,
+                'plan_name' => 'Monthly Subscription',
+                'stripe_charge_id' => $subscription->id,
+                'stripe_customer_id' => $customer->id,
+                'stripe_status' => $subscription->status,
+                'stripe_price' => $settings->stripe_amount, // Or your subscription price
+                'quantity' => 1,
+                'trial_ends_at' => null,
+                'ends_at' => null,
+                'availed_date' => now(),
+            ]);
+
+            Log::info('New subscription created for user', [
+                'patient_id' => $patient_id,
+                'subscription_id' => $subscription->id,
+                'customer_id' => $customer->id
+            ]);
+
+            return [
+                'success' => true,
+                'subscription' => $newSubscription,
+                'stripe_subscription' => $subscription,
+                'requires_payment_setup' => $subscription->status === 'incomplete'
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create new subscription', [
+                'patient_id' => $patient_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
     public function completeBooking(Request $request)
     {
         try {
@@ -255,6 +327,7 @@ class AppointmentBookingByPatientController extends Controller
             $charge = null;
             $amount = 0;
             $notification = '';
+            $subscription_created = false;
 
             // Handle payment based on plan
             if ($request->plan == 'subscription') {
@@ -279,18 +352,52 @@ class AppointmentBookingByPatientController extends Controller
                     $notification = 'Using Your Subscription Plan, You\'ve booked an appointment at ' .
                         date('g:i A', strtotime($request->time)) . ' on ' .
                         date('j F, Y', strtotime($request->date));
+
                 } catch (\Stripe\Exception\InvalidRequestException $e) {
-                    // Stripe subscription not found, but local record exists
-                    // Allow booking to proceed (subscription might have been deleted in Stripe but is still valid locally)
-                    $notification = 'Using Your Subscription Plan, You\'ve booked an appointment at ' .
+                    // Stripe subscription not found - create a new one automatically
+                    Log::warning('Stripe subscription not found, creating new one', [
+                        'patient_id' => $patient_id,
+                        'old_subscription_id' => $current_subscription->stripe_charge_id
+                    ]);
+
+                    // Create new subscription
+                    $subscriptionResult = $this->createNewSubscription($patient_id, $user, $settings);
+
+                    if (!$subscriptionResult['success']) {
+                        return response()->json([
+                            'type' => 'error',
+                            'message' => 'Your subscription was not valid and we couldn\'t create a new one. Please try again or use a different payment method.'
+                        ], 400);
+                    }
+
+                    // Update local subscription record
+                    $current_subscription->update([
+                        'stripe_status' => 'canceled',
+                        'ends_at' => now()
+                    ]);
+
+                    $newSubscription = $subscriptionResult['subscription'];
+                    $subscription_created = true;
+
+                    $notification = 'Your subscription has been renewed automatically! You\'ve booked an appointment at ' .
                         date('g:i A', strtotime($request->time)) . ' on ' .
                         date('j F, Y', strtotime($request->date));
 
-                    Log::warning('Subscription exists locally but not in Stripe', [
+                    // If subscription requires payment setup, inform user
+                    if ($subscriptionResult['requires_payment_setup']) {
+                        $notification .= ' Please complete your subscription payment setup.';
+                    }
+
+                } catch (\Exception $e) {
+                    Log::error('Unexpected error during subscription verification', [
                         'patient_id' => $patient_id,
-                        'subscription_id' => $current_subscription->id,
-                        'stripe_charge_id' => $current_subscription->stripe_charge_id
+                        'error' => $e->getMessage()
                     ]);
+
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Subscription verification failed. Please try again.'
+                    ], 500);
                 }
             } else {
                 // Process payment for medicare or cash
@@ -477,15 +584,23 @@ class AppointmentBookingByPatientController extends Controller
                 ];
             }
 
+            if ($subscription_created) {
+                $responseData['subscription_created'] = true;
+                $responseData['message'] = 'Your subscription has been automatically renewed!';
+            }
+
             Log::info('Appointment booked successfully', [
                 'appointment_uid' => $appointmentUid,
                 'patient_id' => $patient_id,
-                'plan' => $request->plan
+                'plan' => $request->plan,
+                'subscription_created' => $subscription_created
             ]);
 
             return response()->json([
                 'type' => 'success',
-                'message' => 'Appointment booked successfully!',
+                'message' => $subscription_created ? 
+                    'Appointment booked successfully! Your subscription has been automatically renewed.' : 
+                    'Appointment booked successfully!',
                 'data' => $responseData
             ], 201);
 
