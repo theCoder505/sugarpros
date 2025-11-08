@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserDetails;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Stripe;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -60,9 +61,14 @@ class AppointmentBookingByPatientController extends Controller
                 ]
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Failed to fetch patient details', [
+                'user_id' => $user->id ?? 'unknown',
+                'error' => $e->getMessage()
+            ]);
+            
             return response()->json([
                 'type' => 'error',
-                'message' => 'Failed to fetch patient details: ' . $e->getMessage()
+                'message' => 'Failed to fetch patient details'
             ], 500);
         }
     }
@@ -81,11 +87,19 @@ class AppointmentBookingByPatientController extends Controller
             $userID = $user->id;
             $patient_id = $user->patient_id;
 
-            $request->validate([
-                'date' => 'required|date',
+            $validator = Validator::make($request->all(), [
+                'date' => 'required|date|after:today',
                 'time' => 'required',
                 'plan' => 'required|in:subscription,medicare,cash'
             ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'type' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
 
             // Check for existing appointment
             $exists = Appointment::where('booked_by', $userID)
@@ -116,6 +130,12 @@ class AppointmentBookingByPatientController extends Controller
             }
 
             $settings = Settings::first();
+            if (!$settings) {
+                return response()->json([
+                    'type' => 'error',
+                    'message' => 'System configuration not found'
+                ], 500);
+            }
 
             // Determine amount based on plan
             $amount = 0;
@@ -144,14 +164,17 @@ class AppointmentBookingByPatientController extends Controller
                 ]
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Failed to initiate booking', [
+                'user_id' => $user->id ?? 'unknown',
+                'error' => $e->getMessage()
+            ]);
+            
             return response()->json([
                 'type' => 'error',
-                'message' => 'Failed to initiate booking: ' . $e->getMessage()
+                'message' => 'Failed to initiate booking'
             ], 500);
         }
     }
-
-
 
     public function completeBooking(Request $request)
     {
@@ -169,25 +192,47 @@ class AppointmentBookingByPatientController extends Controller
 
             // Base validation
             $validationRules = [
-                'date' => 'required|date',
+                'date' => 'required|date|after:today',
                 'time' => 'required',
-                'fname' => 'required',
-                'lname' => 'required',
+                'fname' => 'required|string|max:255',
+                'lname' => 'required|string|max:255',
                 'email' => 'required|email',
                 'plan' => 'required|in:subscription,medicare,cash'
             ];
 
             // Add payment validation if not subscription
             if ($request->plan != 'subscription') {
-                $validationRules['stripe_token'] = 'required';
-                $validationRules['users_full_name'] = 'required';
-                $validationRules['users_address'] = 'required';
+                $validationRules['stripe_token'] = 'required|string';
+                $validationRules['users_full_name'] = 'required|string|max:255';
+                $validationRules['users_address'] = 'required|string|max:500';
                 $validationRules['users_email'] = 'required|email';
-                $validationRules['users_phone'] = 'required';
-                $validationRules['country_code'] = 'required';
+                $validationRules['users_phone'] = 'required|string|max:20';
+                $validationRules['country_code'] = 'required|string|max:10';
             }
 
-            $request->validate($validationRules);
+            $validator = Validator::make($request->all(), $validationRules);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'type' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Check for duplicate appointment
+            $duplicateExists = Appointment::where('booked_by', $userID)
+                ->where('patient_id', $patient_id)
+                ->where('date', $request->date)
+                ->where('time', $request->time)
+                ->exists();
+
+            if ($duplicateExists) {
+                return response()->json([
+                    'type' => 'error',
+                    'message' => 'You already booked an appointment for this date and time'
+                ], 400);
+            }
 
             // Generate appointment UID
             $prefix = 'SA';
@@ -200,6 +245,13 @@ class AppointmentBookingByPatientController extends Controller
             $appointmentUid = $prefix . $year . $month . '-' . $sequence;
 
             $settings = Settings::first();
+            if (!$settings) {
+                return response()->json([
+                    'type' => 'error',
+                    'message' => 'System configuration not found'
+                ], 500);
+            }
+
             $charge = null;
             $amount = 0;
             $notification = '';
@@ -234,7 +286,6 @@ class AppointmentBookingByPatientController extends Controller
                         date('g:i A', strtotime($request->time)) . ' on ' .
                         date('j F, Y', strtotime($request->date));
 
-                    // Optional: Log this discrepancy for admin review
                     Log::warning('Subscription exists locally but not in Stripe', [
                         'patient_id' => $patient_id,
                         'subscription_id' => $current_subscription->id,
@@ -255,20 +306,94 @@ class AppointmentBookingByPatientController extends Controller
                         date('j F, Y', strtotime($request->date));
                 }
 
-                Stripe\Stripe::setApiKey($settings->stripe_secret_key);
+                try {
+                    Stripe\Stripe::setApiKey($settings->stripe_secret_key);
 
-                $charge = Stripe\Charge::create([
-                    'amount' => $amount * 100,
-                    'currency' => strtolower($settings->currency),
-                    'source' => $request->stripe_token,
-                    'description' => 'Appointment booking for ' . $request->users_full_name,
-                    'receipt_email' => $request->users_email,
-                    'metadata' => [
+                    $charge = Stripe\Charge::create([
+                        'amount' => $amount * 100,
+                        'currency' => strtolower($settings->currency),
+                        'source' => $request->stripe_token,
+                        'description' => 'Appointment booking for ' . $request->users_full_name,
+                        'receipt_email' => $request->users_email,
+                        'metadata' => [
+                            'patient_id' => $patient_id,
+                            'appointment_date' => $request->date,
+                            'appointment_time' => $request->time,
+                            'appointment_uid' => $appointmentUid,
+                        ]
+                    ]);
+
+                    // Verify charge was successful
+                    if (!$charge->paid) {
+                        return response()->json([
+                            'type' => 'error',
+                            'message' => 'Payment failed: Charge not completed'
+                        ], 400);
+                    }
+
+                } catch (\Stripe\Exception\CardException $e) {
+                    Log::error('Stripe card payment failed', [
                         'patient_id' => $patient_id,
-                        'appointment_date' => $request->date,
-                        'appointment_time' => $request->time,
-                    ]
-                ]);
+                        'error' => $e->getError()->message
+                    ]);
+                    
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Payment failed: ' . $e->getError()->message
+                    ], 400);
+                    
+                } catch (\Stripe\Exception\InvalidRequestException $e) {
+                    Log::error('Stripe invalid request', [
+                        'patient_id' => $patient_id,
+                        'error' => $e->getMessage()
+                    ]);
+
+                    // Handle invalid token specifically
+                    if (str_contains($e->getMessage(), 'No such token')) {
+                        return response()->json([
+                            'type' => 'error',
+                            'message' => 'Invalid payment token. Please refresh the page and try again.'
+                        ], 400);
+                    }
+
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Payment processing error: ' . $e->getMessage()
+                    ], 400);
+                    
+                } catch (\Stripe\Exception\AuthenticationException $e) {
+                    Log::error('Stripe authentication failed', [
+                        'patient_id' => $patient_id,
+                        'error' => $e->getMessage()
+                    ]);
+                    
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Payment system configuration error'
+                    ], 500);
+                    
+                } catch (\Stripe\Exception\ApiConnectionException $e) {
+                    Log::error('Stripe API connection failed', [
+                        'patient_id' => $patient_id,
+                        'error' => $e->getMessage()
+                    ]);
+                    
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Network error. Please try again.'
+                    ], 503);
+                    
+                } catch (\Stripe\Exception\ApiErrorException $e) {
+                    Log::error('Stripe API error', [
+                        'patient_id' => $patient_id,
+                        'error' => $e->getMessage()
+                    ]);
+                    
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Payment system error: ' . $e->getMessage()
+                    ], 500);
+                }
             }
 
             // Handle insurance card uploads if provided (base64 encoded)
@@ -352,17 +477,25 @@ class AppointmentBookingByPatientController extends Controller
                 ];
             }
 
+            Log::info('Appointment booked successfully', [
+                'appointment_uid' => $appointmentUid,
+                'patient_id' => $patient_id,
+                'plan' => $request->plan
+            ]);
+
             return response()->json([
                 'type' => 'success',
                 'message' => 'Appointment booked successfully!',
                 'data' => $responseData
             ], 201);
-        } catch (\Stripe\Exception\CardException $e) {
-            return response()->json([
-                'type' => 'error',
-                'message' => 'Payment failed: ' . $e->getError()->message
-            ], 400);
+
         } catch (\Exception $e) {
+            Log::error('Booking failed unexpectedly', [
+                'patient_id' => $patient_id ?? 'unknown',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'type' => 'error',
                 'message' => 'Booking failed: ' . $e->getMessage()
@@ -384,21 +517,37 @@ class AppointmentBookingByPatientController extends Controller
             $imageData = base64_decode($base64String);
 
             if ($imageData === false) {
+                Log::warning('Failed to decode base64 image', ['type' => $type]);
                 return null;
             }
 
-            $filename = 'insurance_' . $type . '_' . rand(1111111111, 9999999999) . '.' . $extension;
-            $path = $type . '/';
+            // Validate image size (max 5MB)
+            if (strlen($imageData) > 5 * 1024 * 1024) {
+                Log::warning('Image too large', ['type' => $type, 'size' => strlen($imageData)]);
+                return null;
+            }
+
+            $filename = 'insurance_' . $type . '_' . time() . '_' . rand(1000, 9999) . '.' . $extension;
+            $path = 'uploads/insurance/' . $type . '/';
 
             // Create directory if it doesn't exist
             if (!file_exists(public_path($path))) {
                 mkdir(public_path($path), 0755, true);
             }
 
-            file_put_contents(public_path($path . $filename), $imageData);
+            $fullPath = public_path($path . $filename);
+            
+            if (file_put_contents($fullPath, $imageData) === false) {
+                Log::error('Failed to save image file', ['path' => $fullPath]);
+                return null;
+            }
 
             return $path . $filename;
         } catch (\Exception $e) {
+            Log::error('Failed to upload base64 image', [
+                'type' => $type,
+                'error' => $e->getMessage()
+            ]);
             return null;
         }
     }
