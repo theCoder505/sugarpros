@@ -91,6 +91,8 @@
                     </div>
 
 
+                    <div id="card-errors" class="text-red-500 text-sm mt-2"></div>
+
 
                     <button type="submit" id="applyBtn"
                         class="max-w-[150px] mt-5 bg-[#2889AA] hover:bg-opacity-90  text-white px-4 py-2  text-[18px] font-semibold rounded-lg transition duration-200 float-right">
@@ -131,13 +133,32 @@
 
 
 @section('script')
-    <script src="https://js.stripe.com/v3/"></script>
     <script>
         const stripe = Stripe("{{ $stripe_client_id }}");
         const elements = stripe.elements();
-        const card = elements.create('card');
+        const card = elements.create('card', {
+            style: {
+                base: {
+                    fontSize: '16px',
+                    color: '#424770',
+                    '::placeholder': {
+                        color: '#aab7c4',
+                    },
+                },
+            },
+        });
+
         card.mount("#card-element");
-        const loader = `<div class="loader"></div>`;
+
+        // Handle real-time validation errors from the Card Element
+        card.on('change', function(event) {
+            const displayError = document.getElementById('card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+            } else {
+                displayError.textContent = '';
+            }
+        });
 
         $(document).ready(function() {
             $("#payment-form").on("submit", async function(e) {
@@ -149,49 +170,52 @@
                     return;
                 }
 
-                const {
-                    token,
-                    error
-                } = await stripe.createToken(card);
-                if (error) {
-                    alert(error.message);
-                } else {
+                const $applyBtn = $('#applyBtn');
+                const $form = $(this);
+
+                $applyBtn.prop('disabled', true).html(
+                    '<i class="fas fa-spinner fa-spin"></i> Processing...');
+
+                try {
+                    const {
+                        token,
+                        error
+                    } = await stripe.createToken(card);
+
+                    if (error) {
+                        alert('Card error: ' + error.message);
+                        $applyBtn.prop('disabled', false).html('Apply');
+                        return;
+                    }
+
                     const formData = new FormData(this);
                     formData.append('stripeToken', token.id);
 
-                    // Show loader on button
-                    const $applyBtn = $('#applyBtn');
-                    $applyBtn.prop('disabled', true).html(loader);
-
-                    try {
-                        const response = await fetch($(this).attr('action'), {
-                            method: 'POST',
-                            body: formData,
-                            headers: {
-                                'X-CSRF-TOKEN': $('input[name="_token"]').val()
-                            }
-                        });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            $('#payment-form')[0].reset();
-                            window.location.href = "{{ route('subscription.success') }}";
-                        } else {
-                            alert(data.message || 'Payment failed.');
+                    const response = await fetch($(this).attr('action'), {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRF-TOKEN': $('input[name="_token"]').val(),
+                            'Accept': 'application/json'
                         }
-                    } catch (error) {
-                        alert('An error occurred. Please try again.');
-                    } finally {
-                        $applyBtn.prop('disabled', false).html('Apply');
-                    }
-                }
-            });
+                    });
 
-            // Close popup
-            $('#closeBtn, #completeCheckout').on('click', function() {
-                window.location.href = "{{ route('subscription.success') }}";
+                    const data = await response.json();
+
+                    if (data.success) {
+                        window.location.href = "{{ route('subscription.success') }}";
+                    } else {
+                        alert(data.message || 'Payment failed. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Network error. Please check your connection and try again.');
+                } finally {
+                    $applyBtn.prop('disabled', false).html('Apply');
+                }
             });
         });
     </script>
+
+    
 @endsection

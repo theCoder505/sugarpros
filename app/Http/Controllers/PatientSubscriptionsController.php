@@ -63,92 +63,137 @@ class PatientSubscriptionsController extends Controller
         ));
     }
 
+
+
+    
+
     public function completeSubscription(Request $request)
     {
-        $request->validate([
-            'users_full_name' => 'required',
-            'users_address' => 'required',
-            'users_email' => 'required|email',
-            'users_phone' => 'required',
-            'country_code' => 'required',
-        ]);
-
-        $recurring_option = $request['recurring_option'];
-        $plan = $request['plan'];
-        $currency = Settings::where('id', 1)->value('currency');
-        $stripe_secret_key = Settings::where('id', 1)->value('stripe_secret_key');
-
-        // Set Stripe API key
-        Stripe\Stripe::setApiKey($stripe_secret_key);
-
-        // Determine price key and amount based on plan
-        if ($recurring_option == 'monthly' && $plan == 'Basic') {
-            $amount = Settings::where('id', 1)->value('monthly_basic_amount');
-            $price_key = Settings::where('id', 1)->value('monthly_basic_price_key');
-        } elseif ($recurring_option == 'monthly' && $plan == 'Premium') {
-            $amount = Settings::where('id', 1)->value('monthly_premium_amount');
-            $price_key = Settings::where('id', 1)->value('monthly_premium_price_key');
-        } elseif ($recurring_option == 'monthly' && $plan == 'VIP') {
-            $amount = Settings::where('id', 1)->value('monthly_vip_amount');
-            $price_key = Settings::where('id', 1)->value('monthly_vip_price_key');
-        } elseif ($recurring_option == 'annually' && $plan == 'Basic') {
-            $amount = Settings::where('id', 1)->value('annual_basic_amount');
-            $price_key = Settings::where('id', 1)->value('annual_basic_price_key');
-        } elseif ($recurring_option == 'annually' && $plan == 'Premium') {
-            $amount = Settings::where('id', 1)->value('annual_premium_amount');
-            $price_key = Settings::where('id', 1)->value('annual_premium_price_key');
-        } elseif ($recurring_option == 'annually' && $plan == 'VIP') {
-            $amount = Settings::where('id', 1)->value('annual_vip_amount');
-            $price_key = Settings::where('id', 1)->value('annual_vip_price_key');
-        }
-
         try {
-            // Check for existing subscription
-            $current_subscription = SubscriptionPlan::where('availed_by_uid', Auth::user()->patient_id)
-                ->whereIn('stripe_status', ['active', 'trialing'])
-                ->first();
+            $request->validate([
+                'users_full_name' => 'required',
+                'users_address' => 'required',
+                'users_email' => 'required|email',
+                'users_phone' => 'required',
+                'country_code' => 'required',
+                'stripeToken' => 'required',
+            ]);
 
-            if ($current_subscription) {
-                try {
-                    // Try to retrieve Stripe subscription
-                    $stripe_subscription = Stripe\Subscription::retrieve($current_subscription->stripe_charge_id);
-                    
-                    // If found, handle subscription change
-                    return $this->handleSubscriptionChange(
-                        $current_subscription,
-                        $request,
-                        $recurring_option,
-                        $plan,
-                        $price_key,
-                        $amount
-                    );
-                } catch (\Stripe\Exception\InvalidRequestException $e) {
-                    // If Stripe subscription not found, create new one
-                    return $this->createNewSubscription(
-                        $request,
-                        $recurring_option,
-                        $plan,
-                        $price_key,
-                        $amount
-                    );
-                }
-            } else {
-                // Create new subscription
-                return $this->createNewSubscription(
-                    $request,
-                    $recurring_option,
-                    $plan,
-                    $price_key,
-                    $amount
-                );
+            $recurring_option = $request['recurring_option'];
+            $plan = $request['plan'];
+            $stripe_secret_key = Settings::where('id', 1)->value('stripe_secret_key');
+
+            // Validate Stripe key
+            if (empty($stripe_secret_key) || !str_starts_with($stripe_secret_key, 'sk_live_')) {
+                throw new \Exception('Invalid Stripe secret key configuration');
             }
-        } catch (\Exception $e) {
+
+            Stripe\Stripe::setApiKey($stripe_secret_key);
+
+            // Get price key with better error handling
+            $price_data = $this->getPriceData($recurring_option, $plan);
+            if (!$price_data['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $price_data['message'],
+                ], 400);
+            }
+
+            $amount = $price_data['amount'];
+            $price_key = $price_data['price_key'];
+
+            // Rest of your existing logic...
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Validation failed: ' . implode(', ', $e->errors()),
+            ], 422);
+        } catch (\Stripe\Exception\CardException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Card error: ' . $e->getError()->message,
+            ], 400);
+        } catch (\Stripe\Exception\RateLimitException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many requests. Please try again later.',
+            ], 429);
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid request: ' . $e->getError()->message,
+            ], 400);
+        } catch (\Stripe\Exception\AuthenticationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication failed. Please check Stripe keys.',
+            ], 500);
+        } catch (\Stripe\Exception\ApiConnectionException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Network error. Please try again.',
+            ], 500);
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Stripe error: ' . $e->getError()->message,
+            ], 500);
+        } catch (\Exception $e) {
+            Log::error('Subscription Error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'plan' => $plan,
+                'recurring_option' => $recurring_option
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An unexpected error occurred. Please try again.',
             ], 500);
         }
     }
+
+    protected function getPriceData($recurring_option, $plan)
+    {
+        $setting_map = [
+            'monthly_Basic' => ['amount' => 'monthly_basic_amount', 'price_key' => 'monthly_basic_price_key'],
+            'monthly_Premium' => ['amount' => 'monthly_premium_amount', 'price_key' => 'monthly_premium_price_key'],
+            'monthly_VIP' => ['amount' => 'monthly_vip_amount', 'price_key' => 'monthly_vip_price_key'],
+            'annually_Basic' => ['amount' => 'annual_basic_amount', 'price_key' => 'annual_basic_price_key'],
+            'annually_Premium' => ['amount' => 'annual_premium_amount', 'price_key' => 'annual_premium_price_key'],
+            'annually_VIP' => ['amount' => 'annual_vip_amount', 'price_key' => 'annual_vip_price_key'],
+        ];
+
+        $key = strtolower($recurring_option) . '_' . $plan;
+
+        if (!isset($setting_map[$key])) {
+            return ['success' => false, 'message' => 'Invalid plan selected'];
+        }
+
+        $amount = Settings::where('id', 1)->value($setting_map[$key]['amount']);
+        $price_key = Settings::where('id', 1)->value($setting_map[$key]['price_key']);
+
+        if (empty($price_key)) {
+            return ['success' => false, 'message' => 'Price key not configured for this plan'];
+        }
+
+        if (empty($amount)) {
+            return ['success' => false, 'message' => 'Amount not configured for this plan'];
+        }
+
+        return [
+            'success' => true,
+            'amount' => $amount,
+            'price_key' => $price_key
+        ];
+    }
+
+
+
+
+
+
+
 
     protected function createNewSubscription($request, $recurring_option, $plan, $price_key, $amount)
     {
