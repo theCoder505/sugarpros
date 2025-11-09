@@ -91,14 +91,13 @@
                     </div>
 
 
-                    <div id="card-errors" class="text-red-500 text-sm mt-2"></div>
-
 
                     <button type="submit" id="applyBtn"
                         class="max-w-[150px] mt-5 bg-[#2889AA] hover:bg-opacity-90  text-white px-4 py-2  text-[18px] font-semibold rounded-lg transition duration-200 float-right">
                         Apply
                     </button>
 
+                    <div id="card-errors" class="text-red-500 text-sm mt-2"></div>
 
 
                 </div>
@@ -133,6 +132,8 @@
 
 
 @section('script')
+    <script src="https://js.stripe.com/v3/"></script>
+
     <script>
         const stripe = Stripe("{{ $stripe_client_id }}");
         const elements = stripe.elements();
@@ -217,5 +218,5 @@
         });
     </script>
 
-    
+
 @endsection
