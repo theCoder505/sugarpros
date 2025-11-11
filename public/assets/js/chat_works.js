@@ -194,23 +194,31 @@ if (user_type == 'patient') {
 
 
 
+let emptyTextTemplate = `
+    <div class="flex flex-col items-center justify-center h-full min-h-[400px] text-center p-6">
+        <div class="relative mb-8">
+            <!-- Animated background circle -->
+            <div class="w-24 h-24 rounded-full bg-[#2889AA] opacity-10 empty-state-pulse"></div>
+            
+            <!-- Icon container -->
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <svg xmlns="http://www.w3.org/2000/svg" 
+                     class="h-16 w-16 text-[#2889AA] smooth-fade" 
+                     fill="none" 
+                     viewBox="0 0 24 24" 
+                     stroke="currentColor">
+                    <path stroke-linecap="round" 
+                          stroke-linejoin="round" 
+                          stroke-width="1.5"
+                          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+            </div>
+        </div>
 
-let emptyTextTemplate = `<div class="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-                        <div class="relative mb-8">
-                            <div class="w-24 h-24 rounded-full bg-[#2889AA] opacity-10 animate-pulse"></div>
-                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-[#2889AA]" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                </svg>
-                            </div>
-                        </div>
-
-                        <h3 class="text-2xl font-bold text-gray-800 mb-2">It's quiet here...</h3>
-                        <p class="text-gray-500 max-w-md px-4 mb-6">Send your first message and start the conversation!</p>
-                    </div>`;
-
+        <h3 class="text-2xl font-bold text-gray-800 mb-3 text-pulse">It's quiet here...</h3>
+        <p class="text-gray-500 max-w-md px-4">Send your first message and start the conversation!</p>
+    </div>
+`;
 
 
 

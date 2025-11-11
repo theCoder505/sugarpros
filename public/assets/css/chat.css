@@ -13,7 +13,7 @@
 
 .chating_section {
     height: calc(100vh - 100px);
-    display: flex;
+    /* display: flex; */
     flex-direction: column;
 }
 
@@ -108,16 +108,11 @@ em {
     font-style: italic;
 }
 
-
-
 /* isreceived */
 
 .time_activated {
     border: 1px solid #333;
 }
-
-
-
 
 /* Activity indicator styles */
 .activity_status {
@@ -150,6 +145,79 @@ em {
     max-height: calc(100vh - 370px);
 }
 
+/* Custom animations for empty state */
+.empty-state-pulse {
+    animation: emptyPulse 2s ease-in-out infinite;
+}
+
+.empty-state-ping {
+    animation: emptyPing 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.empty-state-bounce {
+    animation: emptyBounce 1s infinite;
+}
+
+.hidden{
+    display: none;
+}
+
+@keyframes emptyPulse {
+    0%, 100% {
+        opacity: 0.1;
+    }
+    50% {
+        opacity: 0.05;
+    }
+}
+
+@keyframes emptyPing {
+    75%, 100% {
+        transform: scale(1.1);
+        opacity: 0;
+    }
+}
+
+@keyframes emptyBounce {
+    0%, 100% {
+        transform: translateY(-5%);
+        animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+        transform: translateY(0);
+        animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+}
+
+/* Text pulse animation */
+.text-pulse {
+    animation: textPulse 2s ease-in-out infinite;
+}
+
+@keyframes textPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Smooth fade animation */
+.smooth-fade {
+    animation: smoothFade 3s ease-in-out infinite;
+}
+
+@keyframes smoothFade {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.02);
+    }
+}
 
 @media (max-width: 600px) {
     .make_hide {
