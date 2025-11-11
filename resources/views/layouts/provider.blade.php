@@ -18,8 +18,7 @@
     <link rel="shortcut icon" href="{{ $brandicon }}" type="image/x-icon">
 
     {{-- @vite('resources/css/app.css') --}}
-    <script src="https://cdn.tailwindcss.com"></script>
-    {{-- <link rel="stylesheet" href="{{ asset('assets/css/tailwind.css') }}"> --}}
+    <link rel="stylesheet" href="{{ asset('assets/css/tailwind.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/index.css') }}">
 
     @yield('link')

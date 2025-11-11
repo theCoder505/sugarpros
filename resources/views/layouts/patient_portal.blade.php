@@ -14,7 +14,6 @@
 
 
     {{-- @vite('resources/css/app.css') --}}
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ asset('assets/css/tailwind.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/patient.css') }}">
     @yield('link')
