@@ -15,10 +15,10 @@
     @include('layouts.provider_header')
 
 
-    <div class="min-h-screen p-4 font-sans bg-gray-100 md:p-6">
+    <div class="min-h-screen p-4 font-sans bg-gray-100 lg:p-6">
         {{-- max-w-6xl --}}
-        <div class="grid grid-cols-1 p-4 mx-auto bg-white rounded-xl md:grid-cols-3 chating_section relative">
-            <div class="flex flex-col col-span-1 px-4 mb-4 border rounded-md md:border-none md:mb-0 md:rounded-none">
+        <div class="grid grid-cols-1 p-4 mx-auto bg-white rounded-xl lg:grid-cols-3 chating_section relative">
+            <div class="flex flex-col col-span-1 px-4 mb-4 border rounded-md lg:border-none lg:mb-0 lg:rounded-none">
                 <div class="flex flex-col col-span-1 first_part">
                     <h1 class="text-[24px] font-bold text-[#000000] mb-6">SugarPros Chats</h1>
                     <a href="/provider/sugarpros-ai"
@@ -130,7 +130,7 @@
                     </div>
 
 
-                    <div class="flex items-center justify-center h-10 w-10 mr-2 bg-white rounded-md cursor-pointer md:hidden"
+                    <div class="flex items-center justify-center h-10 w-10 mr-2 bg-white rounded-md cursor-pointer lg:hidden"
                         onclick="goToChatList(this)">
                         <i class="fas fa-chevron-left text-2xl text-gray-700"></i>
                     </div>
