@@ -253,7 +253,7 @@
                         No Match Found
                     </p>
 
-                    <div class="dashboard_message_list users_list space-y-2">
+                    <div class="dashboard_message_list users_list space-y-2 max-h-[400px] overflow-y-auto">
                         @forelse ($releted_patients as $patient)
                             <a href="/send-to-chats/patient/{{ $patient->patient_id }}"
                                 class="flex items-center justify-between px-2 py-5 mb-2 bg-gray-100 rounded-lg cursor-pointer chat-item @if ($patient->message_status != 'seen' && $patient->is_sender != Auth::guard('provider')->user()->provider_id) unread @endif"

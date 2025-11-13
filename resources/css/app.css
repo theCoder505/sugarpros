@@ -20,11 +20,47 @@
         @apply bg-button_lite text-white font-semibold;
     }
 
-    .form_group{
+    .form_group {
         @apply grid grid-cols-2 gap-4 items-center;
     }
 
     .pcb_input {
         @apply w-full px-3 py-2 border border-gray-300 rounded-md font-semibold text-black text-sm;
+    }
+
+    .regular_epr {
+        @apply flex cursor-pointer items-center gap-4 rounded-lg px-6 py-2;
+    }
+
+    .active_epr {
+        @apply bg-[#2889AA] text-white;
+    }
+
+    .epr_input_group {
+        @apply border-2 border-[#EDECEC] p-2 lg:p-6 bg-white text-[#667085] rounded-lg;
+    }
+
+    .epr_input {
+        @apply mt-2 border-[#EDECEC] border-2 py-3 px-4 rounded-lg block w-full bg-white;
+    }
+
+    .epr_textarea {
+        @apply mt-2 border-[#EDECEC] border-2 py-3 px-4 rounded-lg block w-full bg-white resize-none;
+    }
+
+    .epr_flex_input {
+        @apply flex mt-2;
+    }
+
+    .epr_number_input {
+        @apply border-[#EDECEC] border-2 py-3 px-4 rounded-lg bg-white;
+    }
+
+    .epr_select_unit {
+        @apply border-[#EDECEC] border-2 border-l-0 py-3 px-4 rounded-r-lg bg-white w-24;
+    }
+
+    .char_count {
+        @apply text-sm text-gray-500;
     }
 }

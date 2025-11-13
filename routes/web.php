@@ -7,6 +7,7 @@ use App\Http\Controllers\BillerAuthController;
 use App\Http\Controllers\BlogsController;
 use App\Http\Controllers\CredentialsController;
 use App\Http\Controllers\DexcomController;
+use App\Http\Controllers\DxScriptController;
 use App\Http\Controllers\EPrescriptionController;
 use App\Http\Controllers\FatSecretController;
 use App\Http\Controllers\HomeController;
@@ -325,11 +326,38 @@ Route::post('/provider/delete-quest-lab/{prescription_id}', [ProviderController:
 
 
 
-Route::get('/provider/e-prescription/{appointment_uid}', [ProviderController::class, 'e_prescription'])->name('provider.e_prescription')->middleware('check_if_provider');
 
 Route::get('/provider/e-prescription/{appointment_uid}/{prescription_id}', [ProviderController::class, 'spec_eprescription'])->middleware('check_if_provider');
 
+
+
+
+// DxScript Integration
+Route::get('/provider/e-prescription/{appointment_uid}', [ProviderController::class, 'e_prescription'])->name('provider.e_prescription')->middleware('check_if_provider');
+
 Route::post('/provider/add-e-prescription', [ProviderController::class, 'addEPrescriptionsNotes'])->middleware('check_if_provider');
+
+Route::get('/provider/prescriptions/{appointment_uid}', [ProviderController::class, 'getAllPrescriptions'])->middleware('check_if_provider');
+
+Route::get('/provider/send-to-dxscript/{prescription_id}', [ProviderController::class, 'sendToDxScript'])->middleware('check_if_provider');
+
+Route::post('/provider/dxscript/get-token', [DxScriptController::class, 'getToken'])->middleware('check_if_provider');
+Route::post('/provider/dxscript/prescription-status', [DxScriptController::class, 'updatePrescriptionStatus'])->middleware('check_if_provider');
+
+// Webhook (no auth - DxScript will call this)
+Route::post('/webhooks/dxscript/prescription', [DxScriptController::class, 'handlePrescriptionWebhook']);
+// Show E-Prescription page
+// Route::get('/provider/e-prescription/{appointment_uid}', [ProviderController::class, 'showEPrescriptionPage'])->middleware('check_if_provider');
+
+
+
+
+
+
+
+
+
+
 
 Route::post('/provider/update-e-prescription', [ProviderController::class, 'updateEPrescriptionsNotes'])->middleware('check_if_provider');
 
