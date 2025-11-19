@@ -48,20 +48,20 @@
                         <label for="First" class="block text-sm font-medium text-gray-700 mb-1">Full
                             Name</label>
                         <input type="text" id="Full" placeholder="Layla" name="users_full_name" required
-                            class="w-full  bg-white text-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none ">
+                            class="w-full  bg-white placeholder:text-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none ">
                     </div>
 
                     <div>
                         <label for="middle" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
                         <input type="text" id="middle" placeholder="Barcelona, Spain" name="users_address" required
-                            class="w-full  bg-white text-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none">
+                            class="w-full  bg-white placeholder:text-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none">
                     </div>
 
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                         <input type="email" id="email" placeholder="samantha.of@example.com" name="users_email"
                             required
-                            class="w-full  bg-white text-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none">
+                            class="w-full  bg-white placeholder:text-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none">
                     </div>
 
 
@@ -70,7 +70,7 @@
                         <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                         <div class="relative flex items-center w-full">
                             <input type="text" id="phone" placeholder="(555) 687-9455" name="users_phone" required
-                                class="w-full bg-white text-[#A3A3A3] px-3 py-2 border border-gray-300 rounded-md pr-16 outline-none" />
+                                class="w-full bg-white placeholder:text-[#A3A3A3] px-3 py-2 border border-gray-300 rounded-md pr-16 outline-none" />
                             <select
                                 class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-transparent text-gray-700 text-sm focus:outline-none"
                                 name="country_code" required>
@@ -130,10 +130,8 @@
 @endsection
 
 
-
 @section('script')
     <script src="https://js.stripe.com/v3/"></script>
-
     <script>
         const stripe = Stripe("{{ $stripe_client_id }}");
         const elements = stripe.elements();
@@ -172,7 +170,6 @@
                 }
 
                 const $applyBtn = $('#applyBtn');
-                const $form = $(this);
 
                 $applyBtn.prop('disabled', true).html(
                     '<i class="fas fa-spinner fa-spin"></i> Processing...');
@@ -203,20 +200,20 @@
 
                     const data = await response.json();
 
-                    if (data.success) {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else if (data.success) {
                         window.location.href = "{{ route('subscription.success') }}";
                     } else {
                         alert(data.message || 'Payment failed. Please try again.');
+                        $applyBtn.prop('disabled', false).html('Apply');
                     }
                 } catch (error) {
                     console.error('Error:', error);
                     alert('Network error. Please check your connection and try again.');
-                } finally {
                     $applyBtn.prop('disabled', false).html('Apply');
                 }
             });
         });
     </script>
-
-
 @endsection

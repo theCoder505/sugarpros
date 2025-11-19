@@ -25,8 +25,11 @@ class PatientSubscriptionsController extends Controller
         $annual_premium_amount = Settings::where('id', 1)->value('annual_premium_amount');
         $annual_vip_amount = Settings::where('id', 1)->value('annual_vip_amount');
 
+        // Get current active subscription (where last_recurrent_date is in the future)
         $current_subscription = SubscriptionPlan::where('availed_by_uid', Auth::user()->patient_id)
-            ->whereIn('stripe_status', ['active', 'trialing'])
+            ->where('stripe_status', 'paid')
+            ->where('last_recurrent_date', '>', now())
+            ->orderBy('last_recurrent_date', 'desc')
             ->first();
 
         $current_recurring_option = $current_subscription->recurring_option ?? null;
@@ -75,223 +78,198 @@ class PatientSubscriptionsController extends Controller
                 'country_code' => 'required|string|max:10',
                 'stripeToken' => 'required|string',
                 'recurring_option' => 'required|in:monthly,annually',
-                'plan' => 'required|in:Basic,Premium,VIP',
+                'plan' => 'nullable|string|max:255',
             ]);
 
             $recurring_option = $request->recurring_option;
-            $plan = $request->plan;
-            
+            $plan = $request->plan ?? 'premium'; // Default to premium if no plan specified
+
             // Get Stripe secret key
             $stripe_secret_key = Settings::where('id', 1)->value('stripe_secret_key');
 
             // Validate Stripe key configuration
             if (empty($stripe_secret_key)) {
+                $this->storePaymentError($request, 'Stripe is not configured. Please contact support.', 0);
                 return response()->json([
                     'success' => false,
                     'message' => 'Stripe is not configured. Please contact support.',
+                    'redirect' => route('subscription.cancel')
                 ], 500);
             }
 
             // Set Stripe API key
             Stripe\Stripe::setApiKey($stripe_secret_key);
 
-            // Get price data
-            $price_data = $this->getPriceData($recurring_option, $plan);
-            if (!$price_data['success']) {
+            // Get amount based on recurring option only
+            $amount = $this->getAmountByRecurringOption($recurring_option);
+
+            if ($amount == null || $amount <= 0) {
+                $this->storePaymentError($request, 'Amount not configured for this subscription. Please contact support.', 0);
                 return response()->json([
                     'success' => false,
-                    'message' => $price_data['message'],
+                    'message' => 'Amount not configured for this subscription. Please contact support.',
+                    'redirect' => route('subscription.cancel')
                 ], 400);
             }
 
-            $amount = $price_data['amount'];
-            $price_key = $price_data['price_key'];
-
             // Check if user has an existing active subscription
             $current_subscription = SubscriptionPlan::where('availed_by_uid', Auth::user()->patient_id)
-                ->whereIn('stripe_status', ['active', 'trialing'])
+                ->where('stripe_status', 'paid')
+                ->where('last_recurrent_date', '>', now())
                 ->first();
 
-            // If there's an existing subscription, verify it with Stripe
+            // If there's an active subscription, mark it as replaced
             if ($current_subscription) {
-                // Check if it's the same plan
-                $is_same_plan = ($current_subscription->recurring_option === $recurring_option) 
-                    && ($current_subscription->plan === $plan);
+                $current_subscription->update([
+                    'stripe_status' => 'replaced',
+                    'last_recurrent_date' => now()
+                ]);
 
-                if ($is_same_plan) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'You are already subscribed to this plan.',
-                    ], 400);
-                }
-
-                // Verify subscription exists in Stripe and is valid
-                try {
-                    $stripe_subscription = Stripe\Subscription::retrieve($current_subscription->stripe_charge_id);
-                    
-                    // Check if subscription is in a state that can be updated
-                    if (in_array($stripe_subscription->status, ['active', 'trialing', 'past_due'])) {
-                        // Subscription is valid, proceed with update
-                        return $this->handleSubscriptionChange(
-                            $current_subscription,
-                            $request,
-                            $recurring_option,
-                            $plan,
-                            $price_key,
-                            $amount
-                        );
-                    } else {
-                        // Subscription exists but is canceled/incomplete - cancel local record and create new
-                        Log::warning('Stripe subscription found but not active, creating new subscription', [
-                            'patient_id' => Auth::user()->patient_id,
-                            'old_subscription_id' => $current_subscription->stripe_charge_id,
-                            'stripe_status' => $stripe_subscription->status
-                        ]);
-
-                        // Mark old subscription as canceled
-                        $current_subscription->update([
-                            'stripe_status' => 'canceled',
-                            'ends_at' => now()
-                        ]);
-
-                        // Create new subscription
-                        return $this->createNewSubscription(
-                            $request,
-                            $recurring_option,
-                            $plan,
-                            $price_key,
-                            $amount,
-                            true // Indicate this is a renewal
-                        );
-                    }
-
-                } catch (\Stripe\Exception\InvalidRequestException $e) {
-                    // Stripe subscription not found - cancel local record and create new one
-                    Log::warning('Stripe subscription not found, creating new subscription', [
-                        'patient_id' => Auth::user()->patient_id,
-                        'old_subscription_id' => $current_subscription->stripe_charge_id,
-                        'error' => $e->getMessage()
-                    ]);
-
-                    // Mark old subscription as canceled
-                    $current_subscription->update([
-                        'stripe_status' => 'canceled',
-                        'ends_at' => now()
-                    ]);
-
-                    // Create new subscription
-                    return $this->createNewSubscription(
-                        $request,
-                        $recurring_option,
-                        $plan,
-                        $price_key,
-                        $amount,
-                        true // Indicate this is a renewal
-                    );
-
-                } catch (\Stripe\Exception\ApiErrorException $e) {
-                    // Other Stripe API errors
-                    Log::error('Stripe API error during subscription verification', [
-                        'patient_id' => Auth::user()->patient_id,
-                        'error' => $e->getMessage()
-                    ]);
-
-                    throw $e; // Re-throw to be caught by outer catch block
-                }
-            } else {
-                // No existing subscription, create new one
-                return $this->createNewSubscription(
-                    $request,
-                    $recurring_option,
-                    $plan,
-                    $price_key,
-                    $amount,
-                    false
-                );
+                Log::info('Previous subscription replaced', [
+                    'patient_id' => Auth::user()->patient_id,
+                    'old_plan' => $current_subscription->plan,
+                    'new_plan' => $plan
+                ]);
             }
 
+            // Create direct payment
+            return $this->createDirectPayment(
+                $request,
+                $recurring_option,
+                $plan,
+                $amount
+            );
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Validation Error: ' . json_encode($e->errors()));
+
+            $this->storePaymentError($request, 'Validation failed: ' . implode(', ', array_map(fn($err) => implode(', ', $err), $e->errors())), 0);
+
             return response()->json([
                 'success' => false,
+                'redirect' => route('subscription.cancel'),
                 'message' => 'Validation failed: ' . implode(', ', array_map(fn($err) => implode(', ', $err), $e->errors())),
             ], 422);
         } catch (\Stripe\Exception\CardException $e) {
             Log::error('Stripe Card Error: ' . $e->getMessage(), [
                 'patient_id' => Auth::user()->patient_id ?? 'unknown'
             ]);
+
+            $amount = $this->getAmountByRecurringOption($request->recurring_option) ?? 0;
+
+            $this->storePaymentError($request, $e->getError()->message, $amount);
+
             return response()->json([
                 'success' => false,
+                'redirect' => route('subscription.cancel'),
                 'message' => 'Card error: ' . $e->getError()->message,
             ], 400);
         } catch (\Stripe\Exception\RateLimitException $e) {
             Log::error('Stripe Rate Limit: ' . $e->getMessage());
+
+            $this->storePaymentError($request, 'Too many requests. Please try again later.', 0);
+
             return response()->json([
                 'success' => false,
+                'redirect' => route('subscription.cancel'),
                 'message' => 'Too many requests. Please try again later.',
             ], 429);
         } catch (\Stripe\Exception\InvalidRequestException $e) {
             Log::error('Stripe Invalid Request: ' . $e->getMessage(), [
                 'patient_id' => Auth::user()->patient_id ?? 'unknown'
             ]);
-            
-            // Handle specific error for invalid token
+
+            $errorMessage = 'Invalid request: ' . $e->getError()->message;
+
             if (str_contains($e->getMessage(), 'No such token')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid payment token. Please refresh the page and try again.',
-                ], 400);
+                $errorMessage = 'Invalid payment token. Please refresh the page and try again.';
             }
-            
+
+            $this->storePaymentError($request, $errorMessage, 0);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid request: ' . $e->getError()->message,
+                'redirect' => route('subscription.cancel'),
+                'message' => $errorMessage,
             ], 400);
         } catch (\Stripe\Exception\AuthenticationException $e) {
             Log::error('Stripe Authentication Error: ' . $e->getMessage());
+
+            $this->storePaymentError($request, 'Authentication failed. Please contact support.', 0);
+
             return response()->json([
                 'success' => false,
+                'redirect' => route('subscription.cancel'),
                 'message' => 'Authentication failed. Please contact support.',
             ], 500);
         } catch (\Stripe\Exception\ApiConnectionException $e) {
             Log::error('Stripe Connection Error: ' . $e->getMessage());
+
+            $this->storePaymentError($request, 'Network error connecting to payment processor. Please check your connection and try again.', 0);
+
             return response()->json([
                 'success' => false,
+                'redirect' => route('subscription.cancel'),
                 'message' => 'Network error connecting to payment processor. Please check your connection and try again.',
             ], 503);
         } catch (\Stripe\Exception\ApiErrorException $e) {
             Log::error('Stripe API Error: ' . $e->getMessage(), [
                 'patient_id' => Auth::user()->patient_id ?? 'unknown'
             ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment processor error: ' . $e->getError()->message,
-            ], 500);
-        } catch (\Exception $e) {
-            Log::error('Subscription Error: ' . $e->getMessage(), [
-                'user_id' => Auth::id() ?? 'unknown',
-                'patient_id' => Auth::user()->patient_id ?? 'unknown',
-                'plan' => $plan ?? 'N/A',
-                'recurring_option' => $recurring_option ?? 'N/A',
-                'trace' => $e->getTraceAsString()
-            ]);
+
+            $this->storePaymentError($request, 'Payment processor error: ' . $e->getError()->message, 0);
 
             return response()->json([
                 'success' => false,
+                'redirect' => route('subscription.cancel'),
+                'message' => 'Payment processor error: ' . $e->getError()->message,
+            ], 500);
+        } catch (\Exception $e) {
+            $this->storePaymentError($request, 'An unexpected error occurred. Please try again or contact support.', 0);
+            return response()->json([
+                'success' => false,
+                'reason' => $e->getMessage(),
+                'redirect' => route('subscription.cancel'),
                 'message' => 'An unexpected error occurred. Please try again or contact support.',
             ], 500);
+        }
+    }
+
+    /**
+     * Store payment error details in session for cancel page
+     */
+    protected function storePaymentError(Request $request, string $errorMessage, float $amount)
+    {
+        session([
+            'payment_error' => [
+                'plan' => $request->plan ?? 'N/A',
+                'recurring_option' => $request->recurring_option ?? 'N/A',
+                'amount' => $amount,
+                'error_message' => $errorMessage
+            ]
+        ]);
+    }
+
+    /**
+     * Get amount based on recurring option only (ignores plan)
+     */
+    protected function getAmountByRecurringOption($recurring_option)
+    {
+        if ($recurring_option == 'monthly') {
+            return Settings::where('id', 1)->value('monthly_premium_amount');
+        } else {
+            return Settings::where('id', 1)->value('annual_premium_amount');
         }
     }
 
     protected function getPriceData($recurring_option, $plan)
     {
         $setting_map = [
-            'monthly_Basic' => ['amount' => 'monthly_basic_amount', 'price_key' => 'monthly_basic_price_key'],
-            'monthly_Premium' => ['amount' => 'monthly_premium_amount', 'price_key' => 'monthly_premium_price_key'],
-            'monthly_VIP' => ['amount' => 'monthly_vip_amount', 'price_key' => 'monthly_vip_price_key'],
-            'annually_Basic' => ['amount' => 'annual_basic_amount', 'price_key' => 'annual_basic_price_key'],
-            'annually_Premium' => ['amount' => 'annual_premium_amount', 'price_key' => 'annual_premium_price_key'],
-            'annually_VIP' => ['amount' => 'annual_vip_amount', 'price_key' => 'annual_vip_price_key'],
+            'monthly_Basic' => 'monthly_basic_amount',
+            'monthly_premium' => 'monthly_premium_amount',
+            'monthly_VIP' => 'monthly_vip_amount',
+            'annually_Basic' => 'annual_basic_amount',
+            'annually_premium' => 'annual_premium_amount',
+            'annually_VIP' => 'annual_vip_amount',
         ];
 
         $key = $recurring_option . '_' . $plan;
@@ -300,12 +278,7 @@ class PatientSubscriptionsController extends Controller
             return ['success' => false, 'message' => 'Invalid plan selected'];
         }
 
-        $amount = Settings::where('id', 1)->value($setting_map[$key]['amount']);
-        $price_key = Settings::where('id', 1)->value($setting_map[$key]['price_key']);
-
-        if (empty($price_key)) {
-            return ['success' => false, 'message' => 'Price key not configured for this plan. Please contact support.'];
-        }
+        $amount = Settings::where('id', 1)->value($setting_map[$key]);
 
         if (empty($amount) || $amount <= 0) {
             return ['success' => false, 'message' => 'Amount not configured for this plan. Please contact support.'];
@@ -313,50 +286,43 @@ class PatientSubscriptionsController extends Controller
 
         return [
             'success' => true,
-            'amount' => $amount,
-            'price_key' => $price_key
+            'amount' => $amount
         ];
     }
 
-    protected function createNewSubscription($request, $recurring_option, $plan, $price_key, $amount, $is_renewal = false)
+    protected function createDirectPayment($request, $recurring_option, $plan, $amount)
     {
         try {
             $stripe_secret_key = Settings::where('id', 1)->value('stripe_secret_key');
+            $currency = Settings::where('id', 1)->value('currency');
+
             Stripe\Stripe::setApiKey($stripe_secret_key);
 
-            // Create Stripe customer
-            $customer = Stripe\Customer::create([
-                'name' => $request->users_full_name . ' | PatientID: ' . Auth::user()->patient_id,
-                'email' => $request->users_email,
-                'phone' => $request->country_code . $request->users_phone,
-                'address' => [
-                    'line1' => $request->users_address,
-                ],
+            // Create one-time direct charge
+            $charge = Stripe\Charge::create([
+                'amount' => $amount * 100, // Amount in cents
+                'currency' => strtolower($currency),
                 'source' => $request->stripeToken,
+                'description' => ucfirst($recurring_option) . ' ' . $plan . ' Plan - Patient ID: ' . Auth::user()->patient_id,
+                'receipt_email' => $request->users_email,
                 'metadata' => [
                     'patient_id' => Auth::user()->patient_id,
                     'user_id' => Auth::id(),
+                    'patient_name' => $request->users_full_name,
+                    'patient_email' => $request->users_email,
+                    'patient_phone' => $request->country_code . $request->users_phone,
                     'plan' => $plan,
-                    'recurring_option' => $recurring_option
+                    'recurring_option' => $recurring_option,
+                    'payment_type' => 'direct_payment'
                 ]
             ]);
 
-            // Create subscription
-            $subscription = Stripe\Subscription::create([
-                'customer' => $customer->id,
-                'items' => [
-                    ['price' => $price_key],
-                ],
-                'expand' => ['latest_invoice.payment_intent'],
-                'metadata' => [
-                    'patient_id' => Auth::user()->patient_id,
-                    'user_id' => Auth::id(),
-                    'plan' => $plan,
-                    'recurring_option' => $recurring_option
-                ]
-            ]);
+            // Calculate expiration date
+            $expiration_date = $recurring_option == 'monthly'
+                ? now()->addMonth()
+                : now()->addYear();
 
-            // Save subscription to database
+            // Save subscription to database - FIX: Use empty string for stripe_customer_id
             SubscriptionPlan::create([
                 'availed_by_uid' => Auth::user()->patient_id,
                 'recurring_option' => $recurring_option,
@@ -367,184 +333,52 @@ class PatientSubscriptionsController extends Controller
                 'users_phone' => $request->users_phone,
                 'country_code' => $request->country_code,
                 'amount' => $amount,
-                'stripe_charge_id' => $subscription->id,
-                'last_recurrent_date' => now(),
-                'stripe_customer_id' => $customer->id,
-                'stripe_status' => $subscription->status,
+                'stripe_charge_id' => $charge->id,
+                'stripe_customer_id' => '', // Use empty string instead of null
+                'stripe_status' => 'paid',
+                'last_recurrent_date' => $expiration_date,
             ]);
 
             // Create notification
-            $notification_message = $is_renewal 
-                ? 'Your subscription has been automatically renewed! New subscription for <b>' . ucfirst($recurring_option) . ' ' . $plan . '</b> has been created.'
-                : 'Your new subscription for <b>' . ucfirst($recurring_option) . ' ' . $plan . '</b> has been successfully created.';
-
             Notification::create([
                 'user_id' => Auth::user()->patient_id,
                 'user_type' => 'patient',
-                'notification' => $notification_message,
+                'notification' => 'Payment successful! Your <b>' . ucfirst($recurring_option) . ' ' . $plan . '</b> plan is now active until ' . $expiration_date->format('M j, Y') . '.',
                 'read_status' => 0,
                 'read_time' => null,
             ]);
 
-            Log::info('New subscription created successfully', [
+            Log::info('Direct payment successful', [
                 'patient_id' => Auth::user()->patient_id,
-                'subscription_id' => $subscription->id,
-                'customer_id' => $customer->id,
+                'charge_id' => $charge->id,
                 'plan' => $plan,
                 'recurring_option' => $recurring_option,
-                'is_renewal' => $is_renewal
+                'amount' => $amount,
+                'expires_at' => $expiration_date->toDateTimeString()
             ]);
 
-            $message = $is_renewal 
-                ? 'Your previous subscription was not valid. A new subscription has been created successfully!'
-                : 'Subscription created successfully!';
-
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'subscription_id' => $subscription->id,
-                'is_renewal' => $is_renewal
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Create Subscription Error: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'patient_id' => Auth::user()->patient_id ?? 'unknown',
-                'plan' => $plan,
-                'recurring_option' => $recurring_option,
-                'trace' => $e->getTraceAsString()
-            ]);
-            throw $e;
-        }
-    }
-
-    protected function handleSubscriptionChange($current_subscription, $request, $new_recurring_option, $new_plan, $new_price_key, $new_amount)
-    {
-        try {
-            $stripe_secret_key = Settings::where('id', 1)->value('stripe_secret_key');
-            Stripe\Stripe::setApiKey($stripe_secret_key);
-
-            // Retrieve existing Stripe subscription
-            $stripe_subscription = Stripe\Subscription::retrieve($current_subscription->stripe_charge_id);
-
-            // Double-check subscription status before updating
-            if (!in_array($stripe_subscription->status, ['active', 'trialing', 'past_due'])) {
-                Log::warning('Attempted to update non-active subscription', [
-                    'patient_id' => Auth::user()->patient_id,
-                    'subscription_id' => $current_subscription->stripe_charge_id,
-                    'status' => $stripe_subscription->status
-                ]);
-
-                // Cancel local subscription and create new one
-                $current_subscription->update([
-                    'stripe_status' => $stripe_subscription->status,
-                    'ends_at' => now()
-                ]);
-
-                return $this->createNewSubscription(
-                    $request,
-                    $new_recurring_option,
-                    $new_plan,
-                    $new_price_key,
-                    $new_amount,
-                    true
-                );
-            }
-
-            // Update subscription with new plan
-            $updated_subscription = Stripe\Subscription::update($current_subscription->stripe_charge_id, [
-                'cancel_at_period_end' => false,
-                'items' => [
-                    [
-                        'id' => $stripe_subscription->items->data[0]->id,
-                        'price' => $new_price_key,
-                    ],
-                ],
-                'proration_behavior' => 'create_prorations',
-                'metadata' => [
-                    'patient_id' => Auth::user()->patient_id,
-                    'user_id' => Auth::id(),
-                    'plan' => $new_plan,
-                    'recurring_option' => $new_recurring_option,
-                    'updated_at' => now()->toDateTimeString()
+            // Store success data in session
+            session([
+                'payment_success' => [
+                    'plan' => $plan,
+                    'recurring_option' => $recurring_option,
+                    'amount' => $amount,
+                    'transaction_id' => $charge->id,
+                    'expires_at' => $expiration_date->format('M j, Y')
                 ]
             ]);
 
-            // Update local database record
-            $current_subscription->update([
-                'recurring_option' => $new_recurring_option,
-                'plan' => $new_plan,
-                'amount' => $new_amount,
-                'stripe_status' => $updated_subscription->status,
-                'last_recurrent_date' => now(),
-                'users_full_name' => $request->users_full_name,
-                'users_address' => $request->users_address,
-                'users_email' => $request->users_email,
-                'users_phone' => $request->users_phone,
-                'country_code' => $request->country_code,
-            ]);
-
-            // Create notification
-            Notification::create([
-                'user_id' => Auth::user()->patient_id,
-                'user_type' => 'patient',
-                'notification' => 'Your subscription has been updated to <b>' . ucfirst($new_recurring_option) . ' ' . $new_plan . '</b>. Changes will take effect immediately.',
-                'read_status' => 0,
-                'read_time' => null,
-            ]);
-
-            Log::info('Subscription updated successfully', [
-                'patient_id' => Auth::user()->patient_id,
-                'subscription_id' => $updated_subscription->id,
-                'old_plan' => $current_subscription->plan,
-                'new_plan' => $new_plan,
-                'old_recurring' => $current_subscription->recurring_option,
-                'new_recurring' => $new_recurring_option
-            ]);
-
             return response()->json([
                 'success' => true,
-                'message' => 'Subscription updated successfully!',
-                'subscription_id' => $updated_subscription->id,
+                'message' => 'Payment successful! Your subscription is now active.',
+                'redirect' => route('subscription.success')
             ]);
-
-        } catch (\Stripe\Exception\InvalidRequestException $e) {
-            // If we get a cancellation error, it means the subscription was canceled
-            // Cancel local record and create new subscription
-            if (str_contains($e->getMessage(), 'canceled subscription')) {
-                Log::warning('Attempted to update canceled subscription, creating new one', [
-                    'patient_id' => Auth::user()->patient_id,
-                    'subscription_id' => $current_subscription->stripe_charge_id,
-                    'error' => $e->getMessage()
-                ]);
-
-                // Mark old subscription as canceled
-                $current_subscription->update([
-                    'stripe_status' => 'canceled',
-                    'ends_at' => now()
-                ]);
-
-                // Create new subscription
-                return $this->createNewSubscription(
-                    $request,
-                    $new_recurring_option,
-                    $new_plan,
-                    $new_price_key,
-                    $new_amount,
-                    true
-                );
-            }
-
-            // Re-throw other errors
-            throw $e;
-
         } catch (\Exception $e) {
-            Log::error('Update Subscription Error: ' . $e->getMessage(), [
+            Log::error('Direct Payment Error: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
                 'patient_id' => Auth::user()->patient_id ?? 'unknown',
-                'subscription_id' => $current_subscription->stripe_charge_id ?? 'N/A',
-                'new_plan' => $new_plan,
-                'new_recurring' => $new_recurring_option,
+                'plan' => $plan,
+                'recurring_option' => $recurring_option,
                 'trace' => $e->getTraceAsString()
             ]);
             throw $e;
@@ -553,110 +387,57 @@ class PatientSubscriptionsController extends Controller
 
     public function subscriptionSuccess()
     {
-        return view('patient.subscriptionSuccess');
+        // Retrieve payment data from session
+        $paymentData = session('payment_success');
+
+        if (!$paymentData) {
+            // If no session data, redirect to subscriptions page
+            return redirect()->route('patient.subscriptions')->with('error', 'No payment data found.');
+        }
+
+        $plan = $paymentData['plan'] ?? 'N/A';
+        $recurring_option = $paymentData['recurring_option'] ?? 'N/A';
+        $amount = $paymentData['amount'] ?? 0;
+        $transaction_id = $paymentData['transaction_id'] ?? 'N/A';
+        $expires_at = $paymentData['expires_at'] ?? 'N/A';
+
+        // Clear the session data after retrieving it
+        session()->forget('payment_success');
+
+        return view('patient.subscriptionSuccess', compact(
+            'plan',
+            'recurring_option',
+            'amount',
+            'transaction_id',
+            'expires_at'
+        ));
     }
 
     public function subscriptionCancel()
     {
-        return view('patient.subscriptionCancel');
-    }
+        // Retrieve payment error data from session
+        $paymentError = session('payment_error');
 
-    public function subscriptionCronJob()
-    {
-        $now = now();
-        $updatedCount = 0;
-        $failedCount = 0;
-
-        // Get all active subscriptions that need renewal
-        $subscriptions = SubscriptionPlan::where('stripe_status', 'active')
-            ->where(function ($query) use ($now) {
-                // Monthly subscriptions (renew every 30 days)
-                $query->where(function ($q) use ($now) {
-                    $q->where('recurring_option', 'monthly')
-                        ->where('last_recurrent_date', '<=', $now->copy()->subDays(30));
-                })
-                // Annual subscriptions (renew every 365 days)
-                ->orWhere(function ($q) use ($now) {
-                    $q->where('recurring_option', 'annually')
-                        ->where('last_recurrent_date', '<=', $now->copy()->subDays(365));
-                });
-            })
-            ->get();
-
-        foreach ($subscriptions as $subscription) {
-            try {
-                // Verify subscription still exists in Stripe
-                $stripe_secret_key = Settings::where('id', 1)->value('stripe_secret_key');
-                Stripe\Stripe::setApiKey($stripe_secret_key);
-
-                $stripe_subscription = Stripe\Subscription::retrieve($subscription->stripe_charge_id);
-
-                // Check if subscription is still active in Stripe
-                if (!in_array($stripe_subscription->status, ['active', 'trialing'])) {
-                    Log::warning('Cron: Subscription not active in Stripe', [
-                        'subscription_id' => $subscription->id,
-                        'stripe_status' => $stripe_subscription->status
-                    ]);
-
-                    // Update local status
-                    $subscription->update([
-                        'stripe_status' => $stripe_subscription->status
-                    ]);
-
-                    $failedCount++;
-                    continue;
-                }
-
-                // Calculate new renewal date based on subscription type
-                $newDate = $subscription->recurring_option == 'monthly'
-                    ? $subscription->last_recurrent_date->addMonth()
-                    : $subscription->last_recurrent_date->addYear();
-
-                // Update the subscription
-                $subscription->update([
-                    'last_recurrent_date' => $newDate
-                ]);
-
-                // Create renewal notification
-                Notification::create([
-                    'user_id' => $subscription->availed_by_uid,
-                    'user_type' => 'patient',
-                    'notification' => 'Your ' . ucfirst($subscription->recurring_option) . ' ' . $subscription->plan .
-                        ' subscription has been renewed. Next renewal: ' . $newDate->format('M j, Y'),
-                    'read_status' => 0,
-                    'read_time' => null,
-                ]);
-
-                $updatedCount++;
-
-            } catch (\Stripe\Exception\InvalidRequestException $e) {
-                // Subscription not found in Stripe
-                Log::error("Cron: Stripe subscription not found for subscription {$subscription->id}", [
-                    'stripe_charge_id' => $subscription->stripe_charge_id,
-                    'error' => $e->getMessage()
-                ]);
-
-                // Mark as canceled
-                $subscription->update([
-                    'stripe_status' => 'canceled',
-                    'ends_at' => now()
-                ]);
-
-                $failedCount++;
-
-            } catch (\Exception $e) {
-                Log::error("Cron: Failed to update subscription {$subscription->id}", [
-                    'error' => $e->getMessage()
-                ]);
-                $failedCount++;
-            }
+        if (!$paymentError) {
+            // If no session data, use default values or redirect
+            return redirect()->route('patient.subscriptions')->with('error', 'No payment error data found.');
         }
 
-        return response()->json([
-            'message' => 'Subscription cron job executed successfully.',
-            'updated_subscriptions' => $updatedCount,
-            'failed_subscriptions' => $failedCount,
-            'total_processed' => $subscriptions->count()
-        ]);
+        $plan = $paymentError['plan'] ?? 'N/A';
+        $recurring_option = $paymentError['recurring_option'] ?? 'N/A';
+        $amount = $paymentError['amount'] ?? 0;
+        $error_message = $paymentError['error_message'] ?? 'Payment failed';
+        $transaction_id = 'FAILED-' . now()->format('Y-m-d') . '-' . rand(1000, 9999);
+
+        // Clear the session data after retrieving it
+        session()->forget('payment_error');
+
+        return view('patient.subscriptionCancel', compact(
+            'plan',
+            'recurring_option',
+            'amount',
+            'transaction_id',
+            'error_message'
+        ));
     }
 }

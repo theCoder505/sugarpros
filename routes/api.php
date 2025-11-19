@@ -9,6 +9,7 @@ use App\Http\Controllers\APIControllers\ProviderClaimMDPatientController;
 use App\Http\Controllers\APIControllers\ProviderWorkFlowsController;
 use App\Http\Controllers\APIControllers\WebsiteBasicController;
 use App\Http\Controllers\AppointmentMeetingController;
+use App\Http\Controllers\PatientSubscriptionsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +42,16 @@ Route::middleware('api')->post('/otp-verification-on-reset', [PatientFirstSteps:
 
 Route::middleware('api')->post('/check-password-validity', [PatientFirstSteps::class, 'checkPasswordValidity']);
 Route::middleware('api')->post('/reset-account-password', [PatientFirstSteps::class, 'resetAccountPassword']);
+
+
+
+
+
+//------------------------------------- API part TODO FOR PAtients -----------------------------------------
+// after the signup, user also need to subscribe. stripe_status is paid, within these: ['active', 'trialing', 'paid']. stripe_status updates to the SubscriptionPlan model.
+// see completeSubscription function from PatientSubscriptionsController page 
+//------------------------------------- API part TODO  -----------------------------------------------------
+
 
 
 

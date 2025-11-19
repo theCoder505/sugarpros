@@ -6,28 +6,18 @@ use App\Models\EPrescription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 
 class DxScriptController extends Controller
 {
-    private $authUrl;
-    private $ssoBaseUrl;
-    private $clientKey;
-    private $clientSecret;
-    private $externalSiteId;
-    private $providerUsername;
-    private $passwordToken;
-
-    public function __construct()
-    {
-        $this->authUrl = config('dxscript.auth_url');
-        $this->ssoBaseUrl = config('dxscript.sso_url');
-        $this->clientKey = config('dxscript.client_key');
-        $this->clientSecret = config('dxscript.client_secret');
-        $this->externalSiteId = config('dxscript.external_site_id');
-        $this->providerUsername = config('dxscript.provider_username');
-        $this->passwordToken = config('dxscript.provider_password_token');
-    }
+    // Hardcoded credentials - Replace with database lookup later
+    private $authUrl = 'https://authtest.sigmapoc.com/api/token';
+    private $ssoBaseUrl = 'https://test2.sigmapoc.com/SSOLogin.asp';
+    private $clientId = 'SUGUAT';
+    private $clientKey = 'EB27C18D-BDEA-4653-817F-15D40DD94910';
+    private $clientSecret = 'CbR2f6EXJz$4W6gUsEC#8vJvu';
+    private $externalSiteId = 'SUGUAT001';
+    private $providerUsername = 'suguatprovider';
+    private $passwordToken = '53258490203b6729b85c84a0f8f158433f3113c2ae48a312f8e39212ec5921ec';
 
     /**
      * Get DxScript authentication token
@@ -40,55 +30,47 @@ class DxScriptController extends Controller
         ]);
 
         try {
-            Log::info('DxScript Token Request Started', [
-                'auth_url' => $this->authUrl,
-                'client_key' => $this->clientKey,
-                'external_site_id' => $this->externalSiteId,
-            ]);
-
-            // Test DNS resolution first
-            $host = parse_url($this->authUrl, PHP_URL_HOST);
-            $ip = gethostbyname($host);
-            
-            if ($ip === $host) {
-                Log::error('DNS Resolution Failed', ['host' => $host]);
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Cannot resolve DxScript server. Please check your network/DNS settings.',
-                    'debug' => [
-                        'host' => $host,
-                        'message' => 'DNS resolution failed'
-                    ]
-                ], 500);
-            }
-
-            Log::info('DNS Resolution Success', ['host' => $host, 'ip' => $ip]);
-
-            // Make the authentication request with increased timeout and retry
+            // DxScript uses Basic Auth with ClientKey as username and ClientSecret as password
             $response = Http::timeout(30)
-                ->retry(3, 100)
-                ->withOptions([
-                    'verify' => false, // Only for testing - remove in production
-                    'http_errors' => false,
+                ->withBasicAuth($this->clientKey, $this->clientSecret)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
                 ])
                 ->post($this->authUrl, [
-                    'client_key' => $this->clientKey,
-                    'client_secret' => $this->clientSecret,
-                    'username' => $this->providerUsername,
-                    'password_token' => $this->passwordToken,
-                    'external_site_id' => $this->externalSiteId,
+                    'Username' => $this->providerUsername,
+                    'PasswordToken' => $this->passwordToken,
+                    'ExternalSiteId' => $this->externalSiteId,
                 ]);
-
-            Log::info('DxScript API Response', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
                 
+                // Check for error in response
+                if (isset($data['error']) && $data['error']) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'DxScript API Error',
+                        'error_code' => $data['error']['code'] ?? 'unknown',
+                        'error_message' => $data['error']['message'] ?? 'Unknown error',
+                        'full_response' => $data,
+                    ], 400);
+                }
+                
+                // Get token from userAccessToken field
+                $token = $data['userAccessToken'] ?? null;
+                
+                if (!$token) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Token not found or empty in response',
+                        'response_data' => $data,
+                        'available_keys' => array_keys($data),
+                    ], 500);
+                }
+                
                 // Build SSO URL
-                $ssoUrl = $this->ssoBaseUrl . '?token=' . $data['token'];
+                $ssoUrl = $this->ssoBaseUrl . '?token=' . $token;
                 
                 // Add patient context if provided
                 if ($request->patient_id) {
@@ -96,60 +78,54 @@ class DxScriptController extends Controller
                     $ssoUrl .= '&location=patient';
                 }
 
-                Log::info('DxScript token generated successfully', [
-                    'provider' => $this->providerUsername,
-                    'patient_id' => $request->patient_id ?? 'none',
-                ]);
-
                 return response()->json([
                     'success' => true,
-                    'token' => $data['token'],
+                    'token' => $token,
                     'sso_url' => $ssoUrl,
-                    'expires_at' => $data['expires_at'] ?? null,
+                    'expires_at' => $data['expiresAt'] ?? $data['ExpiresAt'] ?? null,
                 ]);
             }
 
-            Log::error('DxScript authentication failed', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-
+            // Authentication failed - return detailed error
+            $responseBody = $response->body();
+            $responseJson = $response->json();
+            
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to authenticate with DxScript',
-                'details' => $response->json(),
+                'error' => 'Authentication failed',
                 'status_code' => $response->status(),
+                'response_body' => $responseBody,
+                'response_json' => $responseJson,
+                'response_headers' => $response->headers(),
+                'request_sent' => [
+                    'url' => $this->authUrl,
+                    'client_key' => $this->clientKey,
+                    'username' => $this->providerUsername,
+                    'external_site_id' => $this->externalSiteId,
+                ]
             ], $response->status());
 
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            Log::error('DxScript Connection Error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            
             return response()->json([
                 'success' => false,
-                'error' => 'Connection error: ' . $e->getMessage(),
-                'debug' => [
-                    'auth_url' => $this->authUrl,
-                    'suggestion' => 'Please check: 1) Server internet connection, 2) DNS settings, 3) Firewall rules, 4) SSL certificate verification'
-                ]
+                'error' => 'Connection error: Cannot reach DxScript server',
+                'message' => $e->getMessage(),
+                'suggestion' => 'Check server internet connection, firewall, or VPN settings',
             ], 500);
 
         } catch (\Exception $e) {
-            Log::error('DxScript authentication error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-            ]);
-            
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => 'Unexpected error occurred',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ], 500);
         }
     }
 
     /**
-     * Update prescription status (called from frontend after DxScript interaction)
+     * Update prescription status
      */
     public function updatePrescriptionStatus(Request $request)
     {
@@ -172,11 +148,6 @@ class DxScriptController extends Controller
                 'sent_at' => $request->status === 'sent' ? now() : $prescription->sent_at,
             ]);
 
-            Log::info('Prescription status updated', [
-                'prescription_id' => $prescription->id,
-                'status' => $request->status,
-            ]);
-
             return response()->json([
                 'success' => true,
                 'message' => 'Prescription status updated successfully',
@@ -184,25 +155,29 @@ class DxScriptController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Prescription status update error: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to update prescription status',
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Handle webhook from DxScript when prescription is sent
+     * Handle webhook from DxScript
      */
     public function handlePrescriptionWebhook(Request $request)
     {
-        Log::info('DxScript webhook received', $request->all());
-
         try {
             $eventType = $request->input('event_type');
             $prescriptionData = $request->input('prescription');
+
+            if (!$eventType || !$prescriptionData) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Missing event_type or prescription data',
+                ], 400);
+            }
 
             switch ($eventType) {
                 case 'prescription_created':
@@ -219,20 +194,22 @@ class DxScriptController extends Controller
                     break;
 
                 default:
-                    Log::warning('Unknown DxScript webhook event type: ' . $eventType);
+                    return response()->json([
+                        'status' => 'warning',
+                        'message' => 'Unknown event type: ' . $eventType,
+                    ]);
             }
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Webhook processed',
+                'message' => 'Webhook processed successfully',
             ]);
 
         } catch (\Exception $e) {
-            Log::error('DxScript webhook error: ' . $e->getMessage());
-            
             return response()->json([
                 'status' => 'error',
                 'message' => 'Webhook processing failed',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -242,6 +219,10 @@ class DxScriptController extends Controller
      */
     private function handlePrescriptionSent($data)
     {
+        if (!isset($data['external_patient_id']) || !isset($data['medication']['name'])) {
+            return;
+        }
+
         $prescription = EPrescription::where('patient_id', $data['external_patient_id'])
             ->where('medication', 'LIKE', '%' . $data['medication']['name'] . '%')
             ->where('status', 'draft')
@@ -250,15 +231,10 @@ class DxScriptController extends Controller
         if ($prescription) {
             $prescription->update([
                 'status' => 'sent',
-                'dxscript_prescription_id' => $data['id'],
+                'dxscript_prescription_id' => $data['id'] ?? null,
                 'pharmacy_name' => $data['pharmacy']['name'] ?? null,
                 'pharmacy_ncpdp' => $data['pharmacy']['ncpdp'] ?? null,
                 'sent_at' => now(),
-            ]);
-
-            Log::info('Prescription marked as sent', [
-                'prescription_id' => $prescription->id,
-                'dxscript_id' => $data['id'],
             ]);
         }
     }
@@ -268,16 +244,14 @@ class DxScriptController extends Controller
      */
     private function handlePrescriptionFilled($data)
     {
+        if (!isset($data['id'])) {
+            return;
+        }
+
         $prescription = EPrescription::where('dxscript_prescription_id', $data['id'])->first();
 
         if ($prescription) {
-            $prescription->update([
-                'status' => 'filled',
-            ]);
-
-            Log::info('Prescription marked as filled', [
-                'prescription_id' => $prescription->id,
-            ]);
+            $prescription->update(['status' => 'filled']);
         }
     }
 
@@ -286,50 +260,118 @@ class DxScriptController extends Controller
      */
     private function handlePrescriptionCancelled($data)
     {
+        if (!isset($data['id'])) {
+            return;
+        }
+
         $prescription = EPrescription::where('dxscript_prescription_id', $data['id'])->first();
 
         if ($prescription) {
-            $prescription->update([
-                'status' => 'cancelled',
-            ]);
-
-            Log::info('Prescription marked as cancelled', [
-                'prescription_id' => $prescription->id,
-            ]);
+            $prescription->update(['status' => 'cancelled']);
         }
     }
 
     /**
-     * Test DxScript connectivity
+     * Test connection to DxScript - Multiple auth methods
      */
     public function testConnection()
     {
+        $results = [];
+
+        // Test 1: Basic Auth with body params (CORRECT METHOD)
         try {
-            $host = parse_url($this->authUrl, PHP_URL_HOST);
-            $ip = gethostbyname($host);
-            
-            $results = [
-                'dns_resolution' => $ip !== $host ? 'Success' : 'Failed',
-                'ip_address' => $ip,
-                'host' => $host,
-                'auth_url' => $this->authUrl,
+            $response = Http::timeout(10)
+                ->withBasicAuth($this->clientKey, $this->clientSecret)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])
+                ->post($this->authUrl, [
+                    'Username' => $this->providerUsername,
+                    'PasswordToken' => $this->passwordToken,
+                    'ExternalSiteId' => $this->externalSiteId,
+                ]);
+
+            $results['method_1_basic_auth_with_body'] = [
+                'status_code' => $response->status(),
+                'success' => $response->successful(),
+                'response_body' => $response->body(),
+                'response_json' => $response->json(),
+                'headers' => $response->headers(),
             ];
-
-            // Try to ping the endpoint
-            try {
-                $response = Http::timeout(10)->get($this->authUrl);
-                $results['endpoint_reachable'] = true;
-                $results['status_code'] = $response->status();
-            } catch (\Exception $e) {
-                $results['endpoint_reachable'] = false;
-                $results['error'] = $e->getMessage();
-            }
-
-            return response()->json($results);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage(),
-            ], 500);
+            $results['method_1_basic_auth_with_body'] = ['error' => $e->getMessage()];
         }
+
+        // Test 2: All in body (PascalCase)
+        try {
+            $response = Http::timeout(10)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])
+                ->post($this->authUrl, [
+                    'ClientKey' => $this->clientKey,
+                    'ClientSecret' => $this->clientSecret,
+                    'Username' => $this->providerUsername,
+                    'PasswordToken' => $this->passwordToken,
+                    'ExternalSiteId' => $this->externalSiteId,
+                ]);
+
+            $results['method_2_all_in_body_pascal'] = [
+                'status_code' => $response->status(),
+                'success' => $response->successful(),
+                'response_body' => $response->body(),
+                'response_json' => $response->json(),
+            ];
+        } catch (\Exception $e) {
+            $results['method_2_all_in_body_pascal'] = ['error' => $e->getMessage()];
+        }
+
+        // Test 3: All in body (snake_case)
+        try {
+            $response = Http::timeout(10)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])
+                ->post($this->authUrl, [
+                    'client_key' => $this->clientKey,
+                    'client_secret' => $this->clientSecret,
+                    'username' => $this->providerUsername,
+                    'password_token' => $this->passwordToken,
+                    'external_site_id' => $this->externalSiteId,
+                ]);
+
+            $results['method_3_all_in_body_snake'] = [
+                'status_code' => $response->status(),
+                'success' => $response->successful(),
+                'response_body' => $response->body(),
+                'response_json' => $response->json(),
+            ];
+        } catch (\Exception $e) {
+            $results['method_3_all_in_body_snake'] = ['error' => $e->getMessage()];
+        }
+
+        return response()->json($results, 200, [], JSON_PRETTY_PRINT);
+    }
+
+    /**
+     * Debug endpoint - Remove in production
+     */
+    public function debugCredentials()
+    {
+        return response()->json([
+            'auth_url' => $this->authUrl,
+            'sso_base_url' => $this->ssoBaseUrl,
+            'client_id' => $this->clientId,
+            'client_key' => substr($this->clientKey, 0, 10) . '...',
+            'client_secret' => substr($this->clientSecret, 0, 5) . '...' . substr($this->clientSecret, -5),
+            'external_site_id' => $this->externalSiteId,
+            'provider_username' => $this->providerUsername,
+            'password_token' => substr($this->passwordToken, 0, 10) . '...',
+            'client_secret_length' => strlen($this->clientSecret),
+            'expected_secret_length' => 25,
+        ]);
     }
 }

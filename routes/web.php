@@ -147,8 +147,6 @@ Route::get('/subscription/{recurring_option}/{plan}', [PatientSubscriptionsContr
 Route::post('/complete-subscription', [PatientSubscriptionsController::class, 'completeSubscription'])->name('patient.completeSubscription')->middleware('patient_loggedin');
 Route::get('/subscription/success', [PatientSubscriptionsController::class, 'subscriptionSuccess'])->name('subscription.success');
 Route::get('/subscription/cancel', [PatientSubscriptionsController::class, 'subscriptionCancel'])->name('subscription.cancel');
-// Subscription CRON Job
-Route::get('/subscription/cron-job', [PatientSubscriptionsController::class, 'subscriptionCronJob'])->name('subscription.cronJob');
 
 
 Route::get('/appointments', [HomeController::class, 'appointment_list'])->name('appointment_list')->middleware('patient_loggedin', 'check_if_forms_filled');
@@ -333,6 +331,8 @@ Route::get('/provider/e-prescription/{appointment_uid}/{prescription_id}', [Prov
 
 
 // DxScript Integration
+Route::get('/provider/test-dxscript', [DxScriptController::class, 'testConnection'])->middleware('check_if_provider');
+
 Route::get('/provider/e-prescription/{appointment_uid}', [ProviderController::class, 'e_prescription'])->name('provider.e_prescription')->middleware('check_if_provider');
 
 Route::post('/provider/add-e-prescription', [ProviderController::class, 'addEPrescriptionsNotes'])->middleware('check_if_provider');

@@ -223,6 +223,30 @@ class HomeController extends Controller
     }
 
 
+    private function isValidSubscription($subscription)
+    {
+        if (!$subscription) {
+            return false;
+        }
+
+        if (!in_array($subscription->stripe_status, ['active', 'trialing', 'paid'])) {
+            return false;
+        }
+
+        // Get the base date to calculate from
+        $baseDate = $subscription->last_recurrent_date ?? $subscription->availed_date;
+
+        if (!$baseDate) {
+            return false;
+        }
+
+        // Parse the date and compare with current date
+        $expiryDate = \Carbon\Carbon::parse($baseDate)->startOfDay();
+        $currentDate = now()->startOfDay();
+
+        // Check if subscription is still valid (expiry date is in the future or today)
+        return $currentDate->lte($expiryDate);
+    }
 
 
 
@@ -233,12 +257,27 @@ class HomeController extends Controller
         $fname = UserDetails::where('user_id', $userID)->value('fname');
         $lname = UserDetails::where('user_id', $userID)->value('lname');
         $email = UserDetails::where('user_id', $userID)->value('email');
+
         $current_subscription = SubscriptionPlan::where('availed_by_uid', Auth::user()->patient_id)
-            ->whereIn('stripe_status', ['active', 'trialing'])
+            ->whereIn('stripe_status', ['active', 'trialing', 'paid'])
             ->first();
 
-        if (!$current_subscription) {
-            return redirect()->route('patient.subscriptions')->with('error', 'You need to have an active subscription to book an appointment.');
+        $is_valid_subscription = $this->isValidSubscription($current_subscription);
+
+        // Remove this line: return $current_subscription;
+
+        if (!$current_subscription || !$is_valid_subscription) {
+            $message = 'You need to have an active subscription to book an appointment.';
+
+            if ($current_subscription && !$is_valid_subscription) {
+                $expiryDate = \Carbon\Carbon::parse(
+                    $current_subscription->last_recurrent_date ?? $current_subscription->availed_date
+                )->format('F j, Y');
+
+                $message = "Your subscription expired on {$expiryDate}. Please renew your subscription to book appointments.";
+            }
+
+            return redirect()->route('patient.subscriptions')->with('error', $message);
         }
 
         $prefixcodes = Settings::where('id', 1)->value('prefixcode');
