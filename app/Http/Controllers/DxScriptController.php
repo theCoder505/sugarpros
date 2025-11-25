@@ -17,20 +17,36 @@ class DxScriptController extends Controller
     private $clientSecret = 'CbR2f6EXJz$4W6gUsEC#8vJvu';
     private $externalSiteId = 'SUGUAT001';
     private $providerUsername = 'suguatprovider';
-    private $passwordToken = '53258490203b6729b85c84a0f8f158433f3113c2ae48a312f8e39212ec5921ec';
+    // UPDATED: Using dxPassword instead of PasswordToken based on documentation
+    private $providerPassword = '53258490203b6729b85c84a0f8f158433f3113c2ae48a312f8e39212ec5921ec';
 
     /**
      * Get DxScript authentication token
+     * 
+     * UPDATED: Now uses correct parameter names as per DxScript documentation:
+     * - dxUsername (instead of Username)
+     * - dxPassword (instead of PasswordToken) 
+     * - dxSiteId (instead of ExternalSiteId)
+     * - redirectParam (new parameter for page navigation)
      */
     public function getToken(Request $request)
     {
         $request->validate([
             'provider_username' => 'nullable|string',
             'patient_id' => 'nullable|string',
+            'redirect_to' => 'nullable|string|in:PatSummary,RxSelectMed,RxRequestReview',
         ]);
 
         try {
+            // Build redirectParam based on request
+            $redirectParam = '';
+            if ($request->redirect_to && $request->patient_id) {
+                // Both RedirectTo and Patient_ID are required together
+                $redirectParam = 'RedirectTo=' . $request->redirect_to . '&Patient_ID=' . urlencode($request->patient_id);
+            }
+
             // DxScript uses Basic Auth with ClientKey as username and ClientSecret as password
+            // UPDATED: Corrected body parameter names to match documentation
             $response = Http::timeout(30)
                 ->withBasicAuth($this->clientKey, $this->clientSecret)
                 ->withHeaders([
@@ -38,16 +54,17 @@ class DxScriptController extends Controller
                     'Accept' => 'application/json',
                 ])
                 ->post($this->authUrl, [
-                    'Username' => $this->providerUsername,
-                    'PasswordToken' => $this->passwordToken,
-                    'ExternalSiteId' => $this->externalSiteId,
+                    'dxUsername' => $request->provider_username ?? $this->providerUsername,
+                    'dxPassword' => $this->providerPassword,
+                    'dxSiteId' => $this->externalSiteId,
+                    'redirectParam' => $redirectParam, // Optional parameter
                 ]);
 
             if ($response->successful()) {
                 $data = $response->json();
                 
-                // Check for error in response
-                if (isset($data['error']) && $data['error']) {
+                // Check for error in response (malformed JSON, invalid credentials)
+                if (isset($data['error']) && $data['error'] !== null) {
                     return response()->json([
                         'success' => false,
                         'error' => 'DxScript API Error',
@@ -69,24 +86,23 @@ class DxScriptController extends Controller
                     ], 500);
                 }
                 
-                // Build SSO URL
+                // Build SSO URL with token
+                // IMPORTANT: Token is valid for only 15 seconds after response
+                // and can only be used once
                 $ssoUrl = $this->ssoBaseUrl . '?token=' . $token;
-                
-                // Add patient context if provided
-                if ($request->patient_id) {
-                    $ssoUrl .= '&patient_id=' . urlencode($request->patient_id);
-                    $ssoUrl .= '&location=patient';
-                }
 
                 return response()->json([
                     'success' => true,
                     'token' => $token,
                     'sso_url' => $ssoUrl,
                     'expires_at' => $data['expiresAt'] ?? $data['ExpiresAt'] ?? null,
+                    'warning' => 'Token is valid for only 15 seconds and can only be used once',
+                    'redirect_info' => $redirectParam ? 'User will be redirected to: ' . $request->redirect_to : 'User will land on DxScript homepage/dashboard',
                 ]);
             }
 
-            // Authentication failed - return detailed error
+            // Authentication failed - HTTP 401 (Unauthorized) with no body
+            // or other HTTP error codes
             $responseBody = $response->body();
             $responseJson = $response->json();
             
@@ -100,20 +116,31 @@ class DxScriptController extends Controller
                 'request_sent' => [
                     'url' => $this->authUrl,
                     'client_key' => $this->clientKey,
-                    'username' => $this->providerUsername,
-                    'external_site_id' => $this->externalSiteId,
+                    'username' => $request->provider_username ?? $this->providerUsername,
+                    'site_id' => $this->externalSiteId,
                 ]
             ], $response->status());
 
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('DxScript Connection Error', [
+                'error' => $e->getMessage(),
+                'url' => $this->authUrl,
+            ]);
+
             return response()->json([
                 'success' => false,
                 'error' => 'Connection error: Cannot reach DxScript server',
                 'message' => $e->getMessage(),
-                'suggestion' => 'Check server internet connection, firewall, or VPN settings',
+                'suggestion' => 'Check server internet connection, firewall, TLS 1.2 support, or VPN settings',
             ], 500);
 
         } catch (\Exception $e) {
+            Log::error('DxScript Unexpected Error', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'error' => 'Unexpected error occurred',
@@ -155,6 +182,11 @@ class DxScriptController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Failed to update prescription status', [
+                'error' => $e->getMessage(),
+                'prescription_id' => $request->prescription_id,
+            ]);
+
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to update prescription status',
@@ -169,6 +201,8 @@ class DxScriptController extends Controller
     public function handlePrescriptionWebhook(Request $request)
     {
         try {
+            Log::info('DxScript Webhook Received', ['payload' => $request->all()]);
+
             $eventType = $request->input('event_type');
             $prescriptionData = $request->input('prescription');
 
@@ -194,6 +228,7 @@ class DxScriptController extends Controller
                     break;
 
                 default:
+                    Log::warning('Unknown webhook event type', ['event_type' => $eventType]);
                     return response()->json([
                         'status' => 'warning',
                         'message' => 'Unknown event type: ' . $eventType,
@@ -206,6 +241,11 @@ class DxScriptController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Webhook processing failed', [
+                'error' => $e->getMessage(),
+                'payload' => $request->all(),
+            ]);
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Webhook processing failed',
@@ -220,6 +260,7 @@ class DxScriptController extends Controller
     private function handlePrescriptionSent($data)
     {
         if (!isset($data['external_patient_id']) || !isset($data['medication']['name'])) {
+            Log::warning('Incomplete prescription sent data', ['data' => $data]);
             return;
         }
 
@@ -236,6 +277,8 @@ class DxScriptController extends Controller
                 'pharmacy_ncpdp' => $data['pharmacy']['ncpdp'] ?? null,
                 'sent_at' => now(),
             ]);
+
+            Log::info('Prescription marked as sent', ['prescription_id' => $prescription->id]);
         }
     }
 
@@ -245,6 +288,7 @@ class DxScriptController extends Controller
     private function handlePrescriptionFilled($data)
     {
         if (!isset($data['id'])) {
+            Log::warning('Missing prescription ID in filled event', ['data' => $data]);
             return;
         }
 
@@ -252,6 +296,9 @@ class DxScriptController extends Controller
 
         if ($prescription) {
             $prescription->update(['status' => 'filled']);
+            Log::info('Prescription marked as filled', ['prescription_id' => $prescription->id]);
+        } else {
+            Log::warning('Prescription not found for filled event', ['dxscript_id' => $data['id']]);
         }
     }
 
@@ -261,6 +308,7 @@ class DxScriptController extends Controller
     private function handlePrescriptionCancelled($data)
     {
         if (!isset($data['id'])) {
+            Log::warning('Missing prescription ID in cancelled event', ['data' => $data]);
             return;
         }
 
@@ -268,17 +316,49 @@ class DxScriptController extends Controller
 
         if ($prescription) {
             $prescription->update(['status' => 'cancelled']);
+            Log::info('Prescription marked as cancelled', ['prescription_id' => $prescription->id]);
+        } else {
+            Log::warning('Prescription not found for cancelled event', ['dxscript_id' => $data['id']]);
         }
     }
 
     /**
      * Test connection to DxScript - Multiple auth methods
+     * UPDATED: Now tests with correct parameter names
      */
     public function testConnection()
     {
         $results = [];
 
-        // Test 1: Basic Auth with body params (CORRECT METHOD)
+        // Test 1: Correct method as per documentation
+        // Basic Auth + JSON body with dxUsername, dxPassword, dxSiteId, redirectParam
+        try {
+            $response = Http::timeout(10)
+                ->withBasicAuth($this->clientKey, $this->clientSecret)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])
+                ->post($this->authUrl, [
+                    'dxUsername' => $this->providerUsername,
+                    'dxPassword' => $this->providerPassword,
+                    'dxSiteId' => $this->externalSiteId,
+                    'redirectParam' => '', // Empty string for optional parameter
+                ]);
+
+            $results['method_1_correct_params'] = [
+                'status_code' => $response->status(),
+                'success' => $response->successful(),
+                'response_body' => $response->body(),
+                'response_json' => $response->json(),
+                'headers' => $response->headers(),
+                'note' => 'This is the CORRECT method as per DxScript documentation',
+            ];
+        } catch (\Exception $e) {
+            $results['method_1_correct_params'] = ['error' => $e->getMessage()];
+        }
+
+        // Test 2: OLD method (for comparison) - will likely fail
         try {
             $response = Http::timeout(10)
                 ->withBasicAuth($this->clientKey, $this->clientSecret)
@@ -288,69 +368,45 @@ class DxScriptController extends Controller
                 ])
                 ->post($this->authUrl, [
                     'Username' => $this->providerUsername,
-                    'PasswordToken' => $this->passwordToken,
+                    'PasswordToken' => $this->providerPassword,
                     'ExternalSiteId' => $this->externalSiteId,
                 ]);
 
-            $results['method_1_basic_auth_with_body'] = [
+            $results['method_2_old_params'] = [
                 'status_code' => $response->status(),
                 'success' => $response->successful(),
                 'response_body' => $response->body(),
                 'response_json' => $response->json(),
-                'headers' => $response->headers(),
+                'note' => 'OLD parameter names - likely to fail',
             ];
         } catch (\Exception $e) {
-            $results['method_1_basic_auth_with_body'] = ['error' => $e->getMessage()];
+            $results['method_2_old_params'] = ['error' => $e->getMessage()];
         }
 
-        // Test 2: All in body (PascalCase)
+        // Test 3: Test with redirectParam
         try {
             $response = Http::timeout(10)
+                ->withBasicAuth($this->clientKey, $this->clientSecret)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                 ])
                 ->post($this->authUrl, [
-                    'ClientKey' => $this->clientKey,
-                    'ClientSecret' => $this->clientSecret,
-                    'Username' => $this->providerUsername,
-                    'PasswordToken' => $this->passwordToken,
-                    'ExternalSiteId' => $this->externalSiteId,
+                    'dxUsername' => $this->providerUsername,
+                    'dxPassword' => $this->providerPassword,
+                    'dxSiteId' => $this->externalSiteId,
+                    'redirectParam' => 'RedirectTo=RxSelectMed&Patient_ID=TEST123',
                 ]);
 
-            $results['method_2_all_in_body_pascal'] = [
+            $results['method_3_with_redirect'] = [
                 'status_code' => $response->status(),
                 'success' => $response->successful(),
                 'response_body' => $response->body(),
                 'response_json' => $response->json(),
+                'note' => 'Testing with redirectParam to go directly to Rx Writer',
             ];
         } catch (\Exception $e) {
-            $results['method_2_all_in_body_pascal'] = ['error' => $e->getMessage()];
-        }
-
-        // Test 3: All in body (snake_case)
-        try {
-            $response = Http::timeout(10)
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                ])
-                ->post($this->authUrl, [
-                    'client_key' => $this->clientKey,
-                    'client_secret' => $this->clientSecret,
-                    'username' => $this->providerUsername,
-                    'password_token' => $this->passwordToken,
-                    'external_site_id' => $this->externalSiteId,
-                ]);
-
-            $results['method_3_all_in_body_snake'] = [
-                'status_code' => $response->status(),
-                'success' => $response->successful(),
-                'response_body' => $response->body(),
-                'response_json' => $response->json(),
-            ];
-        } catch (\Exception $e) {
-            $results['method_3_all_in_body_snake'] = ['error' => $e->getMessage()];
+            $results['method_3_with_redirect'] = ['error' => $e->getMessage()];
         }
 
         return response()->json($results, 200, [], JSON_PRETTY_PRINT);
@@ -358,6 +414,7 @@ class DxScriptController extends Controller
 
     /**
      * Debug endpoint - Remove in production
+     * UPDATED: Shows both old and new parameter names
      */
     public function debugCredentials()
     {
@@ -369,9 +426,57 @@ class DxScriptController extends Controller
             'client_secret' => substr($this->clientSecret, 0, 5) . '...' . substr($this->clientSecret, -5),
             'external_site_id' => $this->externalSiteId,
             'provider_username' => $this->providerUsername,
-            'password_token' => substr($this->passwordToken, 0, 10) . '...',
+            'provider_password' => substr($this->providerPassword, 0, 10) . '...',
             'client_secret_length' => strlen($this->clientSecret),
-            'expected_secret_length' => 25,
+            'provider_password_length' => strlen($this->providerPassword),
+            'notes' => [
+                'parameter_changes' => [
+                    'OLD: Username → NEW: dxUsername',
+                    'OLD: PasswordToken → NEW: dxPassword',
+                    'OLD: ExternalSiteId → NEW: dxSiteId',
+                    'NEW: redirectParam (optional)',
+                ],
+                'token_validity' => 'Tokens are valid for only 15 seconds',
+                'token_usage' => 'Tokens can only be used once',
+                'tls_requirement' => 'TLS 1.2 should be used for connections',
+            ],
+        ]);
+    }
+
+    /**
+     * Get available redirect options
+     * Helper endpoint to show available redirect pages
+     */
+    public function getRedirectOptions()
+    {
+        return response()->json([
+            'available_redirects' => [
+                [
+                    'value' => 'PatSummary',
+                    'description' => 'Patient Chart Summary page',
+                    'requires_patient_id' => true,
+                ],
+                [
+                    'value' => 'RxSelectMed',
+                    'description' => 'Script/Rx Writer page (E-prescribing page)',
+                    'requires_patient_id' => true,
+                ],
+                [
+                    'value' => 'RxRequestReview',
+                    'description' => 'Rx Request page',
+                    'requires_patient_id' => true,
+                ],
+            ],
+            'usage' => 'Include redirect_to and patient_id parameters when calling getToken endpoint',
+            'example' => [
+                'redirect_to' => 'RxSelectMed',
+                'patient_id' => '999999',
+            ],
+            'notes' => [
+                'If no redirect is specified, user lands on DxScript homepage/dashboard',
+                'RedirectTo and Patient_ID must be used together',
+                'Patient_ID should be the external patient ID from your system',
+            ],
         ]);
     }
 }
