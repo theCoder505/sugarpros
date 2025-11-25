@@ -268,23 +268,22 @@
                         </div>
                         <label class="inline-flex items-center cursor-pointer plan-label mt-0" id="label-medicare">
                             <input type="radio" name="plan" value="medicare"
-                                class="form-radio text-[#2889AA] border-gray-300" onchange="handlePlanChange(this)">
+                                class="form-radio text-[#2889AA] border-gray-300" onchange="handlePlanChange(this)"
+                                {{ (isset($plan) ? $plan : 'cash') == 'medicare' ? 'checked' : '' }}>
                             <span class="ml-1">Medicare</span>
                         </label>
-                        @if ($this_month_appointments > 0)
-                            <label class="inline-flex items-center cursor-pointer plan-label" id="label-cash">
-                                <input type="radio" name="plan" value="cash" checked
-                                    class="form-radio text-[#2889AA] border-gray-300" onchange="handlePlanChange(this)">
-                                <span class="ml-1">Cash Payment</span>
-                            </label>
-                        @else
-                            <label class="inline-flex items-center cursor-pointer plan-label mt-0"
-                                id="label-subscription">
-                                <input type="radio" name="plan" value="subscription" checked
-                                    class="form-radio text-[#2889AA] border-gray-300" onchange="handlePlanChange(this)">
-                                <span class="ml-1">Use Subscription</span>
-                            </label>
-                        @endif
+                        <label class="inline-flex items-center cursor-pointer plan-label" id="label-cash">
+                            <input type="radio" name="plan" value="cash"
+                                class="form-radio text-[#2889AA] border-gray-300" onchange="handlePlanChange(this)"
+                                {{ (isset($plan) ? $plan : 'cash') == 'cash' ? 'checked' : '' }}>
+                            <span class="ml-1">Cash Payment</span>
+                        </label>
+                        <label class="inline-flex items-center cursor-pointer plan-label mt-0" id="label-subscription">
+                            <input type="radio" name="plan" value="subscription"
+                                class="form-radio text-[#2889AA] border-gray-300" onchange="handlePlanChange(this)"
+                                {{ (isset($plan) ? $plan : 'cash') == 'subscription' ? 'checked' : '' }}>
+                            <span class="ml-1">Use Subscription</span>
+                        </label>
                     </div>
                 </div>
 

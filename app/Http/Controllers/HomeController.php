@@ -250,7 +250,7 @@ class HomeController extends Controller
 
 
 
-    public function appointment()
+    public function appointment(Request $request)
     {
         $userID = Auth::user()->id;
         $patient_id = Auth::user()->patient_id;
@@ -264,21 +264,25 @@ class HomeController extends Controller
 
         $is_valid_subscription = $this->isValidSubscription($current_subscription);
 
-        // Remove this line: return $current_subscription;
-
-        if (!$current_subscription || !$is_valid_subscription) {
-            $message = 'You need to have an active subscription to book an appointment.';
-
-            if ($current_subscription && !$is_valid_subscription) {
-                $expiryDate = \Carbon\Carbon::parse(
-                    $current_subscription->last_recurrent_date ?? $current_subscription->availed_date
-                )->format('F j, Y');
-
-                $message = "Your subscription expired on {$expiryDate}. Please renew your subscription to book appointments.";
-            }
-
-            return redirect()->route('patient.subscriptions')->with('error', $message);
+        if ($request['plan']) {
+            $plan = $request['plan'];
+        }else{
+            $plan = 'subscription';
         }
+
+        // if (!$current_subscription || !$is_valid_subscription) {
+        //     $message = 'You need to have an active subscription to book an appointment.';
+
+        //     if ($current_subscription && !$is_valid_subscription) {
+        //         $expiryDate = \Carbon\Carbon::parse(
+        //             $current_subscription->last_recurrent_date ?? $current_subscription->availed_date
+        //         )->format('F j, Y');
+
+        //         $message = "Your subscription expired on {$expiryDate}. Please renew your subscription to book appointments.";
+        //     }
+
+        //     return redirect()->route('patient.subscriptions')->with('error', $message);
+        // }
 
         $prefixcodes = Settings::where('id', 1)->value('prefixcode');
 
@@ -289,7 +293,7 @@ class HomeController extends Controller
             ])
             ->count();
 
-        return view('patient.appointment', compact('patient_id', 'fname', 'lname', 'email', 'this_month_appointments', 'prefixcodes'));
+        return view('patient.appointment', compact('patient_id', 'fname', 'lname', 'email', 'this_month_appointments', 'prefixcodes', 'plan'));
     }
 
 

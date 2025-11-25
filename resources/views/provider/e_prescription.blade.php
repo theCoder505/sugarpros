@@ -65,11 +65,11 @@
                 <div class="bg-[#2889AA] flex items-center justify-center h-12 w-12 rounded-lg">
                     <img src="/assets/image/link_icon.png" alt="">
                 </div>
-                <div class="mb-4 text-center lg:text-left">
+                <div class="mb-4 lg:text-left">
                     <h1 class="text-xl font-semibold text-[#000000]">
                         E-Prescription
                     </h1>
-                    <p class="text-gray-600">
+                    <p class="text-gray-600 text-center">
                         Add and manage patient medications
                     </p>
                 </div>
@@ -144,9 +144,73 @@
 
                         <div class="epr_input_group">
                             <label for="diagnosis">DIAGNOSIS</label>
-                            <input type="text" name="diagnosis" id="diagnosis" class="epr_input"
-                                value="{{ old('diagnosis') }}" placeholder="e.g., Upper Respiratory Infection">
-                            <p class="text-sm text-gray-500 mt-1">Enter ICD-10 code or diagnosis description</p>
+                            <select name="diagnosis" id="diagnosis" class="epr_input">
+                                <option value="">Select A ICD-10 Diagnosis</option>
+                                <!-- Type 2 Diabetes Mellitus -->
+                                <option value="E11.9 - Type 2 diabetes mellitus without complications" {{ old('diagnosis') == 'E11.9 - Type 2 diabetes mellitus without complications' ? 'selected' : '' }}>E11.9 - Type 2 diabetes mellitus without complications</option>
+                                <option value="E11.65 - Type 2 diabetes mellitus with hyperglycemia" {{ old('diagnosis') == 'E11.65 - Type 2 diabetes mellitus with hyperglycemia' ? 'selected' : '' }}>E11.65 - Type 2 diabetes mellitus with hyperglycemia</option>
+                                <option value="E11.21 - Type 2 diabetes mellitus with nephropathy" {{ old('diagnosis') == 'E11.21 - Type 2 diabetes mellitus with nephropathy' ? 'selected' : '' }}>E11.21 - Type 2 diabetes mellitus with nephropathy</option>
+                                <option value="E11.22 - Type 2 diabetes mellitus with chronic kidney disease" {{ old('diagnosis') == 'E11.22 - Type 2 diabetes mellitus with chronic kidney disease' ? 'selected' : '' }}>E11.22 - Type 2 diabetes mellitus with chronic kidney disease</option>
+                                <option value="E11.40 - Type 2 diabetes mellitus with neuropathy, unspecified" {{ old('diagnosis') == 'E11.40 - Type 2 diabetes mellitus with neuropathy, unspecified' ? 'selected' : '' }}>E11.40 - Type 2 diabetes mellitus with neuropathy, unspecified</option>
+                                <option value="E11.8 - Type 2 diabetes mellitus with other specified complications" {{ old('diagnosis') == 'E11.8 - Type 2 diabetes mellitus with other specified complications' ? 'selected' : '' }}>E11.8 - Type 2 diabetes mellitus with other specified complications</option>
+                                <option value="E13.9 - Other specified diabetes mellitus without complications" {{ old('diagnosis') == 'E13.9 - Other specified diabetes mellitus without complications' ? 'selected' : '' }}>E13.9 - Other specified diabetes mellitus without complications</option>
+                                
+                                <!-- Type 1 Diabetes Mellitus -->
+                                <option value="E10.9 - Type 1 diabetes mellitus without complications" {{ old('diagnosis') == 'E10.9 - Type 1 diabetes mellitus without complications' ? 'selected' : '' }}>E10.9 - Type 1 diabetes mellitus without complications</option>
+                                <option value="E10.65 - Type 1 diabetes mellitus with hyperglycemia" {{ old('diagnosis') == 'E10.65 - Type 1 diabetes mellitus with hyperglycemia' ? 'selected' : '' }}>E10.65 - Type 1 diabetes mellitus with hyperglycemia</option>
+                                <option value="E10.649 - Type 1 diabetes mellitus with hypoglycemia without coma" {{ old('diagnosis') == 'E10.649 - Type 1 diabetes mellitus with hypoglycemia without coma' ? 'selected' : '' }}>E10.649 - Type 1 diabetes mellitus with hypoglycemia without coma</option>
+                                <option value="E10.21 - Type 1 diabetes mellitus with nephropathy" {{ old('diagnosis') == 'E10.21 - Type 1 diabetes mellitus with nephropathy' ? 'selected' : '' }}>E10.21 - Type 1 diabetes mellitus with nephropathy</option>
+                                <option value="E10.22 - Type 1 diabetes mellitus with chronic kidney disease" {{ old('diagnosis') == 'E10.22 - Type 1 diabetes mellitus with chronic kidney disease' ? 'selected' : '' }}>E10.22 - Type 1 diabetes mellitus with chronic kidney disease</option>
+                                <option value="E10.40 - Type 1 diabetes mellitus with neuropathy, unspecified" {{ old('diagnosis') == 'E10.40 - Type 1 diabetes mellitus with neuropathy, unspecified' ? 'selected' : '' }}>E10.40 - Type 1 diabetes mellitus with neuropathy, unspecified</option>
+                                <option value="E10.42 - Type 1 diabetes mellitus with polyneuropathy" {{ old('diagnosis') == 'E10.42 - Type 1 diabetes mellitus with polyneuropathy' ? 'selected' : '' }}>E10.42 - Type 1 diabetes mellitus with polyneuropathy</option>
+                                <option value="E10.51 - Type 1 diabetes mellitus with circulatory complications" {{ old('diagnosis') == 'E10.51 - Type 1 diabetes mellitus with circulatory complications' ? 'selected' : '' }}>E10.51 - Type 1 diabetes mellitus with circulatory complications</option>
+                                <option value="E10.59 - Type 1 diabetes mellitus with other circulatory complications" {{ old('diagnosis') == 'E10.59 - Type 1 diabetes mellitus with other circulatory complications' ? 'selected' : '' }}>E10.59 - Type 1 diabetes mellitus with other circulatory complications</option>
+                                <option value="E10.610 - Type 1 diabetes mellitus with diabetic neuropathic arthropathy" {{ old('diagnosis') == 'E10.610 - Type 1 diabetes mellitus with diabetic neuropathic arthropathy' ? 'selected' : '' }}>E10.610 - Type 1 diabetes mellitus with diabetic neuropathic arthropathy</option>
+                                <option value="E10.618 - Type 1 diabetes mellitus with other musculoskeletal complications" {{ old('diagnosis') == 'E10.618 - Type 1 diabetes mellitus with other musculoskeletal complications' ? 'selected' : '' }}>E10.618 - Type 1 diabetes mellitus with other musculoskeletal complications</option>
+                                <option value="E10.621 - Type 1 diabetes mellitus with foot ulcer" {{ old('diagnosis') == 'E10.621 - Type 1 diabetes mellitus with foot ulcer' ? 'selected' : '' }}>E10.621 - Type 1 diabetes mellitus with foot ulcer</option>
+                                <option value="E10.69 - Type 1 diabetes mellitus with other specified complications" {{ old('diagnosis') == 'E10.69 - Type 1 diabetes mellitus with other specified complications' ? 'selected' : '' }}>E10.69 - Type 1 diabetes mellitus with other specified complications</option>
+                                <option value="E10.8 - Type 1 diabetes mellitus with unspecified complications" {{ old('diagnosis') == 'E10.8 - Type 1 diabetes mellitus with unspecified complications' ? 'selected' : '' }}>E10.8 - Type 1 diabetes mellitus with unspecified complications</option>
+                                <option value="E10.11 - Type 1 diabetes mellitus with ketoacidosis with coma" {{ old('diagnosis') == 'E10.11 - Type 1 diabetes mellitus with ketoacidosis with coma' ? 'selected' : '' }}>E10.11 - Type 1 diabetes mellitus with ketoacidosis with coma</option>
+                                <option value="E10.10 - Type 1 diabetes mellitus with ketoacidosis without coma" {{ old('diagnosis') == 'E10.10 - Type 1 diabetes mellitus with ketoacidosis without coma' ? 'selected' : '' }}>E10.10 - Type 1 diabetes mellitus with ketoacidosis without coma</option>
+                                
+                                <!-- Obesity and Weight Management -->
+                                <option value="E66.01 - Morbid obesity due to excess calories" {{ old('diagnosis') == 'E66.01 - Morbid obesity due to excess calories' ? 'selected' : '' }}>E66.01 - Morbid obesity due to excess calories</option>
+                                <option value="E66.9 - Obesity, unspecified" {{ old('diagnosis') == 'E66.9 - Obesity, unspecified' ? 'selected' : '' }}>E66.9 - Obesity, unspecified</option>
+                                <option value="E66.3 - Overweight" {{ old('diagnosis') == 'E66.3 - Overweight' ? 'selected' : '' }}>E66.3 - Overweight</option>
+                                <option value="Z68.41 - Body mass index (BMI) 40.0-44.9" {{ old('diagnosis') == 'Z68.41 - Body mass index (BMI) 40.0-44.9' ? 'selected' : '' }}>Z68.41 - Body mass index (BMI) 40.0-44.9</option>
+                                <option value="Z68.42 - Body mass index (BMI) 45.0-49.9" {{ old('diagnosis') == 'Z68.42 - Body mass index (BMI) 45.0-49.9' ? 'selected' : '' }}>Z68.42 - Body mass index (BMI) 45.0-49.9</option>
+                                <option value="Z68.43 - Body mass index (BMI) 50.0-59.9" {{ old('diagnosis') == 'Z68.43 - Body mass index (BMI) 50.0-59.9' ? 'selected' : '' }}>Z68.43 - Body mass index (BMI) 50.0-59.9</option>
+                                <option value="Z68.44 - Body mass index (BMI) 60.0-69.9" {{ old('diagnosis') == 'Z68.44 - Body mass index (BMI) 60.0-69.9' ? 'selected' : '' }}>Z68.44 - Body mass index (BMI) 60.0-69.9</option>
+                                <option value="Z68.45 - Body mass index (BMI) 70 or greater" {{ old('diagnosis') == 'Z68.45 - Body mass index (BMI) 70 or greater' ? 'selected' : '' }}>Z68.45 - Body mass index (BMI) 70 or greater</option>
+                                <option value="Z71.3 - Dietary counseling and surveillance" {{ old('diagnosis') == 'Z71.3 - Dietary counseling and surveillance' ? 'selected' : '' }}>Z71.3 - Dietary counseling and surveillance</option>
+                                
+                                <!-- Health Behavior and Psychosocial Factors -->
+                                <option value="Z91.14 - Patient's other noncompliance with medication regimen" {{ old('diagnosis') == 'Z91.14 - Patient\'s other noncompliance with medication regimen' ? 'selected' : '' }}>Z91.14 - Patient's other noncompliance with medication regimen</option>
+                                <option value="Z91.19 - Patient noncompliance, other specified" {{ old('diagnosis') == 'Z91.19 - Patient noncompliance, other specified' ? 'selected' : '' }}>Z91.19 - Patient noncompliance, other specified</option>
+                                <option value="Z63.6 - Dependent relative needing care" {{ old('diagnosis') == 'Z63.6 - Dependent relative needing care' ? 'selected' : '' }}>Z63.6 - Dependent relative needing care</option>
+                                <option value="Z73.1 - Type A behavior pattern" {{ old('diagnosis') == 'Z73.1 - Type A behavior pattern' ? 'selected' : '' }}>Z73.1 - Type A behavior pattern</option>
+                                <option value="Z73.89 - Other problems related to life management difficulty" {{ old('diagnosis') == 'Z73.89 - Other problems related to life management difficulty' ? 'selected' : '' }}>Z73.89 - Other problems related to life management difficulty</option>
+                                <option value="Z71.89 - Other specified counseling" {{ old('diagnosis') == 'Z71.89 - Other specified counseling' ? 'selected' : '' }}>Z71.89 - Other specified counseling</option>
+                                <option value="Z60.0 - Social environment problems" {{ old('diagnosis') == 'Z60.0 - Social environment problems' ? 'selected' : '' }}>Z60.0 - Social environment problems</option>
+                                <option value="Z72.4 - Inappropriate diet and eating habits" {{ old('diagnosis') == 'Z72.4 - Inappropriate diet and eating habits' ? 'selected' : '' }}>Z72.4 - Inappropriate diet and eating habits</option>
+                                <option value="Z71.82 - Exercise counseling" {{ old('diagnosis') == 'Z71.82 - Exercise counseling' ? 'selected' : '' }}>Z71.82 - Exercise counseling</option>
+                                
+                                <!-- Mental Health Diagnoses (for psychotherapy only) -->
+                                <option value="F32.9 - Major depressive disorder, single episode, unspecified" {{ old('diagnosis') == 'F32.9 - Major depressive disorder, single episode, unspecified' ? 'selected' : '' }}>F32.9 - Major depressive disorder, single episode, unspecified</option>
+                                <option value="F41.1 - Generalized anxiety disorder" {{ old('diagnosis') == 'F41.1 - Generalized anxiety disorder' ? 'selected' : '' }}>F41.1 - Generalized anxiety disorder</option>
+                                <option value="F43.10 - Post-traumatic stress disorder" {{ old('diagnosis') == 'F43.10 - Post-traumatic stress disorder' ? 'selected' : '' }}>F43.10 - Post-traumatic stress disorder</option>
+                                <option value="F50.9 - Eating disorder, unspecified" {{ old('diagnosis') == 'F50.9 - Eating disorder, unspecified' ? 'selected' : '' }}>F50.9 - Eating disorder, unspecified</option>
+                                <option value="F45.29 - Somatic symptom disorder" {{ old('diagnosis') == 'F45.29 - Somatic symptom disorder' ? 'selected' : '' }}>F45.29 - Somatic symptom disorder</option>
+                                
+                                <!-- Common Comorbidities -->
+                                <option value="I10 - Essential (primary) hypertension" {{ old('diagnosis') == 'I10 - Essential (primary) hypertension' ? 'selected' : '' }}>I10 - Essential (primary) hypertension</option>
+                                <option value="E78.5 - Hyperlipidemia, unspecified" {{ old('diagnosis') == 'E78.5 - Hyperlipidemia, unspecified' ? 'selected' : '' }}>E78.5 - Hyperlipidemia, unspecified</option>
+                                <option value="N18.4 - Chronic kidney disease, stage 4" {{ old('diagnosis') == 'N18.4 - Chronic kidney disease, stage 4' ? 'selected' : '' }}>N18.4 - Chronic kidney disease, stage 4</option>
+                                <option value="N18.9 - Chronic kidney disease, unspecified" {{ old('diagnosis') == 'N18.9 - Chronic kidney disease, unspecified' ? 'selected' : '' }}>N18.9 - Chronic kidney disease, unspecified</option>
+                                <option value="G47.33 - Obstructive sleep apnea" {{ old('diagnosis') == 'G47.33 - Obstructive sleep apnea' ? 'selected' : '' }}>G47.33 - Obstructive sleep apnea</option>
+                                <option value="E03.9 - Hypothyroidism, unspecified" {{ old('diagnosis') == 'E03.9 - Hypothyroidism, unspecified' ? 'selected' : '' }}>E03.9 - Hypothyroidism, unspecified</option>
+                            </select>
+                            <p class="text-sm text-gray-500 mt-1">Select an ICD-10 diagnosis code</p>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -381,10 +445,6 @@
             window.location.href = `/provider/send-to-dxscript/${prescriptionId}`;
         }
 
-        /**
-         * Open DxScript using the PROXY method to avoid geo-restrictions
-         * This method routes the SSO connection through your server
-         */
         async function openDxScript() {
             const loadingSpinner = document.getElementById('loading-spinner');
             loadingSpinner.classList.remove('hidden');
@@ -395,7 +455,6 @@
 
                 console.log('Requesting DxScript token for patient:', patientId);
 
-                // IMPORTANT: Use the correct route - changed from /get-token to /token-with-proxy
                 const response = await fetch('/provider/dxscript/token-with-proxy', {
                     method: 'POST',
                     headers: {
@@ -405,11 +464,10 @@
                     },
                     body: JSON.stringify({
                         patient_id: patientId,
-                        redirect_to: 'RxSelectMed' // Opens directly to Rx Writer page
+                        redirect_to: 'RxSelectMed'
                     })
                 });
 
-                // Check if response is OK
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error('HTTP Error:', response.status, errorText);
@@ -420,8 +478,6 @@
                 console.log('DxScript Response:', data);
 
                 if (data.success) {
-                    // Open the PROXIED SSO URL (routes through your server)
-                    // This avoids the ERR_TUNNEL_CONNECTION_FAILED error
                     const dxWindow = window.open(
                         data.sso_url,
                         'DxScript',
@@ -431,11 +487,9 @@
                     if (!dxWindow) {
                         alert('Pop-up blocked! Please allow pop-ups for this site and try again.');
                     } else {
-                        // Show success message
                         showNotification('DxScript opened successfully!', 'success');
                     }
                 } else {
-                    // Show detailed error
                     let errorMsg = 'Failed to connect to DxScript:\n\n';
                     errorMsg += data.error || 'Unknown error';
 
@@ -466,9 +520,6 @@
             }
         }
 
-        /**
-         * Show notification (optional - for better UX)
-         */
         function showNotification(message, type = 'info') {
             const colors = {
                 success: 'bg-green-50 border-green-200 text-green-700',
@@ -493,79 +544,6 @@
                 notification.style.transition = 'opacity 0.5s';
                 setTimeout(() => notification.remove(), 500);
             }, 5000);
-        }
-
-        /**
-         * Alternative: Open DxScript in iframe (if you prefer embedded view)
-         */
-        async function openDxScriptInIframe() {
-            const loadingSpinner = document.getElementById('loading-spinner');
-            loadingSpinner.classList.remove('hidden');
-
-            try {
-                const csrfToken = "{{ csrf_token() }}";
-                const patientId = "{{ $appointment->patient_id ?? '' }}";
-
-                const response = await fetch('/provider/dxscript/token-with-proxy', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify({
-                        patient_id: patientId,
-                        redirect_to: 'RxSelectMed'
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    // Create fullscreen modal with iframe
-                    const modal = document.createElement('div');
-                    modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
-                    modal.innerHTML = `
-                        <div class="bg-white rounded-lg w-[95%] h-[95%] flex flex-col">
-                            <div class="flex justify-between items-center p-4 border-b">
-                                <h3 class="text-lg font-semibold">DxScript E-Prescribing</h3>
-                                <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
-                                    <i class="fa-solid fa-times text-xl"></i>
-                                </button>
-                            </div>
-                            <iframe src="${data.sso_url}" class="flex-1 w-full" frameborder="0"></iframe>
-                        </div>
-                    `;
-                    document.body.appendChild(modal);
-                } else {
-                    alert('Failed to open DxScript: ' + (data.error || 'Unknown error'));
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Network error: ' + error.message);
-            } finally {
-                loadingSpinner.classList.add('hidden');
-            }
-        }
-
-        /**
-         * Test DxScript connection (for debugging)
-         */
-        async function testDxScriptConnection() {
-            try {
-                const response = await fetch('/provider/test-dxscript');
-                const data = await response.json();
-                console.log('DxScript Test Results:', data);
-
-                // Show results in a modal or alert
-                if (data.method_1_correct_params?.success) {
-                    alert('✅ DxScript connection successful!');
-                } else {
-                    alert('❌ DxScript connection failed. Check console for details.');
-                }
-            } catch (error) {
-                console.error('Test failed:', error);
-                alert('Test failed: ' + error.message);
-            }
         }
     </script>
 @endsection

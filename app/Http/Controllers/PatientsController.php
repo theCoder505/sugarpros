@@ -132,6 +132,31 @@ class PatientsController extends Controller
                 ->with('time', $request->time);
         }
 
+        $plan = $request['plan'];
+
+        // Validate subscription for subscription plan
+        if ($plan == 'subscription') {
+            $current_subscription = SubscriptionPlan::where('availed_by_uid', Auth::user()->patient_id)
+                ->whereIn('stripe_status', ['active', 'trialing', 'paid'])
+                ->first();
+
+            $is_valid_subscription = $this->isValidSubscription($current_subscription);
+
+            if (!$current_subscription || !$is_valid_subscription) {
+                $message = 'You need to have an active subscription to book an appointment.';
+
+                if ($current_subscription && !$is_valid_subscription) {
+                    $expiryDate = \Carbon\Carbon::parse(
+                        $current_subscription->last_recurrent_date ?? $current_subscription->availed_date
+                    )->format('F j, Y');
+
+                    $message = "Your subscription expired on {$expiryDate}. Please renew your subscription to book appointments.";
+                }
+
+                return redirect()->route('patient.subscriptions')->with('error', $message);
+            }
+        }
+
         // Handle file uploads if they exist
         $frontInsurancePath = $request->hasFile('insurance_card_front')
             ? $this->uploadFile($request->file('insurance_card_front'), 'frontInsurance')
@@ -149,7 +174,6 @@ class PatientsController extends Controller
             $request->session()->put('insurance_card_back', $backInsurancePath);
         }
 
-        $plan = $request['plan'];
         $prefix = 'SA';
         $year = date('y');
         $month = date('m');
@@ -197,7 +221,6 @@ class PatientsController extends Controller
 
             return redirect('/appointments')->with('success', 'Booking Successful!');
         } else {
-            $plan = $request['plan'];
             $currency = Settings::where('id', 1)->value('currency');
             if ($plan == 'medicare') {
                 $amount = Settings::where('id', 1)->value('medicare_amount');
@@ -296,7 +319,7 @@ class PatientsController extends Controller
             $amount = Settings::where('id', 1)->value('medicare_amount');
             $notification = 'Using Medicare Payment, You\'ve booked an appointment at ' . date('g:i A', strtotime($request->time)) . ' on ' . date('j F, Y', strtotime($request->date));
         } elseif ($plan == 'cash') {
-            $amount = Settings::where('id', 1)->value('stripe_amount'); // This is basically One Time Service Flat Fee
+            $amount = Settings::where('id', 1)->value('stripe_amount');
             $notification = 'Using Direct Cash Payment, You\'ve booked an appointment at ' . date('g:i A', strtotime($request->time)) . ' on ' . date('j F, Y', strtotime($request->date));
         }
 
@@ -306,19 +329,45 @@ class PatientsController extends Controller
         Stripe\Stripe::setApiKey($stripe_secret_key);
 
         try {
-            $charge = Stripe\Charge::create([
+            // Create a Payment Intent instead of Charge
+            $paymentIntent = Stripe\PaymentIntent::create([
                 'amount' => $amount * 100,
                 'currency' => strtolower($currency),
-                'source' => $request->stripeToken,
+                'payment_method' => $request->stripeToken,
+                'confirm' => true,
+                'automatic_payment_methods' => [
+                    'enabled' => true,
+                    'allow_redirects' => 'never',
+                ],
                 'description' => 'Appointment booking for ' . $request->users_full_name,
                 'receipt_email' => $request->users_email,
                 'metadata' => [
                     'patient_id' => Auth::user()->patient_id,
                     'appointment_date' => $request->date,
                     'appointment_time' => $request->time,
-                ]
+                ],
+                'return_url' => url('/payment-success'), // Add return URL for 3D Secure
             ]);
 
+            // Check if payment requires additional action (3D Secure)
+            if ($paymentIntent->status === 'requires_action' || $paymentIntent->status === 'requires_source_action') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment requires additional authentication',
+                    'requires_action' => true,
+                    'payment_intent_client_secret' => $paymentIntent->client_secret
+                ], 400);
+            }
+
+            // Check if payment failed
+            if ($paymentIntent->status !== 'succeeded') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment failed: ' . $paymentIntent->last_payment_error->message ?? 'Unknown error'
+                ], 400);
+            }
+
+            // Payment succeeded - create appointment
             $appointmentData = [
                 'appointment_uid' => $appointment_uid,
                 'fname' => $request->fname,
@@ -333,7 +382,8 @@ class PatientsController extends Controller
                 'users_email' => $request->users_email,
                 'users_phone' => $request->users_phone,
                 'country_code' => $request->country_code,
-                'stripe_charge_id' => $charge->id,
+                'stripe_charge_id' => $paymentIntent->latest_charge, // Use latest_charge instead of id
+                'stripe_payment_intent_id' => $paymentIntent->id, // Store payment intent ID
                 'payment_status' => 'completed',
                 'amount' => $amount,
                 'currency' => $currency,
@@ -376,6 +426,37 @@ class PatientsController extends Controller
                 'message' => 'Payment and booking completed successfully!',
                 'appointment_id' => $appointment->id
             ]);
+        } catch (\Stripe\Exception\CardException $e) {
+            // Card errors
+            return response()->json([
+                'success' => false,
+                'message' => $e->getError()->message
+            ], 400);
+        } catch (\Stripe\Exception\RateLimitException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many requests. Please try again later.'
+            ], 429);
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid parameters were supplied to Stripe: ' . $e->getMessage()
+            ], 400);
+        } catch (\Stripe\Exception\AuthenticationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication with Stripe failed.'
+            ], 500);
+        } catch (\Stripe\Exception\ApiConnectionException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Network communication with Stripe failed.'
+            ], 500);
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Stripe API error: ' . $e->getMessage()
+            ], 500);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -383,8 +464,6 @@ class PatientsController extends Controller
             ], 500);
         }
     }
-
-
 
 
 

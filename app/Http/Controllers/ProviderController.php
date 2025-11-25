@@ -1608,16 +1608,13 @@ class ProviderController extends Controller
 
 
 
-
-
-
-
     public function spec_eprescription($appointment_uid, $prescription_id)
     {
         $provider_id = Auth::guard('provider')->user()->provider_id;
         $prescription = EPrescription::where([
             ['appointment_uid', $appointment_uid],
-            ['id', $prescription_id]
+            ['id', $prescription_id],
+            ['note_by_provider_id', $provider_id]
         ])->first();
 
         if (!$prescription) {
@@ -1629,23 +1626,18 @@ class ProviderController extends Controller
             'appointment_uid' => $appointment_uid,
             'patient_name' => $prescription->patient_name,
             'patient_id' => $prescription->patient_id,
-            'age' => $prescription->age,
-            'gender' => $prescription->gender,
-            'allergies' => $prescription->allergies,
-            'drug_name' => $prescription->drug_name,
-            'strength' => $prescription->strength,
-            'form_manufacturer' => $prescription->form_manufacturer,
-            'dose_amount' => $prescription->dose_amount,
-            'frequency' => $prescription->frequency,
-            'time_duration' => $prescription->time_duration,
-            'quantity' => $prescription->quantity,
-            'refills' => $prescription->refills,
-            'start_date' => $prescription->start_date,
+            'medication' => $prescription->medication,
+            'daily_use' => $prescription->daily_use,
+            'diagnosis' => $prescription->diagnosis,
+            'start_date' => $prescription->start_date ? $prescription->start_date->format('Y-m-d') : '',
+            'end_date' => $prescription->end_date ? $prescription->end_date->format('Y-m-d') : '',
+            'comments' => $prescription->comments,
+            'dispense_quantity' => $prescription->dispense_quantity,
+            'unit_of_drugs' => $prescription->unit_of_drugs,
+            'days_supply' => $prescription->days_supply,
+            'provider_name' => $prescription->provider_name,
         ]);
     }
-
-
-
 
 
 
@@ -1685,6 +1677,7 @@ class ProviderController extends Controller
         $gender = UserDetails::where('user_id', $user_id)->value('gender');
 
         $appointment = Appointment::where('appointment_uid', $appointment_uid)->firstOrFail();
+
 
         // Get all prescriptions for this appointment
         $prescriptions = EPrescription::where('appointment_uid', $appointment_uid)
@@ -1873,62 +1866,100 @@ class ProviderController extends Controller
 
     public function updateEPrescriptionsNotes(Request $request)
     {
-        $provider_id = Auth::guard('provider')->user()->provider_id;
-        $prescription_id = $request['prescription_id'];
-        $appointment_uid = $request['appointment_uid'];
-        $patient_name = $request['patient_name'];
-        $patient_id = $request['patient_id'];
-        $age = $request['age'];
-        $gender = $request['gender'];
-        $allergies = $request['allergies'];
-        $drug_name = $request['drug_name'];
-        $strength = $request['strength'];
-        $form_manufacturer = $request['form_manufacturer'];
-        $dose_amount = $request['dose_amount'];
-        $frequency = $request['frequency'];
-        $time_duration = $request['time_duration'];
-        $quantity = $request['quantity'];
-        $refills = $request['refills'];
-        $start_date = $request['start_date'];
-        $patient_user_id = User::where('patient_id', $patient_id)->value('id');
-        $check = EPrescription::where('note_by_provider_id', $provider_id)->where('appointment_uid', $appointment_uid)->where('id', $prescription_id)->count();
+        $validator = Validator::make($request->all(), [
+            'appointment_uid' => 'required|exists:appointments,appointment_uid',
+            'prescription_id' => 'required|exists:e_prescriptions,id',
+            'medication' => 'required|string|max:255',
+            'daily_use' => 'nullable|string|max:500',
+            'diagnosis' => 'nullable|string|max:255',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'comments' => 'nullable|string|max:500',
+            'dispense_quantity' => 'required|integer|min:1',
+            'unit_of_drugs' => 'required|string|in:tablets,capsules,ml,mg',
+            'days_supply' => 'required|integer|min:1',
+            'provider_name' => 'nullable|string|max:255',
+        ]);
 
-        if ($check > 0) {
-            EPrescription::where('note_by_provider_id', $provider_id)->where('appointment_uid', $appointment_uid)->where('id', $prescription_id)->update([
-                'appointment_uid' => $appointment_uid,
-                'patient_name' => $patient_name,
-                'patient_id' => $patient_id,
-                'age' => $age,
-                'gender' => $gender,
-                'allergies' => $allergies,
-                'drug_name' => $drug_name,
-                'strength' => $strength,
-                'form_manufacturer' => $form_manufacturer,
-                'dose_amount' => $dose_amount,
-                'frequency' => $frequency,
-                'time_duration' => $time_duration,
-                'quantity' => $quantity,
-                'refills' => $refills,
-                'start_date' => $start_date,
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput()
+                ->with('error', 'Please fix the validation errors.');
+        }
+
+        try {
+            $provider_id = Auth::guard('provider')->user()->provider_id;
+            $provider_name = Auth::guard('provider')->user()->name;
+            $appointment_uid = $request->appointment_uid;
+            $prescription_id = $request->prescription_id;
+
+            // Get patient information
+            $appointment = Appointment::where('appointment_uid', $appointment_uid)->first();
+
+            if (!$appointment) {
+                return redirect()->back()->with('error', 'Appointment not found!');
+            }
+
+            $patient = User::where('patient_id', $appointment->patient_id)->first();
+
+            if (!$patient) {
+                return redirect()->back()->with('error', 'Patient not found!');
+            }
+
+            // Check if prescription exists and belongs to provider
+            $prescription = EPrescription::where('note_by_provider_id', $provider_id)
+                ->where('appointment_uid', $appointment_uid)
+                ->where('id', $prescription_id)
+                ->first();
+
+            if (!$prescription) {
+                return redirect()->back()->with('error', 'Prescription not found or you do not have permission to update it!');
+            }
+
+            // Update E-Prescription
+            $prescription->update([
+                'medication' => $request->medication,
+                'daily_use' => $request->daily_use,
+                'diagnosis' => $request->diagnosis,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+                'comments' => $request->comments,
+                'dispense_quantity' => $request->dispense_quantity,
+                'unit_of_drugs' => $request->unit_of_drugs,
+                'days_supply' => $request->days_supply,
+                'provider_name' => $request->provider_name ?? $provider_name,
+                'updated_at' => now(),
+            ]);
+
+            // Create notifications
+            Notification::insert([
+                'user_id' => $provider_id,
+                'user_type' => 'provider',
+                'notification' => 'You updated an E-Prescription for Appointment ID: ' . $appointment_uid,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            Notification::insert([
+                'user_id' => $patient->id,
+                'user_type' => 'patient',
+                'notification' => 'Provider updated an E-Prescription for your Appointment ID: ' . $appointment_uid,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             $message = 'E-Prescription updated successfully!';
 
-            Notification::insert([
-                'user_id' => Auth::guard('provider')->user()->provider_id,
-                'user_type' => 'provider',
-                'notification' => 'You updated an E-Prescription for Appointment ID: ' . $appointment_uid,
-            ]);
+            return redirect('/provider/view-appointment/' . $appointment_uid)
+                ->with('success', $message);
+        } catch (\Exception $e) {
+            Log::error('E-Prescription Update Error: ' . $e->getMessage());
 
-
-            Notification::insert([
-                'user_id' => $patient_user_id,
-                'user_type' => 'patient',
-                'notification' => 'Provider updated one E-Prescription for your Appointment ID: ' . $appointment_uid,
-            ]);
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to update prescription. Please try again.');
         }
-
-        return redirect()->back()->with('success', $message);
     }
 
 

@@ -87,20 +87,20 @@
                         <label for="First" class="block text-sm font-medium text-gray-700 mb-1">Full
                             Name</label>
                         <input type="text" id="Full" placeholder="Layla" name="users_full_name" required
-                            class="w-full  bg-white text-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none ">
+                            class="w-full  bg-white placeholder-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none ">
                     </div>
 
                     <div>
                         <label for="middle" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
                         <input type="text" id="middle" placeholder="Barcelona, Spain" name="users_address" required
-                            class="w-full  bg-white text-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none">
+                            class="w-full  bg-white placeholder-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none">
                     </div>
 
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                         <input type="email" id="email" placeholder="samantha.of@example.com" name="users_email"
                             required
-                            class="w-full  bg-white text-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none">
+                            class="w-full  bg-white placeholder-[#A3A3A3] px-3 py-2 mt-1 border  border-gray-300 rounded-md outline-none">
                     </div>
 
 
@@ -109,7 +109,7 @@
                         <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                         <div class="relative flex items-center w-full">
                             <input type="text" id="phone" placeholder="(555) 687-9455" name="users_phone" required
-                                class="w-full bg-white text-[#A3A3A3] px-3 py-2 border border-gray-300 rounded-md pr-16 outline-none" />
+                                class="w-full bg-white placeholder-[#A3A3A3] px-3 py-2 border border-gray-300 rounded-md pr-16 outline-none" />
                             <select
                                 class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-transparent text-gray-700 text-sm focus:outline-none"
                                 name="country_code" required>
@@ -260,7 +260,7 @@
                 $applyBtn.prop('disabled', true).html(loader);
 
                 try {
-                    // Create payment method instead of token (better for SCA)
+                    // Create payment method
                     const {
                         paymentMethod,
                         error
@@ -278,7 +278,6 @@
                     });
 
                     if (error) {
-                        // Show error to customer
                         console.error('Stripe Error:', error);
                         alert(error.message);
                         $applyBtn.prop('disabled', false).html(originalButtonText);
@@ -290,10 +289,6 @@
                     // Prepare form data
                     const formData = new FormData(this);
                     formData.append('stripeToken', paymentMethod.id);
-                    formData.append('payment_method_id', paymentMethod.id);
-
-                    // Log what we're sending
-                    console.log('Submitting payment with method ID:', paymentMethod.id);
 
                     // Submit to server
                     $.ajax({
@@ -308,14 +303,18 @@
                         dataType: 'json',
                         success: function(data) {
                             console.log('Server Response:', data);
-                            $applyBtn.prop('disabled', false).html(originalButtonText);
 
                             if (data.success) {
+                                // Payment successful
                                 $('#payment-form')[0].reset();
                                 cardElement.clear();
                                 $('#popupModal').removeClass('hidden').addClass('flex');
+                            } else if (data.requires_action) {
+                                // Handle 3D Secure authentication
+                                handle3DSecure(data.payment_intent_client_secret);
                             } else {
                                 alert(data.message || 'Payment failed. Please try again.');
+                                $applyBtn.prop('disabled', false).html(originalButtonText);
                             }
                         },
                         error: function(xhr, status, error) {
@@ -346,6 +345,30 @@
                     $applyBtn.prop('disabled', false).html(originalButtonText);
                 }
             });
+
+            // Handle 3D Secure authentication
+            async function handle3DSecure(clientSecret) {
+                try {
+                    const {
+                        error,
+                        paymentIntent
+                    } = await stripe.confirmCardPayment(clientSecret);
+
+                    if (error) {
+                        alert(`Payment failed: ${error.message}`);
+                        $('#applyBtn').prop('disabled', false).html('Apply');
+                    } else if (paymentIntent.status === 'succeeded') {
+                        // Payment succeeded after 3D Secure
+                        $('#payment-form')[0].reset();
+                        cardElement.clear();
+                        $('#popupModal').removeClass('hidden').addClass('flex');
+                    }
+                } catch (err) {
+                    console.error('3D Secure Error:', err);
+                    alert('Authentication failed. Please try again.');
+                    $('#applyBtn').prop('disabled', false).html('Apply');
+                }
+            }
 
             // Close popup handlers
             $('#closeBtn, #completeCheckout').on('click', function() {

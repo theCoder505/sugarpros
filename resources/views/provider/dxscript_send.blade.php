@@ -42,33 +42,33 @@
                     
                     <div class="prescription-detail">
                         <span class="text-gray-600">Patient:</span>
-                        <span class="font-medium">{{ $prescription->patient_name }}</span>
+                        <span class="font-light text-right max-w-[250px]">{{ $prescription->patient_name }}</span>
                     </div>
                     
                     <div class="prescription-detail">
                         <span class="text-gray-600">Medication:</span>
-                        <span class="font-medium">{{ $prescription->medication }}</span>
+                        <span class="font-light text-right max-w-[250px]">{{ $prescription->medication }}</span>
                     </div>
                     
                     <div class="prescription-detail">
                         <span class="text-gray-600">Instructions:</span>
-                        <span class="font-medium">{{ $prescription->daily_use }}</span>
+                        <span class="font-light text-right max-w-[250px]">{{ $prescription->daily_use }}</span>
                     </div>
                     
                     <div class="prescription-detail">
                         <span class="text-gray-600">Quantity:</span>
-                        <span class="font-medium">{{ $prescription->dispense_quantity }} {{ $prescription->unit_of_drugs }}</span>
+                        <span class="font-light text-right max-w-[250px]">{{ $prescription->dispense_quantity }} {{ $prescription->unit_of_drugs }}</span>
                     </div>
                     
                     <div class="prescription-detail">
                         <span class="text-gray-600">Days Supply:</span>
-                        <span class="font-medium">{{ $prescription->days_supply }} days</span>
+                        <span class="font-light text-right max-w-[250px]">{{ $prescription->days_supply }} days</span>
                     </div>
                     
                     @if($prescription->diagnosis)
                     <div class="prescription-detail">
                         <span class="text-gray-600">Diagnosis:</span>
-                        <span class="font-medium">{{ $prescription->diagnosis }}</span>
+                        <span class="font-light text-right max-w-[250px]">{{ $prescription->diagnosis }}</span>
                     </div>
                     @endif
                     

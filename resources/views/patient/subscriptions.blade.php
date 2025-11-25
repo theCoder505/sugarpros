@@ -155,7 +155,7 @@
                     <div class="mt-5 border-t border-t-gray-300 pt-4">
                         <p class="mb-4 text-[15px] md:text-[16px] text-gray-700">Optional wellness add-ons available at
                             $50/month</p>
-                        <a href="#"
+                        <a href="/book-appointment?plan=medicare"
                             class="block px-6 py-3 text-white rounded-lg bg-[#2889AA] hover:opacity-90 text-center text-[15px] md:text-[16px] font-semibold transition-all">
                             Continue with plan
                         </a>
