@@ -330,21 +330,34 @@ Route::get('/provider/e-prescription/{appointment_uid}/{prescription_id}', [Prov
 
 
 
-// DxScript Integration
-Route::get('/provider/test-dxscript', [DxScriptController::class, 'testConnection'])->middleware('check_if_provider');
+// DxScript Integration Routes
+Route::middleware('check_if_provider')->group(function () {
+    Route::get('/provider/test-dxscript', [DxScriptController::class, 'testConnection']);
+    Route::get('/provider/dxscript/debug', [DxScriptController::class, 'debugCredentials']);
+    
+    // Token endpoints
+    Route::post('/provider/dxscript/token', [DxScriptController::class, 'getToken'])->name('dxscript.getToken');
+    Route::post('/provider/dxscript/token-with-proxy', [DxScriptController::class, 'getTokenWithProxy'])->name('dxscript.getTokenWithProxy');
+    
+    // SSO Proxy - Initial login
+    Route::get('/provider/dxscript/sso-proxy', [DxScriptController::class, 'ssoProxy'])->name('dxscript.ssoProxy');
+    
+    // Prescription management (MUST be before wildcard routes)
+    Route::post('/provider/dxscript/prescription-status', [DxScriptController::class, 'updatePrescriptionStatus']);
+    
+    // IMPORTANT: Wildcard proxy for ALL DxScript pages - BOTH GET and POST
+    Route::match(['get', 'post'], '/provider/dxscript/{path}', [DxScriptController::class, 'proxyDxScript'])
+        ->where('path', '.*')
+        ->name('dxscript.proxy');
+    
+    // E-Prescription routes
+    Route::get('/provider/e-prescription/{appointment_uid}', [ProviderController::class, 'e_prescription'])->name('provider.e_prescription');
+    Route::post('/provider/add-e-prescription', [ProviderController::class, 'addEPrescriptionsNotes']);
+    Route::get('/provider/prescriptions/{appointment_uid}', [ProviderController::class, 'getAllPrescriptions']);
+    Route::get('/provider/send-to-dxscript/{prescription_id}', [ProviderController::class, 'sendToDxScript']);
+});
 
-Route::get('/provider/e-prescription/{appointment_uid}', [ProviderController::class, 'e_prescription'])->name('provider.e_prescription')->middleware('check_if_provider');
-
-Route::post('/provider/add-e-prescription', [ProviderController::class, 'addEPrescriptionsNotes'])->middleware('check_if_provider');
-
-Route::get('/provider/prescriptions/{appointment_uid}', [ProviderController::class, 'getAllPrescriptions'])->middleware('check_if_provider');
-
-Route::get('/provider/send-to-dxscript/{prescription_id}', [ProviderController::class, 'sendToDxScript'])->middleware('check_if_provider');
-
-Route::post('/provider/dxscript/get-token', [DxScriptController::class, 'getToken'])->middleware('check_if_provider');
-Route::post('/provider/dxscript/prescription-status', [DxScriptController::class, 'updatePrescriptionStatus'])->middleware('check_if_provider');
-
-// Webhook (no auth - DxScript will call this)
+// Webhook (no auth required)
 Route::post('/webhooks/dxscript/prescription', [DxScriptController::class, 'handlePrescriptionWebhook']);
 // Show E-Prescription page
 // Route::get('/provider/e-prescription/{appointment_uid}', [ProviderController::class, 'showEPrescriptionPage'])->middleware('check_if_provider');

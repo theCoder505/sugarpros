@@ -129,15 +129,15 @@ function getServiceData(serviceElement) {
     }).get();
 
     return {
-        modifiers: serviceElement.find('[name="modifiers"]').val(),
-        billing_code: serviceElement.find('[name="billing_code"]').val(),
-        billing_text: serviceElement.find('[name="billing_text"]').val(),
+        modifiers: serviceElement.find('[name="modifiers[]"]').val(),
+        billing_code: serviceElement.find('[name="billing_code[]"]').val(),
+        billing_text: serviceElement.find('[name="billing_text[]"]').val(),
         diagnoses: currentDiagnoses,
-        start_date: serviceElement.find('[name="start_date"]').val(),
-        end_date: serviceElement.find('[name="end_date"]').val(),
-        units: serviceElement.find('[name="units"]').val(),
-        quantity: serviceElement.find('[name="quantity"]').val(),
-        billed_charge: serviceElement.find('[name="billed_charge"]').val()
+        start_date: serviceElement.find('[name="start_date[]"]').val(),
+        end_date: serviceElement.find('[name="end_date[]"]').val(),
+        units: serviceElement.find('[name="units[]"]').val(),
+        quantity: serviceElement.find('[name="quantity[]"]').val(),
+        billed_charge: serviceElement.find('[name="billed_charge[]"]').val()
     };
 }
 
@@ -182,14 +182,18 @@ function addNewService(passedThis) {
 
                 <!-- Billing Code -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">BILLING CODE*</label>
-                    <div class="flex items-center rounded-md border-2 overflow-hidden">
-                        <input type="text" name="billing_code[]" required
-                            class="px-3 py-2 border-r border-gray-300 max-w-[75px] outline-none"
-                            placeholder="99214">
-                        <input type="text" name="billing_text[]" required
-                            class="px-3 py-2 border-l border-gray-300 w-full outline-none"
-                            placeholder="Office or other outpatient visit for the evaluation...">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">BILLING CODE (CPT)*</label>
+                    <div class="relative billing_code_wrapper">
+                        <div class="flex items-center rounded-md border-2 overflow-hidden billing_code_group">
+                            <input type="text" name="billing_code[]" required
+                                class="px-3 py-2 border-r border-gray-300 max-w-[75px] outline-none billing_code_input"
+                                placeholder="99214">
+                            <input type="text" name="billing_text[]" required
+                                class="px-3 py-2 border-l border-gray-300 w-full outline-none billing_text_input"
+                                placeholder="Search CPT code or description..."
+                                autocomplete="off">
+                        </div>
+                        <div class="icd10-dropdown"></div>
                     </div>
                 </div>
 
@@ -197,13 +201,17 @@ function addNewService(passedThis) {
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">ICD-10 DIAGNOSES</label>
                     <div class="flex gap-2 items-center justify-between mt-2">
-                        <div class="flex items-center rounded-md border-2 overflow-hidden w-full diagnosis_input_group">
-                            <input type="text"
-                                class="px-3 py-2 border-r border-gray-300 max-w-[75px] outline-none diagnoses_code"
-                                placeholder="E11.9">
-                            <input type="text"
-                                class="px-3 py-2 border-l border-gray-300 w-full outline-none diagnoses_text"
-                                placeholder="Type description...">
+                        <div class="w-full relative diagnosis_input_wrapper">
+                            <div class="flex items-center rounded-md border-2 overflow-hidden w-full diagnosis_input_group">
+                                <input type="text"
+                                    class="px-3 py-2 border-r border-gray-300 max-w-[75px] outline-none diagnoses_code"
+                                    placeholder="E11.9">
+                                <input type="text"
+                                    class="px-3 py-2 border-l border-gray-300 w-full outline-none diagnoses_text"
+                                    placeholder="Search ICD-10 code or description..."
+                                    autocomplete="off">
+                            </div>
+                            <div class="icd10-dropdown"></div>
                         </div>
                         <div class="w-10 h-10 text-white bg-[#2d92b3] rounded cursor-pointer flex items-center justify-center text-lg"
                             onclick="addNewDiagnosis(this)">

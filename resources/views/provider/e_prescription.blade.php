@@ -356,9 +356,7 @@
             const charCount = document.getElementById('char_count');
 
             if (commentsTextarea) {
-                // Set initial count
                 charCount.textContent = commentsTextarea.value.length;
-
                 commentsTextarea.addEventListener('input', function() {
                     charCount.textContent = this.value.length;
                 });
@@ -380,53 +378,193 @@
 
         // DxScript Integration
         function sendToDxScript(prescriptionId) {
-            // Navigate to send page or open modal
             window.location.href = `/provider/send-to-dxscript/${prescriptionId}`;
         }
 
-
+        /**
+         * Open DxScript using the PROXY method to avoid geo-restrictions
+         * This method routes the SSO connection through your server
+         */
         async function openDxScript() {
             const loadingSpinner = document.getElementById('loading-spinner');
             loadingSpinner.classList.remove('hidden');
 
             try {
                 const csrfToken = "{{ csrf_token() }}";
+                const patientId = "{{ $appointment->patient_id ?? '' }}";
 
-                const response = await fetch('/provider/dxscript/get-token', {
+                console.log('Requesting DxScript token for patient:', patientId);
+
+                // IMPORTANT: Use the correct route - changed from /get-token to /token-with-proxy
+                const response = await fetch('/provider/dxscript/token-with-proxy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        patient_id: patientId,
+                        redirect_to: 'RxSelectMed' // Opens directly to Rx Writer page
+                    })
+                });
+
+                // Check if response is OK
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('HTTP Error:', response.status, errorText);
+                    throw new Error(`Server returned ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('DxScript Response:', data);
+
+                if (data.success) {
+                    // Open the PROXIED SSO URL (routes through your server)
+                    // This avoids the ERR_TUNNEL_CONNECTION_FAILED error
+                    const dxWindow = window.open(
+                        data.sso_url,
+                        'DxScript',
+                        'width=1400,height=900,menubar=no,toolbar=no,location=no,status=no'
+                    );
+
+                    if (!dxWindow) {
+                        alert('Pop-up blocked! Please allow pop-ups for this site and try again.');
+                    } else {
+                        // Show success message
+                        showNotification('DxScript opened successfully!', 'success');
+                    }
+                } else {
+                    // Show detailed error
+                    let errorMsg = 'Failed to connect to DxScript:\n\n';
+                    errorMsg += data.error || 'Unknown error';
+
+                    if (data.error_message) {
+                        errorMsg += '\n' + data.error_message;
+                    }
+
+                    if (data.suggestion) {
+                        errorMsg += '\n\nSuggestion: ' + data.suggestion;
+                    }
+
+                    console.error('DxScript Error Details:', data);
+                    alert(errorMsg);
+                }
+            } catch (error) {
+                console.error('DxScript Connection Error:', error);
+
+                let userMessage = 'Failed to connect to DxScript.\n\n';
+                userMessage += 'Error: ' + error.message + '\n\n';
+                userMessage += 'Please check:\n';
+                userMessage += '1. Your internet connection\n';
+                userMessage += '2. Server is running and accessible\n';
+                userMessage += '3. DxScript credentials are correct\n';
+
+                alert(userMessage);
+            } finally {
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Show notification (optional - for better UX)
+         */
+        function showNotification(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-50 border-green-200 text-green-700',
+                error: 'bg-red-50 border-red-200 text-red-700',
+                info: 'bg-blue-50 border-blue-200 text-blue-700'
+            };
+
+            const notification = document.createElement('div');
+            notification.className =
+                `fixed top-4 right-4 ${colors[type]} px-6 py-3 rounded-lg border shadow-lg z-50 max-w-md`;
+            notification.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.5s';
+                setTimeout(() => notification.remove(), 500);
+            }, 5000);
+        }
+
+        /**
+         * Alternative: Open DxScript in iframe (if you prefer embedded view)
+         */
+        async function openDxScriptInIframe() {
+            const loadingSpinner = document.getElementById('loading-spinner');
+            loadingSpinner.classList.remove('hidden');
+
+            try {
+                const csrfToken = "{{ csrf_token() }}";
+                const patientId = "{{ $appointment->patient_id ?? '' }}";
+
+                const response = await fetch('/provider/dxscript/token-with-proxy', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken
                     },
                     body: JSON.stringify({
-                        patient_id: '{{ $appointment->patient_id ?? '' }}'
+                        patient_id: patientId,
+                        redirect_to: 'RxSelectMed'
                     })
                 });
 
                 const data = await response.json();
 
-                console.log('DxScript Response:', data);
-
                 if (data.success) {
-                    window.open(data.sso_url, 'DxScript', 'width=1200,height=800');
+                    // Create fullscreen modal with iframe
+                    const modal = document.createElement('div');
+                    modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
+                    modal.innerHTML = `
+                        <div class="bg-white rounded-lg w-[95%] h-[95%] flex flex-col">
+                            <div class="flex justify-between items-center p-4 border-b">
+                                <h3 class="text-lg font-semibold">DxScript E-Prescribing</h3>
+                                <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
+                                    <i class="fa-solid fa-times text-xl"></i>
+                                </button>
+                            </div>
+                            <iframe src="${data.sso_url}" class="flex-1 w-full" frameborder="0"></iframe>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
                 } else {
-                    // Show detailed error
-                    let errorMsg = 'Failed to connect to DxScript:\n\n';
-                    errorMsg += data.error || 'Unknown error';
-
-                    if (data.debug) {
-                        errorMsg += '\n\nDebug Info:\n';
-                        errorMsg += JSON.stringify(data.debug, null, 2);
-                    }
-
-                    alert(errorMsg);
-                    console.error('DxScript Error:', data);
+                    alert('Failed to open DxScript: ' + (data.error || 'Unknown error'));
                 }
             } catch (error) {
-                console.error('DxScript Error:', error);
+                console.error('Error:', error);
                 alert('Network error: ' + error.message);
             } finally {
                 loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Test DxScript connection (for debugging)
+         */
+        async function testDxScriptConnection() {
+            try {
+                const response = await fetch('/provider/test-dxscript');
+                const data = await response.json();
+                console.log('DxScript Test Results:', data);
+
+                // Show results in a modal or alert
+                if (data.method_1_correct_params?.success) {
+                    alert('✅ DxScript connection successful!');
+                } else {
+                    alert('❌ DxScript connection failed. Check console for details.');
+                }
+            } catch (error) {
+                console.error('Test failed:', error);
+                alert('Test failed: ' + error.message);
             }
         }
     </script>

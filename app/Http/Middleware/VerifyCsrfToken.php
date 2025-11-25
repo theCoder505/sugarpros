@@ -13,5 +13,8 @@ class VerifyCsrfToken extends Middleware
      */
     protected $except = [
         //
+
+        '/webhooks/dxscript/prescription',
+        '/provider/dxscript/*',  // Add this line to exclude all DxScript proxy routes
     ];
 }
