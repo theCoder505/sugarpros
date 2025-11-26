@@ -36,10 +36,6 @@
             cursor: pointer;
         }
 
-        .hidden {
-            display: none;
-        }
-
         .border-dashed {
             border-style: dashed;
         }
@@ -272,12 +268,12 @@
                                 {{ (isset($plan) ? $plan : 'cash') == 'medicare' ? 'checked' : '' }}>
                             <span class="ml-1">Medicare</span>
                         </label>
-                        <label class="inline-flex items-center cursor-pointer plan-label" id="label-cash">
+                        {{-- <label class="inline-flex items-center cursor-pointer plan-label" id="label-cash">
                             <input type="radio" name="plan" value="cash"
                                 class="form-radio text-[#2889AA] border-gray-300" onchange="handlePlanChange(this)"
                                 {{ (isset($plan) ? $plan : 'cash') == 'cash' ? 'checked' : '' }}>
                             <span class="ml-1">Cash Payment</span>
-                        </label>
+                        </label> --}}
                         <label class="inline-flex items-center cursor-pointer plan-label mt-0" id="label-subscription">
                             <input type="radio" name="plan" value="subscription"
                                 class="form-radio text-[#2889AA] border-gray-300" onchange="handlePlanChange(this)"
