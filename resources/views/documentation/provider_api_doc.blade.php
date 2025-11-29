@@ -347,9 +347,6 @@
             0% { background-color: rgba(52, 152, 219, 0.2); }
             100% { background-color: white; }
         }
-    </style>
-
-    <style>
         
         .code-block pre {
             margin: 0;
@@ -3357,13 +3354,350 @@
                             <h4>Response</h4>
                             <div class="code-block json">
                                 <pre>{
-    "type": "success",
-    "data": {
-        "CLAIM_MD_CLIENT_ID": "client123",
-        "CLAIM_MD_API_KEY": "api_key_123",
-        "CLAIM_MD_ENV": "production"
-    }
-}</pre>
+                "type": "success",
+                "data": {
+                    "CLAIM_MD_CLIENT_ID": "client123",
+                    "CLAIM_MD_API_KEY": "api_key_123",
+                    "CLAIM_MD_ENV": "production"
+                }
+            }</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Get All Claims -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-url">/provider/claim-md/get-claims</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="endpoint-section">
+                            <h4>Description</h4>
+                            <p>Retrieve all claims submitted by the provider with their current statuses.</p>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>Headers</h4>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Header</th>
+                                        <th>Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Authorization</td>
+                                        <td>Bearer [JWT_TOKEN]</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Content-Type</td>
+                                        <td>application/json</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>Response</h4>
+                            <div class="code-block json">
+                                <pre>{
+                "type": "success",
+                "data": [
+                    {
+                        "id": 123,
+                        "appointment_uid": "APT-2024-001",
+                        "claim_status": "A",
+                        "claimmd_id": "CLM123456",
+                        "created_at": "2024-11-29T10:30:00.000000Z",
+                        "patient_name": "John Doe",
+                        "appointment_date": "2024-11-25",
+                        "medicare_status": "pending",
+                        "done_by": "provider",
+                        "done_by_id": "PRV001",
+                        "claim_response": {
+                            "claim": [
+                                {
+                                    "status": "A",
+                                    "claimmd_id": "CLM123456",
+                                    "messages": [
+                                        {
+                                            "mesgid": "AAA",
+                                            "message": "Claim accepted",
+                                            "status": "A"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }</pre>
+                            </div>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>Claim Status Codes</h4>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>A</td>
+                                        <td>Accepted</td>
+                                    </tr>
+                                    <tr>
+                                        <td>R</td>
+                                        <td>Rejected</td>
+                                    </tr>
+                                    <tr>
+                                        <td>W</td>
+                                        <td>Accepted with Warnings</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Get Single Claim -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-url">/provider/claim-md/get-claim/{id}</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="endpoint-section">
+                            <h4>Description</h4>
+                            <p>Retrieve detailed information for a specific claim.</p>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>Headers</h4>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Header</th>
+                                        <th>Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Authorization</td>
+                                        <td>Bearer [JWT_TOKEN]</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Content-Type</td>
+                                        <td>application/json</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>URL Parameters</h4>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>id</td>
+                                        <td>Integer</td>
+                                        <td>The claim ID</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>Response</h4>
+                            <div class="code-block json">
+                                <pre>{
+                "type": "success",
+                "data": {
+                    "id": 123,
+                    "appointment_uid": "APT-2024-001",
+                    "claim_status": "A",
+                    "claimmd_id": "CLM123456",
+                    "created_at": "2024-11-29T10:30:00.000000Z",
+                    "medicare_status": "pending",
+                    "done_by": "provider",
+                    "done_by_id": "PRV001",
+                    "patient_info": {
+                        "name": "John Doe",
+                        "dob": "1980-05-15",
+                        "patient_id": "PT001"
+                    },
+                    "insurance_info": {
+                        "primary": "Blue Cross",
+                        "plan_name": "PPO Premium",
+                        "insurance_ID": "BC123456789"
+                    },
+                    "claim_response": {
+                        "claim": [
+                            {
+                                "status": "A",
+                                "claimmd_id": "CLM123456",
+                                "messages": [...]
+                            }
+                        ]
+                    },
+                    "appointment": {
+                        "appointment_uid": "APT-2024-001",
+                        "date": "2024-11-25",
+                        "medicare_status": "pending"
+                    }
+                }
+            }</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delete Claim -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method delete">DELETE</span>
+                        <span class="endpoint-url">/provider/claim-md/delete-claim/{id}</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="endpoint-section">
+                            <h4>Description</h4>
+                            <p>Delete a claim from both the local database and ClaimMD. This action cannot be undone.</p>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>Headers</h4>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Header</th>
+                                        <th>Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Authorization</td>
+                                        <td>Bearer [JWT_TOKEN]</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Content-Type</td>
+                                        <td>application/json</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>URL Parameters</h4>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>id</td>
+                                        <td>Integer</td>
+                                        <td>The claim ID to delete</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>Response (Success)</h4>
+                            <div class="code-block json">
+                                <pre>{
+                "type": "success",
+                "message": "Claim deleted successfully"
+            }</pre>
+                            </div>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>Response (Error)</h4>
+                            <div class="code-block json">
+                                <pre>{
+                "type": "error",
+                "message": "Failed to delete from ClaimMD: [error details]"
+            }</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mark Appointment as Proceed -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-url">/provider/claim-md/mark-appointment-proceed/{appointment_uid}</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="endpoint-section">
+                            <h4>Description</h4>
+                            <p>Mark an appointment as completed and update the claim status to processed. This is typically done after a claim has been accepted.</p>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>Headers</h4>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Header</th>
+                                        <th>Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Authorization</td>
+                                        <td>Bearer [JWT_TOKEN]</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Content-Type</td>
+                                        <td>application/json</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>URL Parameters</h4>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>appointment_uid</td>
+                                        <td>String</td>
+                                        <td>The unique appointment identifier (e.g., APT-2024-001)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>Response (Success)</h4>
+                            <div class="code-block json">
+                                <pre>{
+                "type": "success",
+                "message": "Appointment marked as completed and claim processed"
+            }</pre>
+                            </div>
+                        </div>
+                        <div class="endpoint-section">
+                            <h4>Response (Error)</h4>
+                            <div class="code-block json">
+                                <pre>{
+                "type": "error",
+                "message": "Failed to update appointment status"
+            }</pre>
                             </div>
                         </div>
                     </div>
@@ -3429,12 +3763,12 @@
                             <h4>Response</h4>
                             <div class="code-block json">
                                 <pre>{
-    "type": "success",
-    "data": {
-        "FileID": "file123",
-        "Status": "Uploaded"
-    }
-}</pre>
+                "type": "success",
+                "data": {
+                    "FileID": "file123",
+                    "Status": "Uploaded"
+                }
+            }</pre>
                             </div>
                         </div>
                     </div>
@@ -3449,7 +3783,7 @@
                     <div class="endpoint-body">
                         <div class="endpoint-section">
                             <h4>Description</h4>
-                            <p>Get list of uploaded claim files.</p>
+                            <p>Get list of uploaded claim files from ClaimMD.</p>
                         </div>
                         <div class="endpoint-section">
                             <h4>Headers</h4>
@@ -3476,17 +3810,17 @@
                             <h4>Response</h4>
                             <div class="code-block json">
                                 <pre>{
-    "type": "success",
-    "data": {
-        "Files": [
-            {
-                "FileID": "file123",
-                "FileName": "claim_837.txt",
-                "UploadDate": "2023-06-25"
-            }
-        ]
-    }
-}</pre>
+                "type": "success",
+                "data": {
+                    "Files": [
+                        {
+                            "FileID": "file123",
+                            "FileName": "claim_837.txt",
+                            "UploadDate": "2023-06-25"
+                        }
+                    ]
+                }
+            }</pre>
                             </div>
                         </div>
                     </div>
@@ -3501,7 +3835,7 @@
                     <div class="endpoint-body">
                         <div class="endpoint-section">
                             <h4>Description</h4>
-                            <p>Delete an uploaded claim file.</p>
+                            <p>Delete an uploaded claim file from ClaimMD.</p>
                         </div>
                         <div class="endpoint-section">
                             <h4>Headers</h4>
@@ -3528,19 +3862,19 @@
                             <h4>Request Body</h4>
                             <div class="code-block json">
                                 <pre>{
-    "file_id": "file123"
-}</pre>
+                "file_id": "file123"
+            }</pre>
                             </div>
                         </div>
                         <div class="endpoint-section">
                             <h4>Response</h4>
                             <div class="code-block json">
                                 <pre>{
-    "type": "success",
-    "data": {
-        "message": "File deleted successfully"
-    }
-}</pre>
+                "type": "success",
+                "data": {
+                    "message": "File deleted successfully"
+                }
+            }</pre>
                             </div>
                         </div>
                     </div>
@@ -3599,12 +3933,12 @@
                             <h4>Response</h4>
                             <div class="code-block json">
                                 <pre>{
-    "type": "success",
-    "data": {
-        "content": "ISA*00*...",
-        "content_type": "text/plain"
-    }
-}</pre>
+                "type": "success",
+                "data": {
+                    "content": "ISA*00*...",
+                    "content_type": "text/plain"
+                }
+            }</pre>
                             </div>
                         </div>
                     </div>

@@ -2909,6 +2909,7 @@
 
 
 
+
             <!-- Appointment Booking Section -->
             <section id="appointment-booking" class="section">
                 <div class="section-header">
@@ -2921,7 +2922,7 @@
                         <span class="url">/api/appointments/patient-details</span>
                     </div>
                     <div class="endpoint-description">
-                        <p>Get patient details and subscription status for appointment booking</p>
+                        <p>Get patient details and subscription status for appointment booking. This endpoint provides all necessary information to initialize the booking form.</p>
                     </div>
                     <div class="endpoint-details">
                         <span class="detail-title">Headers:</span>
@@ -2934,18 +2935,26 @@
                             <span class="detail-title">Success Response (200):</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "success",
-    "data": {
-        "patient_id": "PA25060001",
-        "fname": "John",
-        "lname": "Doe",
-        "email": "john@example.com",
-        "has_active_subscription": true,
-        "subscription_plan": "Premium Monthly",
-        "this_month_appointments": 3,
-        "prefix_codes": "PA"
-    }
-}</pre>
+                "type": "success",
+                "data": {
+                    "patient_id": "PA25060001",
+                    "fname": "John",
+                    "lname": "Doe",
+                    "email": "john@example.com",
+                    "has_active_subscription": true,
+                    "this_month_appointments": 3,
+                    "prefix_codes": "PA"
+                }
+            }</pre>
+                            </div>
+                        </div>
+                        <div class="response">
+                            <span class="detail-title">Error Response (404):</span>
+                            <div class="code-block">
+                                <pre>{
+                "type": "error",
+                "message": "User not found"
+            }</pre>
                             </div>
                         </div>
                     </div>
@@ -2957,7 +2966,7 @@
                         <span class="url">/api/appointments/initiate</span>
                     </div>
                     <div class="endpoint-description">
-                        <p>Initiate appointment booking process and check for conflicts. Returns payment information if required based on plan type.</p>
+                        <p>Initiate appointment booking process. This validates the date/time and checks for conflicts. For subscription plans, it verifies active subscription. For medicare plans, it returns payment configuration details.</p>
                     </div>
                     <div class="endpoint-details">
                         <span class="detail-title">Headers:</span>
@@ -2980,19 +2989,19 @@
                                         <td>date</td>
                                         <td>date</td>
                                         <td class="required">Yes</td>
-                                        <td>Appointment date (YYYY-MM-DD)</td>
+                                        <td>Appointment date (YYYY-MM-DD format)</td>
                                     </tr>
                                     <tr>
                                         <td>time</td>
                                         <td>string</td>
                                         <td class="required">Yes</td>
-                                        <td>Appointment time (HH:MM or HH:MM:SS)</td>
+                                        <td>Appointment time (HH:MM format, 24-hour)</td>
                                     </tr>
                                     <tr>
                                         <td>plan</td>
                                         <td>string</td>
                                         <td class="required">Yes</td>
-                                        <td>Payment plan type: "subscription", "medicare", or "cash"</td>
+                                        <td>Payment plan type: "subscription" or "medicare"</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -3003,56 +3012,62 @@
                             <span class="detail-title">Success Response (200) - Subscription Plan:</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "success",
-    "data": {
-        "requires_payment": false,
-        "stripe_key": null,
-        "amount": 0,
-        "currency": "USD",
-        "booking_details": {
-            "date": "2023-07-15",
-            "time": "10:00",
-            "plan": "subscription"
-        }
-    }
-}</pre>
+                "type": "success",
+                "data": {
+                    "requires_payment": false,
+                    "booking_details": {
+                        "date": "2025-07-15",
+                        "time": "10:00",
+                        "plan": "subscription"
+                    }
+                }
+            }</pre>
                             </div>
                         </div>
                         <div class="response">
-                            <span class="detail-title">Success Response (200) - Medicare/Cash Plan:</span>
+                            <span class="detail-title">Success Response (200) - Medicare Plan:</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "success",
-    "data": {
-        "requires_payment": true,
-        "stripe_key": "pk_test_1234567890",
-        "amount": 100,
-        "currency": "USD",
-        "booking_details": {
-            "date": "2023-07-15",
-            "time": "10:00",
-            "plan": "medicare"
-        }
-    }
-}</pre>
+                "type": "success",
+                "data": {
+                    "requires_payment": true,
+                    "stripe_key": "pk_test_51234567890",
+                    "amount": 50,
+                    "currency": "USD",
+                    "booking_details": {
+                        "date": "2025-07-15",
+                        "time": "10:00",
+                        "plan": "medicare"
+                    }
+                }
+            }</pre>
                             </div>
                         </div>
                         <div class="response">
                             <span class="detail-title">Error Response (400) - Duplicate Booking:</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "error",
-    "message": "You already booked an appointment for this date and time"
-}</pre>
+                "type": "error",
+                "message": "You already booked an appointment in the same date: 2025-07-15 and time: 10:00"
+            }</pre>
                             </div>
                         </div>
                         <div class="response">
                             <span class="detail-title">Error Response (400) - No Active Subscription:</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "error",
-    "message": "You need to have an active subscription to book an appointment."
-}</pre>
+                "type": "error",
+                "message": "You need to have an active subscription to book an appointment."
+            }</pre>
+                            </div>
+                        </div>
+                        <div class="response">
+                            <span class="detail-title">Error Response (400) - Expired Subscription:</span>
+                            <div class="code-block">
+                                <pre>{
+                "type": "error",
+                "message": "Your subscription expired on January 15, 2025. Please renew your subscription to book appointments."
+            }</pre>
                             </div>
                         </div>
                     </div>
@@ -3064,7 +3079,7 @@
                         <span class="url">/api/appointments/complete</span>
                     </div>
                     <div class="endpoint-description">
-                        <p>Complete appointment booking. For subscription plans, no payment is required. For medicare/cash plans, payment is processed via Stripe.</p>
+                        <p>Complete appointment booking with full medical and insurance information. For subscription plans, no payment is processed. For medicare plans, payment is processed via Stripe Payment Intent API.</p>
                     </div>
                     <div class="endpoint-details">
                         <span class="detail-title">Headers:</span>
@@ -3084,6 +3099,9 @@
                                 </thead>
                                 <tbody>
                                     <tr>
+                                        <td colspan="4" style="background-color: #f5f5f5; font-weight: bold;">Basic Information</td>
+                                    </tr>
+                                    <tr>
                                         <td>date</td>
                                         <td>date</td>
                                         <td class="required">Yes</td>
@@ -3093,7 +3111,7 @@
                                         <td>time</td>
                                         <td>string</td>
                                         <td class="required">Yes</td>
-                                        <td>Appointment time (HH:MM or HH:MM:SS)</td>
+                                        <td>Appointment time (HH:MM, 24-hour format)</td>
                                     </tr>
                                     <tr>
                                         <td>fname</td>
@@ -3111,67 +3129,34 @@
                                         <td>email</td>
                                         <td>string</td>
                                         <td class="required">Yes</td>
-                                        <td>Patient email</td>
+                                        <td>Patient email address</td>
                                     </tr>
                                     <tr>
                                         <td>plan</td>
                                         <td>string</td>
                                         <td class="required">Yes</td>
-                                        <td>Payment plan: "subscription", "medicare", or "cash"</td>
+                                        <td>Payment plan: "subscription" or "medicare"</td>
                                     </tr>
                                     <tr>
-                                        <td>stripe_token</td>
-                                        <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
-                                    </tr>
-                                    <tr>
-                                        <td>users_full_name</td>
-                                        <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
-                                    </tr>
-                                    <tr>
-                                        <td>users_address</td>
-                                        <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
-                                    </tr>
-                                    <tr>
-                                        <td>users_email</td>
-                                        <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
-                                    </tr>
-                                    <tr>
-                                        <td>users_phone</td>
-                                        <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
-                                    </tr>
-                                    <tr>
-                                        <td>country_code</td>
-                                        <td>string</td>
-                                        <td>Conditional</td>
-                                        <td>Required for medicare/cash plans</td>
+                                        <td colspan="4" style="background-color: #f5f5f5; font-weight: bold;">Insurance Information</td>
                                     </tr>
                                     <tr>
                                         <td>insurance_company</td>
                                         <td>string</td>
-                                        <td>No</td>
-                                        <td>Insurance company name</td>
+                                        <td class="required">Yes</td>
+                                        <td>Primary insurance company name</td>
                                     </tr>
                                     <tr>
                                         <td>policyholder_name</td>
                                         <td>string</td>
                                         <td>No</td>
-                                        <td>Policyholder name</td>
+                                        <td>Policyholder name (if different from patient)</td>
                                     </tr>
                                     <tr>
                                         <td>policy_id</td>
                                         <td>string</td>
-                                        <td>No</td>
-                                        <td>Insurance policy ID</td>
+                                        <td class="required">Yes</td>
+                                        <td>Insurance policy/ID number</td>
                                     </tr>
                                     <tr>
                                         <td>group_number</td>
@@ -3182,50 +3167,8 @@
                                     <tr>
                                         <td>insurance_plan_type</td>
                                         <td>string</td>
-                                        <td>No</td>
-                                        <td>Type of insurance plan</td>
-                                    </tr>
-                                    <tr>
-                                        <td>chief_complaint</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Chief complaint/reason for visit</td>
-                                    </tr>
-                                    <tr>
-                                        <td>symptom_onset</td>
-                                        <td>string</td>
-                                        <td>No</td>
-                                        <td>When symptoms started</td>
-                                    </tr>
-                                    <tr>
-                                        <td>prior_diagnoses</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Prior medical diagnoses</td>
-                                    </tr>
-                                    <tr>
-                                        <td>current_medications</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Current medications</td>
-                                    </tr>
-                                    <tr>
-                                        <td>allergies</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Known allergies</td>
-                                    </tr>
-                                    <tr>
-                                        <td>past_surgical_history</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Past surgical history</td>
-                                    </tr>
-                                    <tr>
-                                        <td>family_medical_history</td>
-                                        <td>text</td>
-                                        <td>No</td>
-                                        <td>Family medical history</td>
+                                        <td class="required">Yes</td>
+                                        <td>Plan type: "HMO", "PPO", "Medicare", "Medicaid", "Other"</td>
                                     </tr>
                                     <tr>
                                         <td>insurance_card_front</td>
@@ -3239,6 +3182,90 @@
                                         <td>No</td>
                                         <td>Base64 encoded back image of insurance card</td>
                                     </tr>
+                                    <tr>
+                                        <td colspan="4" style="background-color: #f5f5f5; font-weight: bold;">Medical Information</td>
+                                    </tr>
+                                    <tr>
+                                        <td>chief_complaint</td>
+                                        <td>text</td>
+                                        <td class="required">Yes</td>
+                                        <td>Chief complaint/reason for visit</td>
+                                    </tr>
+                                    <tr>
+                                        <td>symptom_onset</td>
+                                        <td>string</td>
+                                        <td class="required">Yes</td>
+                                        <td>When symptoms started (e.g., "2 weeks", "3 months")</td>
+                                    </tr>
+                                    <tr>
+                                        <td>prior_diagnoses</td>
+                                        <td>text</td>
+                                        <td>No</td>
+                                        <td>Prior medical diagnoses</td>
+                                    </tr>
+                                    <tr>
+                                        <td>current_medications</td>
+                                        <td>text</td>
+                                        <td class="required">Yes</td>
+                                        <td>Current medications (include dosages)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>allergies</td>
+                                        <td>text</td>
+                                        <td class="required">Yes</td>
+                                        <td>Known allergies (drugs, environmental, etc.)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>past_surgical_history</td>
+                                        <td>text</td>
+                                        <td class="required">Yes</td>
+                                        <td>Past surgical history</td>
+                                    </tr>
+                                    <tr>
+                                        <td>family_medical_history</td>
+                                        <td>text</td>
+                                        <td>No</td>
+                                        <td>Relevant family medical history</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="4" style="background-color: #f5f5f5; font-weight: bold;">Payment Information (Required for Medicare Plan Only)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>stripeToken</td>
+                                        <td>string</td>
+                                        <td>Conditional</td>
+                                        <td>Stripe payment method ID (required for medicare)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>users_full_name</td>
+                                        <td>string</td>
+                                        <td>Conditional</td>
+                                        <td>Full name for payment (required for medicare)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>users_address</td>
+                                        <td>string</td>
+                                        <td>Conditional</td>
+                                        <td>Billing address (required for medicare)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>users_email</td>
+                                        <td>string</td>
+                                        <td>Conditional</td>
+                                        <td>Email for receipt (required for medicare)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>users_phone</td>
+                                        <td>string</td>
+                                        <td>Conditional</td>
+                                        <td>Contact phone number (required for medicare)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>country_code</td>
+                                        <td>string</td>
+                                        <td>Conditional</td>
+                                        <td>Phone country code (required for medicare)</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -3248,46 +3275,78 @@
                             <span class="detail-title">Success Response (201) - Subscription Plan:</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "success",
-    "message": "Appointment booked successfully!",
-    "data": {
-        "appointment_id": 1,
-        "appointment_uid": "SA2307-0001",
-        "date": "2023-07-15",
-        "time": "10:00:00",
-        "plan": "subscription"
-    }
-}</pre>
+                "type": "success",
+                "message": "Appointment booked successfully!",
+                "data": {
+                    "appointment_uid": "SA2511-0001",
+                    "date": "2025-07-15",
+                    "time": "10:00",
+                    "plan": "subscription"
+                }
+            }</pre>
                             </div>
                         </div>
                         <div class="response">
-                            <span class="detail-title">Success Response (201) - Medicare/Cash Plan:</span>
+                            <span class="detail-title">Success Response (201) - Medicare Plan:</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "success",
-    "message": "Appointment booked successfully!",
-    "data": {
-        "appointment_id": 1,
-        "appointment_uid": "SA2307-0001",
-        "date": "2023-07-15",
-        "time": "10:00:00",
-        "plan": "medicare",
-        "payment_details": {
-            "amount": 100,
-            "currency": "USD",
-            "charge_id": "ch_3MtwBwLkdIwHu7ix28a3tqPa"
-        }
-    }
-}</pre>
+                "type": "success",
+                "message": "Payment and booking completed successfully!",
+                "data": {
+                    "appointment_id": 123,
+                    "appointment_uid": "SA2511-0001",
+                    "date": "2025-07-15",
+                    "time": "10:00",
+                    "plan": "medicare",
+                    "payment_details": {
+                        "amount": 50,
+                        "currency": "USD",
+                        "charge_id": "ch_3MtwBwLkdIwHu7ix28a3tqPa"
+                    }
+                }
+            }</pre>
                             </div>
                         </div>
                         <div class="response">
-                            <span class="detail-title">Error Response (400) - Payment Failed:</span>
+                            <span class="detail-title">Error Response (400) - Payment Requires Authentication:</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "error",
-    "message": "Payment failed: Your card was declined."
-}</pre>
+                "type": "error",
+                "message": "Payment requires additional authentication",
+                "requires_action": true,
+                "payment_intent_client_secret": "pi_3MtwBw..."
+            }</pre>
+                            </div>
+                        </div>
+                        <div class="response">
+                            <span class="detail-title">Error Response (400) - Card Declined:</span>
+                            <div class="code-block">
+                                <pre>{
+                "type": "error",
+                "message": "Your card was declined."
+            }</pre>
+                            </div>
+                        </div>
+                        <div class="response">
+                            <span class="detail-title">Error Response (400) - No Active Subscription:</span>
+                            <div class="code-block">
+                                <pre>{
+                "type": "error",
+                "message": "You need to have an active subscription to book an appointment."
+            }</pre>
+                            </div>
+                        </div>
+                        <div class="response">
+                            <span class="detail-title">Error Response (422) - Validation Failed:</span>
+                            <div class="code-block">
+                                <pre>{
+                "type": "error",
+                "message": "Validation failed",
+                "errors": {
+                    "insurance_company": ["The insurance company field is required."],
+                    "chief_complaint": ["The chief complaint field is required."]
+                }
+            }</pre>
                             </div>
                         </div>
                     </div>
@@ -3299,7 +3358,7 @@
                         <span class="url">/api/appointments/payment/success</span>
                     </div>
                     <div class="endpoint-description">
-                        <p>Payment success callback endpoint (used for redirect after payment)</p>
+                        <p>Payment success callback endpoint. This endpoint can be used as a redirect URL after successful payment processing.</p>
                     </div>
                     <div class="endpoint-details">
                         <span class="detail-title">Headers:</span>
@@ -3312,9 +3371,9 @@
                             <span class="detail-title">Success Response (200):</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "success",
-    "message": "Payment completed successfully"
-}</pre>
+                "type": "success",
+                "message": "Payment completed successfully"
+            }</pre>
                             </div>
                         </div>
                     </div>
@@ -3326,7 +3385,7 @@
                         <span class="url">/api/appointments/payment/cancel</span>
                     </div>
                     <div class="endpoint-description">
-                        <p>Payment cancellation callback endpoint (used for redirect if payment is cancelled)</p>
+                        <p>Payment cancellation callback endpoint. This endpoint handles cases where the user cancels the payment process.</p>
                     </div>
                     <div class="endpoint-details">
                         <span class="detail-title">Headers:</span>
@@ -3339,15 +3398,28 @@
                             <span class="detail-title">Response (400):</span>
                             <div class="code-block">
                                 <pre>{
-    "type": "error",
-    "message": "Payment was cancelled"
-}</pre>
+                "type": "error",
+                "message": "Payment was cancelled"
+            }</pre>
                             </div>
                         </div>
                     </div>
                 </div>
-            </section>
 
+                <div class="endpoint-notes">
+                    <h3>Important Notes:</h3>
+                    <ul>
+                        <li><strong>Plan Types:</strong> The system supports only "subscription" and "medicare" plans. The "cash" plan option has been removed.</li>
+                        <li><strong>Subscription Validation:</strong> For subscription plans, the system validates that the user has an active subscription with status "paid" and that the subscription has not expired. If expired then app has to ask to pay for renew subscription.</li>
+                        <li><strong>Payment Processing:</strong> Medicare plans use Stripe Payment Intent API with 3D Secure support. The system handles authentication requirements and provides appropriate error messages.</li>
+                        <li><strong>Insurance Cards:</strong> Insurance card images should be sent as base64-encoded strings with the data URL prefix (e.g., "data:image/jpeg;base64,/9j/4AAQ...").</li>
+                        <li><strong>Appointment UID Format:</strong> Appointments are assigned a unique ID in the format "SA[YY][MM]-[XXXX]" where YY is year, MM is month, and XXXX is a sequential number.</li>
+                        <li><strong>Duplicate Prevention:</strong> The system prevents booking duplicate appointments for the same date and time for the same patient.</li>
+                        <li><strong>Error Handling:</strong> The API provides detailed error messages for various scenarios including payment failures, validation errors, and subscription issues.</li>
+                        <li><strong>Notifications:</strong> A notification is automatically created for the patient after successful booking.</li>
+                    </ul>
+                </div>
+            </section>
 
 
 

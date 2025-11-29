@@ -129,8 +129,6 @@ Route::middleware(['api', 'jwt.patient'])->get('/dashboard', [PatientPagesContro
 // To fix API now
 // Appointment Booking Routes
 Route::middleware(['api', 'jwt.patient'])->get('/appointments/patient-details', [AppointmentBookingByPatientController::class, 'getPatientDetails']);
-
-
 Route::middleware(['api', 'jwt.patient'])->post('/appointments/initiate', [AppointmentBookingByPatientController::class, 'initiateBooking']);
 Route::middleware(['api', 'jwt.patient'])->post('/appointments/complete', [AppointmentBookingByPatientController::class, 'completeBooking']);
 Route::middleware(['api', 'jwt.patient'])->get('/appointments/payment/success', [AppointmentBookingByPatientController::class, 'paymentSuccess']);
@@ -334,23 +332,33 @@ Route::middleware(['api', 'jwt.provider'])->options('/provider/claim-md/{any}', 
 
 // ClaimMD API Routes
 Route::middleware(['api', 'jwt.provider'])->prefix('provider')->group(function () {
-    // Main interface
+    // Main interface - Get credentials
     Route::get('/patient-claims-biller', [ProviderClaimMDPatientController::class, 'patientClaimsBiller'])->name('provider.biller');
 
     // Group claim-md specific routes
     Route::prefix('claim-md')->group(function () {
         // SDK proxy
-        Route::match(['get', 'post'], '/proxy', [ProviderClaimMDPatientController::class, 'claimMdProxy'])->withoutMiddleware(['verify.csrf']);
+        Route::match(['get', 'post'], '/proxy', [ProviderClaimMDPatientController::class, 'claimMdProxy'])
+            ->withoutMiddleware(['verify.csrf']);
 
         // API proxy
-        Route::post('/api/{endpoint}', [ProviderClaimMDPatientController::class, 'claimMdApi'])->where('endpoint', '.*');
+        Route::post('/api/{endpoint}', [ProviderClaimMDPatientController::class, 'claimMdApi'])
+            ->where('endpoint', '.*');
 
-        // File operations (consider RESTful naming)
+        // Claims management
+        Route::get('/get-claims', [ProviderClaimMDPatientController::class, 'getClaims']);
+        Route::get('/get-claim/{id}', [ProviderClaimMDPatientController::class, 'getClaim']);
+        Route::delete('/delete-claim/{id}', [ProviderClaimMDPatientController::class, 'deleteClaim']);
+        
+        // Mark appointment as proceed
+        Route::get('/mark-appointment-proceed/{appointment_uid}', [ProviderClaimMDPatientController::class, 'markAppointmentProceed']);
+
+        // File operations
         Route::post('/upload', [ProviderClaimMDPatientController::class, 'uploadClaimFile']);
         Route::get('/uploadlist', [ProviderClaimMDPatientController::class, 'getUploadList']);
         Route::delete('/deletefile', [ProviderClaimMDPatientController::class, 'deleteUploadedFile']);
         Route::get('/viewfile', [ProviderClaimMDPatientController::class, 'viewUploadedFile']);
-        Route::get('/downloadfile', [ProviderClaimMDPatientController::class, 'downloadFile'])->name('claim-md-provider.download');
+        Route::get('/downloadfile', [ProviderClaimMDPatientController::class, 'downloadFile'])
+            ->name('claim-md-provider.download');
     });
 });
-

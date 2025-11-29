@@ -17,35 +17,32 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AppointmentBookingByPatientController extends Controller
 {
-
     private function isValidSubscription($subscription)
     {
         if (!$subscription) {
             return false;
         }
 
-        if (!in_array($subscription->stripe_status, ['active', 'trialing', 'paid'])) {
+        $validStatuses = ['active', 'trialing', 'paid'];
+        if (!isset($subscription->stripe_status) || !in_array($subscription->stripe_status, $validStatuses)) {
             return false;
         }
 
-        // Get the base date to calculate from
-        $baseDate = $subscription->last_recurrent_date ?? $subscription->availed_date;
-
-        if (!$baseDate) {
-            return false;
+        // If there is an expiry date field, ensure it's not in the past
+        $expiry = $subscription->last_recurrent_date ?? $subscription->availed_date ?? null;
+        if ($expiry) {
+            try {
+                $expiryDate = \Carbon\Carbon::parse($expiry);
+                if ($expiryDate->isPast()) {
+                    return false;
+                }
+            } catch (\Exception $e) {
+                return false;
+            }
         }
 
-        // Parse the date and compare with current date
-        $expiryDate = \Carbon\Carbon::parse($baseDate)->startOfDay();
-        $currentDate = now()->startOfDay();
-
-        // Check if subscription is still valid (expiry date is in the future or today)
-        return $currentDate->lte($expiryDate);
+        return true;
     }
-
-
-
-
 
     public function getPatientDetails()
     {
@@ -64,35 +61,20 @@ class AppointmentBookingByPatientController extends Controller
             $details = UserDetails::where('user_id', $userID)
                 ->first(['fname', 'lname', 'email']);
 
-            // Check for active subscription with recurring validation
             $current_subscription = SubscriptionPlan::where('availed_by_uid', $patient_id)
                 ->whereIn('stripe_status', ['active', 'trialing', 'paid'])
                 ->first();
 
             $is_valid_subscription = $this->isValidSubscription($current_subscription);
 
-            // Get subscription expiry info for display
-            $subscription_expiry = null;
-            if ($current_subscription && !$is_valid_subscription) {
-                if ($current_subscription->recurring_option == 'monthly') {
-                    $expiryDate = $current_subscription->last_recurrent_date
-                        ? date('Y-m-d', strtotime($current_subscription->last_recurrent_date . ' +1 month'))
-                        : date('Y-m-d', strtotime($current_subscription->availed_date . ' +1 month'));
-                } else {
-                    $expiryDate = $current_subscription->last_recurrent_date
-                        ? date('Y-m-d', strtotime($current_subscription->last_recurrent_date . ' +1 year'))
-                        : date('Y-m-d', strtotime($current_subscription->availed_date . ' +1 year'));
-                }
-                $subscription_expiry = $expiryDate;
-            }
-
-            // Count this month's appointments
             $this_month_appointments = Appointment::where('patient_id', $patient_id)
                 ->whereBetween('created_at', [
                     now()->startOfMonth(),
                     now()->endOfMonth()
                 ])
                 ->count();
+
+            $prefixcodes = Settings::where('id', 1)->value('prefixcode');
 
             return response()->json([
                 'type' => 'success',
@@ -102,12 +84,8 @@ class AppointmentBookingByPatientController extends Controller
                     'lname' => $details->lname ?? null,
                     'email' => $details->email ?? null,
                     'has_active_subscription' => $is_valid_subscription,
-                    'subscription_plan' => $current_subscription ? $current_subscription->plan_name : null,
-                    'subscription_recurring' => $current_subscription ? $current_subscription->recurring_option : null,
-                    'subscription_expired' => $current_subscription && !$is_valid_subscription,
-                    'subscription_expiry_date' => $subscription_expiry,
                     'this_month_appointments' => $this_month_appointments,
-                    'prefix_codes' => Settings::where('id', 1)->value('prefixcode')
+                    'prefix_codes' => $prefixcodes
                 ]
             ], 200);
         } catch (\Exception $e) {
@@ -123,9 +101,6 @@ class AppointmentBookingByPatientController extends Controller
         }
     }
 
-
-
-
     public function initiateBooking(Request $request)
     {
         try {
@@ -137,13 +112,10 @@ class AppointmentBookingByPatientController extends Controller
                 ], 404);
             }
 
-            $userID = $user->id;
-            $patient_id = $user->patient_id;
-
             $validator = Validator::make($request->all(), [
-                'date' => 'required|date|after:today',
+                'date' => 'required|date',
                 'time' => 'required',
-                'plan' => 'required|in:subscription,medicare,cash'
+                'plan' => 'required|in:subscription,medicare'
             ]);
 
             if ($validator->fails()) {
@@ -154,22 +126,25 @@ class AppointmentBookingByPatientController extends Controller
                 ], 422);
             }
 
-            // Check for existing appointment
-            $exists = Appointment::where('booked_by', $userID)
-                ->where('patient_id', $patient_id)
+            $patient_id = $user->patient_id;
+
+            // Check for duplicate appointment
+            $check_if_exists = Appointment::where('booked_by', $user->id)
                 ->where('date', $request->date)
                 ->where('time', $request->time)
-                ->exists();
+                ->count();
 
-            if ($exists) {
+            if ($check_if_exists > 0) {
                 return response()->json([
                     'type' => 'error',
-                    'message' => 'You already booked an appointment for this date and time'
+                    'message' => 'You already booked an appointment in the same date: ' . $request->date . ' and time: ' . $request->time
                 ], 400);
             }
 
-            // Check subscription if plan is subscription
-            if ($request->plan == 'subscription') {
+            $plan = $request->plan;
+
+            // Validate subscription for subscription plan
+            if ($plan == 'subscription') {
                 $current_subscription = SubscriptionPlan::where('availed_by_uid', $patient_id)
                     ->whereIn('stripe_status', ['active', 'trialing', 'paid'])
                     ->first();
@@ -180,15 +155,10 @@ class AppointmentBookingByPatientController extends Controller
                     $message = 'You need to have an active subscription to book an appointment.';
 
                     if ($current_subscription && !$is_valid_subscription) {
-                        if ($current_subscription->recurring_option === 'monthly') {
-                            $expiryDate = $current_subscription->last_recurrent_date
-                                ? date('F j, Y', strtotime($current_subscription->last_recurrent_date . ' +1 month'))
-                                : date('F j, Y', strtotime($current_subscription->availed_date . ' +1 month'));
-                        } else {
-                            $expiryDate = $current_subscription->last_recurrent_date
-                                ? date('F j, Y', strtotime($current_subscription->last_recurrent_date . ' +1 year'))
-                                : date('F j, Y', strtotime($current_subscription->availed_date . ' +1 year'));
-                        }
+                        $expiryDate = \Carbon\Carbon::parse(
+                            $current_subscription->last_recurrent_date ?? $current_subscription->availed_date
+                        )->format('F j, Y');
+
                         $message = "Your subscription expired on {$expiryDate}. Please renew your subscription to book appointments.";
                     }
 
@@ -197,9 +167,48 @@ class AppointmentBookingByPatientController extends Controller
                         'message' => $message
                     ], 400);
                 }
+
+                // Subscription plan - no payment required
+                return response()->json([
+                    'type' => 'success',
+                    'data' => [
+                        'requires_payment' => false,
+                        'booking_details' => [
+                            'date' => $request->date,
+                            'time' => $request->time,
+                            'plan' => $plan
+                        ]
+                    ]
+                ], 200);
             }
 
-            // ... rest of the method remains the same
+            // Medicare plan - payment required
+            $settings = Settings::first();
+            if (!$settings) {
+                return response()->json([
+                    'type' => 'error',
+                    'message' => 'System configuration not found'
+                ], 500);
+            }
+
+            $amount = $settings->medicare_amount;
+            $currency = $settings->currency;
+            $stripe_client_id = $settings->stripe_client_id;
+
+            return response()->json([
+                'type' => 'success',
+                'data' => [
+                    'requires_payment' => true,
+                    'stripe_key' => $stripe_client_id,
+                    'amount' => $amount,
+                    'currency' => $currency,
+                    'booking_details' => [
+                        'date' => $request->date,
+                        'time' => $request->time,
+                        'plan' => $plan
+                    ]
+                ]
+            ], 200);
         } catch (\Exception $e) {
             Log::error('Failed to initiate booking', [
                 'user_id' => $user->id ?? 'unknown',
@@ -212,80 +221,6 @@ class AppointmentBookingByPatientController extends Controller
             ], 500);
         }
     }
-
-
-
-    public function createNewSubscription($patient_id, $user, $settings)
-    {
-        try {
-            Stripe\Stripe::setApiKey($settings->stripe_secret_key);
-
-            // Create a new customer in Stripe
-            $customer = Stripe\Customer::create([
-                'email' => $user->email,
-                'name' => $user->fname . ' ' . $user->lname,
-                'metadata' => [
-                    'patient_id' => $patient_id,
-                    'user_id' => $user->id
-                ]
-            ]);
-
-            // Create a subscription with a default plan
-            // You might want to make this configurable
-            $subscription = Stripe\Subscription::create([
-                'customer' => $customer->id,
-                'items' => [
-                    [
-                        'price' => $settings->stripe_subscription_price_id, // You'll need to add this to settings
-                    ],
-                ],
-                'payment_behavior' => 'default_incomplete',
-                'expand' => ['latest_invoice.payment_intent'],
-                'metadata' => [
-                    'patient_id' => $patient_id,
-                    'user_id' => $user->id
-                ]
-            ]);
-
-            // Create local subscription record
-            $newSubscription = SubscriptionPlan::create([
-                'availed_by_uid' => $patient_id,
-                'plan_name' => 'Monthly Subscription',
-                'stripe_charge_id' => $subscription->id,
-                'stripe_customer_id' => $customer->id,
-                'stripe_status' => $subscription->status,
-                'stripe_price' => $settings->stripe_amount, // Or your subscription price
-                'quantity' => 1,
-                'trial_ends_at' => null,
-                'ends_at' => null,
-                'availed_date' => now(),
-            ]);
-
-            Log::info('New subscription created for user', [
-                'patient_id' => $patient_id,
-                'subscription_id' => $subscription->id,
-                'customer_id' => $customer->id
-            ]);
-
-            return [
-                'success' => true,
-                'subscription' => $newSubscription,
-                'stripe_subscription' => $subscription,
-                'requires_payment_setup' => $subscription->status === 'incomplete'
-            ];
-        } catch (\Exception $e) {
-            Log::error('Failed to create new subscription', [
-                'patient_id' => $patient_id,
-                'error' => $e->getMessage()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
 
     public function completeBooking(Request $request)
     {
@@ -303,17 +238,25 @@ class AppointmentBookingByPatientController extends Controller
 
             // Base validation
             $validationRules = [
-                'date' => 'required|date|after:today',
+                'date' => 'required|date',
                 'time' => 'required',
                 'fname' => 'required|string|max:255',
                 'lname' => 'required|string|max:255',
                 'email' => 'required|email',
-                'plan' => 'required|in:subscription,medicare,cash'
+                'plan' => 'required|in:subscription,medicare',
+                'insurance_company' => 'required|string',
+                'policy_id' => 'required|string',
+                'insurance_plan_type' => 'required|string',
+                'chief_complaint' => 'required|string',
+                'symptom_onset' => 'required|string',
+                'current_medications' => 'required|string',
+                'allergies' => 'required|string',
+                'past_surgical_history' => 'required|string'
             ];
 
             // Add payment validation if not subscription
             if ($request->plan != 'subscription') {
-                $validationRules['stripe_token'] = 'required|string';
+                $validationRules['stripeToken'] = 'required|string';
                 $validationRules['users_full_name'] = 'required|string|max:255';
                 $validationRules['users_address'] = 'required|string|max:500';
                 $validationRules['users_email'] = 'required|email';
@@ -332,227 +275,19 @@ class AppointmentBookingByPatientController extends Controller
             }
 
             // Check for duplicate appointment
-            $duplicateExists = Appointment::where('booked_by', $userID)
-                ->where('patient_id', $patient_id)
+            $check_if_exists = Appointment::where('booked_by', $userID)
                 ->where('date', $request->date)
                 ->where('time', $request->time)
-                ->exists();
+                ->count();
 
-            if ($duplicateExists) {
+            if ($check_if_exists > 0) {
                 return response()->json([
                     'type' => 'error',
-                    'message' => 'You already booked an appointment for this date and time'
+                    'message' => 'You already booked an appointment in the same date: ' . $request->date . ' and time: ' . $request->time
                 ], 400);
             }
 
-            // Generate appointment UID
-            $prefix = 'SA';
-            $year = date('y');
-            $month = date('m');
-            $currentMonthCount = Appointment::whereYear('created_at', date('Y'))
-                ->whereMonth('created_at', date('m'))
-                ->count();
-            $sequence = str_pad($currentMonthCount + 1, 4, '0', STR_PAD_LEFT);
-            $appointmentUid = $prefix . $year . $month . '-' . $sequence;
-
-            $settings = Settings::first();
-            if (!$settings) {
-                return response()->json([
-                    'type' => 'error',
-                    'message' => 'System configuration not found'
-                ], 500);
-            }
-
-            $charge = null;
-            $amount = 0;
-            $notification = '';
-            $subscription_created = false;
-
-            // Handle payment based on plan
-            if ($request->plan == 'subscription') {
-                // Verify subscription exists in database and is valid
-                $current_subscription = SubscriptionPlan::where('availed_by_uid', $patient_id)
-                    ->whereIn('stripe_status', ['active', 'trialing', 'paid'])
-                    ->first();
-
-                $is_valid_subscription = $this->isValidSubscription($current_subscription);
-
-                if (!$current_subscription || !$is_valid_subscription) {
-                    $message = 'No active subscription found. Please subscribe first.';
-
-                    if ($current_subscription && !$is_valid_subscription) {
-                        if ($current_subscription->recurring_option === 'monthly') {
-                            $expiryDate = $current_subscription->last_recurrent_date
-                                ? date('F j, Y', strtotime($current_subscription->last_recurrent_date . ' +1 month'))
-                                : date('F j, Y', strtotime($current_subscription->availed_date . ' +1 month'));
-                        } else {
-                            $expiryDate = $current_subscription->last_recurrent_date
-                                ? date('F j, Y', strtotime($current_subscription->last_recurrent_date . ' +1 year'))
-                                : date('F j, Y', strtotime($current_subscription->availed_date . ' +1 year'));
-                        }
-                        $message = "Your subscription expired on {$expiryDate}. Please renew your subscription to book appointments.";
-                    }
-
-                    return response()->json([
-                        'type' => 'error',
-                        'message' => $message
-                    ], 400);
-                }
-
-                // Verify subscription exists in Stripe
-                try {
-                    Stripe\Stripe::setApiKey($settings->stripe_secret_key);
-                    $stripe_subscription = Stripe\Subscription::retrieve($current_subscription->stripe_charge_id);
-
-                    // Subscription exists in Stripe, proceed normally
-                    $notification = 'Using Your Subscription Plan, You\'ve booked an appointment at ' .
-                        date('g:i A', strtotime($request->time)) . ' on ' .
-                        date('j F, Y', strtotime($request->date));
-                } catch (\Stripe\Exception\InvalidRequestException $e) {
-                    // Stripe subscription not found - create a new one automatically
-                    Log::warning('Stripe subscription not found, creating new one', [
-                        'patient_id' => $patient_id,
-                        'old_subscription_id' => $current_subscription->stripe_charge_id
-                    ]);
-
-                    // Create new subscription
-                    $subscriptionResult = $this->createNewSubscription($patient_id, $user, $settings);
-
-                    if (!$subscriptionResult['success']) {
-                        return response()->json([
-                            'type' => 'error',
-                            'message' => 'Your subscription was not valid and we couldn\'t create a new one. Please try again or use a different payment method.'
-                        ], 400);
-                    }
-
-                    // Update local subscription record
-                    $current_subscription->update([
-                        'stripe_status' => 'canceled',
-                        'ends_at' => now()
-                    ]);
-
-                    $newSubscription = $subscriptionResult['subscription'];
-                    $subscription_created = true;
-
-                    $notification = 'Your subscription has been renewed automatically! You\'ve booked an appointment at ' .
-                        date('g:i A', strtotime($request->time)) . ' on ' .
-                        date('j F, Y', strtotime($request->date));
-
-                    // If subscription requires payment setup, inform user
-                    if ($subscriptionResult['requires_payment_setup']) {
-                        $notification .= ' Please complete your subscription payment setup.';
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Unexpected error during subscription verification', [
-                        'patient_id' => $patient_id,
-                        'error' => $e->getMessage()
-                    ]);
-
-                    return response()->json([
-                        'type' => 'error',
-                        'message' => 'Subscription verification failed. Please try again.'
-                    ], 500);
-                }
-            } else {
-                // Process payment for medicare or cash
-                if ($request->plan == 'medicare') {
-                    $amount = $settings->medicare_amount;
-                    $notification = 'Using Medicare Payment, You\'ve booked an appointment at ' .
-                        date('g:i A', strtotime($request->time)) . ' on ' .
-                        date('j F, Y', strtotime($request->date));
-                } elseif ($request->plan == 'cash') {
-                    $amount = $settings->stripe_amount;
-                    $notification = 'Using Direct Cash Payment, You\'ve booked an appointment at ' .
-                        date('g:i A', strtotime($request->time)) . ' on ' .
-                        date('j F, Y', strtotime($request->date));
-                }
-
-                try {
-                    Stripe\Stripe::setApiKey($settings->stripe_secret_key);
-
-                    $charge = Stripe\Charge::create([
-                        'amount' => $amount * 100,
-                        'currency' => strtolower($settings->currency),
-                        'source' => $request->stripe_token,
-                        'description' => 'Appointment booking for ' . $request->users_full_name,
-                        'receipt_email' => $request->users_email,
-                        'metadata' => [
-                            'patient_id' => $patient_id,
-                            'appointment_date' => $request->date,
-                            'appointment_time' => $request->time,
-                            'appointment_uid' => $appointmentUid,
-                        ]
-                    ]);
-
-                    // Verify charge was successful
-                    if (!$charge->paid) {
-                        return response()->json([
-                            'type' => 'error',
-                            'message' => 'Payment failed: Charge not completed'
-                        ], 400);
-                    }
-                } catch (\Stripe\Exception\CardException $e) {
-                    Log::error('Stripe card payment failed', [
-                        'patient_id' => $patient_id,
-                        'error' => $e->getError()->message
-                    ]);
-
-                    return response()->json([
-                        'type' => 'error',
-                        'message' => 'Payment failed: ' . $e->getError()->message
-                    ], 400);
-                } catch (\Stripe\Exception\InvalidRequestException $e) {
-                    Log::error('Stripe invalid request', [
-                        'patient_id' => $patient_id,
-                        'error' => $e->getMessage()
-                    ]);
-
-                    // Handle invalid token specifically
-                    if (str_contains($e->getMessage(), 'No such token')) {
-                        return response()->json([
-                            'type' => 'error',
-                            'message' => 'Invalid payment token. Please refresh the page and try again.'
-                        ], 400);
-                    }
-
-                    return response()->json([
-                        'type' => 'error',
-                        'message' => 'Payment processing error: ' . $e->getMessage()
-                    ], 400);
-                } catch (\Stripe\Exception\AuthenticationException $e) {
-                    Log::error('Stripe authentication failed', [
-                        'patient_id' => $patient_id,
-                        'error' => $e->getMessage()
-                    ]);
-
-                    return response()->json([
-                        'type' => 'error',
-                        'message' => 'Payment system configuration error'
-                    ], 500);
-                } catch (\Stripe\Exception\ApiConnectionException $e) {
-                    Log::error('Stripe API connection failed', [
-                        'patient_id' => $patient_id,
-                        'error' => $e->getMessage()
-                    ]);
-
-                    return response()->json([
-                        'type' => 'error',
-                        'message' => 'Network error. Please try again.'
-                    ], 503);
-                } catch (\Stripe\Exception\ApiErrorException $e) {
-                    Log::error('Stripe API error', [
-                        'patient_id' => $patient_id,
-                        'error' => $e->getMessage()
-                    ]);
-
-                    return response()->json([
-                        'type' => 'error',
-                        'message' => 'Payment system error: ' . $e->getMessage()
-                    ], 500);
-                }
-            }
-
-            // Handle insurance card uploads if provided (base64 encoded)
+            // Handle insurance card uploads
             $frontInsurancePath = null;
             $backInsurancePath = null;
 
@@ -564,94 +299,237 @@ class AppointmentBookingByPatientController extends Controller
                 $backInsurancePath = $this->uploadBase64Image($request->insurance_card_back, 'backInsurance');
             }
 
-            // Create appointment data
-            $appointmentData = [
-                'appointment_uid' => $appointmentUid,
-                'fname' => $request->fname,
-                'lname' => $request->lname,
-                'email' => $request->email,
-                'patient_id' => $patient_id,
-                'date' => $request->date,
-                'time' => $request->time,
-                'booked_by' => $userID,
-                'plan' => $request->plan,
-                'insurance_company' => $request->insurance_company ?? null,
-                'policyholder_name' => $request->policyholder_name ?? null,
-                'policy_id' => $request->policy_id ?? null,
-                'group_number' => $request->group_number ?? null,
-                'insurance_plan_type' => $request->insurance_plan_type ?? null,
-                'chief_complaint' => $request->chief_complaint ?? null,
-                'symptom_onset' => $request->symptom_onset ?? null,
-                'prior_diagnoses' => $request->prior_diagnoses ?? null,
-                'current_medications' => $request->current_medications ?? null,
-                'allergies' => $request->allergies ?? null,
-                'past_surgical_history' => $request->past_surgical_history ?? null,
-                'family_medical_history' => $request->family_medical_history ?? null,
-                'insurance_card_front' => $frontInsurancePath,
-                'insurance_card_back' => $backInsurancePath,
-            ];
+            // Generate appointment UID
+            $prefix = 'SA';
+            $year = date('y');
+            $month = date('m');
+            $currentMonthCount = Appointment::whereYear('created_at', date('Y'))
+                ->whereMonth('created_at', date('m'))
+                ->count();
+            $sequence = str_pad($currentMonthCount + 1, 4, '0', STR_PAD_LEFT);
+            $appointment_uid = $prefix . $year . $month . '-' . $sequence;
 
-            // Add payment details if payment was processed
-            if ($charge) {
-                $appointmentData['users_full_name'] = $request->users_full_name;
-                $appointmentData['users_address'] = $request->users_address;
-                $appointmentData['users_email'] = $request->users_email;
-                $appointmentData['users_phone'] = $request->users_phone;
-                $appointmentData['country_code'] = $request->country_code;
-                $appointmentData['stripe_charge_id'] = $charge->id;
-                $appointmentData['payment_status'] = 'completed';
-                $appointmentData['amount'] = $amount;
-                $appointmentData['currency'] = $settings->currency;
+            $plan = $request->plan;
+
+            if ($plan == 'subscription') {
+                // Validate subscription
+                $current_subscription = SubscriptionPlan::where('availed_by_uid', $patient_id)
+                    ->whereIn('stripe_status', ['active', 'trialing', 'paid'])
+                    ->first();
+
+                $is_valid_subscription = $this->isValidSubscription($current_subscription);
+
+                if (!$current_subscription || !$is_valid_subscription) {
+                    $message = 'You need to have an active subscription to book an appointment.';
+
+                    if ($current_subscription && !$is_valid_subscription) {
+                        $expiryDate = \Carbon\Carbon::parse(
+                            $current_subscription->last_recurrent_date ?? $current_subscription->availed_date
+                        )->format('F j, Y');
+
+                        $message = "Your subscription expired on {$expiryDate}. Please renew your subscription to book appointments.";
+                    }
+
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => $message
+                    ], 400);
+                }
+
+                // Create appointment with subscription
+                Appointment::create([
+                    'appointment_uid' => $appointment_uid,
+                    'fname' => $request->fname,
+                    'lname' => $request->lname,
+                    'email' => $request->email,
+                    'patient_id' => $patient_id,
+                    'date' => $request->date,
+                    'time' => $request->time,
+                    'booked_by' => $userID,
+                    'users_full_name' => $request->fname . ' ' . $request->lname,
+                    'insurance_company' => $request->insurance_company,
+                    'policyholder_name' => $request->policyholder_name ?? null,
+                    'policy_id' => $request->policy_id,
+                    'group_number' => $request->group_number ?? null,
+                    'insurance_plan_type' => $request->insurance_plan_type,
+                    'chief_complaint' => $request->chief_complaint,
+                    'symptom_onset' => $request->symptom_onset,
+                    'prior_diagnoses' => $request->prior_diagnoses ?? null,
+                    'current_medications' => $request->current_medications,
+                    'allergies' => $request->allergies,
+                    'past_surgical_history' => $request->past_surgical_history,
+                    'family_medical_history' => $request->family_medical_history ?? null,
+                    'plan' => $plan,
+                    'insurance_card_front' => $frontInsurancePath,
+                    'insurance_card_back' => $backInsurancePath,
+                ]);
+
+                Notification::create([
+                    'user_id' => $patient_id,
+                    'user_type' => 'patient',
+                    'notification' => 'Using Your Subscription Plan, You\'ve booked an appointment at ' . date('g:i A', strtotime($request->time)) . ' on ' . date('j F, Y', strtotime($request->date)),
+                ]);
+
+                return response()->json([
+                    'type' => 'success',
+                    'message' => 'Appointment booked successfully!',
+                    'data' => [
+                        'appointment_uid' => $appointment_uid,
+                        'date' => $request->date,
+                        'time' => $request->time,
+                        'plan' => $plan
+                    ]
+                ], 201);
             } else {
-                // For subscription, set full name from fname and lname
-                $appointmentData['users_full_name'] = $request->fname . ' ' . $request->lname;
+                // Medicare plan - process payment
+                $settings = Settings::first();
+                if (!$settings) {
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'System configuration not found'
+                    ], 500);
+                }
+
+                $amount = $settings->medicare_amount;
+                $currency = $settings->currency;
+                $stripe_secret_key = $settings->stripe_secret_key;
+
+                Stripe\Stripe::setApiKey($stripe_secret_key);
+
+                try {
+                    // Create a Payment Intent
+                    $paymentIntent = Stripe\PaymentIntent::create([
+                        'amount' => $amount * 100,
+                        'currency' => strtolower($currency),
+                        'payment_method' => $request->stripeToken,
+                        'confirm' => true,
+                        'automatic_payment_methods' => [
+                            'enabled' => true,
+                            'allow_redirects' => 'never',
+                        ],
+                        'description' => 'Appointment booking for ' . $request->users_full_name,
+                        'receipt_email' => $request->users_email,
+                        'metadata' => [
+                            'patient_id' => $patient_id,
+                            'appointment_date' => $request->date,
+                            'appointment_time' => $request->time,
+                        ],
+                    ]);
+
+                    // Check if payment requires additional action
+                    if ($paymentIntent->status === 'requires_action' || $paymentIntent->status === 'requires_source_action') {
+                        return response()->json([
+                            'type' => 'error',
+                            'message' => 'Payment requires additional authentication',
+                            'requires_action' => true,
+                            'payment_intent_client_secret' => $paymentIntent->client_secret
+                        ], 400);
+                    }
+
+                    // Check if payment failed
+                    if ($paymentIntent->status !== 'succeeded') {
+                        return response()->json([
+                            'type' => 'error',
+                            'message' => 'Payment failed: ' . ($paymentIntent->last_payment_error->message ?? 'Unknown error')
+                        ], 400);
+                    }
+
+                    // Create appointment
+                    $appointment = Appointment::create([
+                        'appointment_uid' => $appointment_uid,
+                        'fname' => $request->fname,
+                        'lname' => $request->lname,
+                        'email' => $request->email,
+                        'patient_id' => $patient_id,
+                        'date' => $request->date,
+                        'time' => $request->time,
+                        'booked_by' => $userID,
+                        'users_full_name' => $request->users_full_name,
+                        'users_address' => $request->users_address,
+                        'users_email' => $request->users_email,
+                        'users_phone' => $request->users_phone,
+                        'country_code' => $request->country_code,
+                        'stripe_charge_id' => $paymentIntent->latest_charge,
+                        'stripe_payment_intent_id' => $paymentIntent->id,
+                        'payment_status' => 'completed',
+                        'amount' => $amount,
+                        'currency' => $currency,
+                        'insurance_company' => $request->insurance_company,
+                        'policyholder_name' => $request->policyholder_name ?? null,
+                        'policy_id' => $request->policy_id,
+                        'group_number' => $request->group_number ?? null,
+                        'insurance_plan_type' => $request->insurance_plan_type,
+                        'chief_complaint' => $request->chief_complaint,
+                        'symptom_onset' => $request->symptom_onset,
+                        'prior_diagnoses' => $request->prior_diagnoses ?? null,
+                        'current_medications' => $request->current_medications,
+                        'allergies' => $request->allergies,
+                        'past_surgical_history' => $request->past_surgical_history,
+                        'family_medical_history' => $request->family_medical_history ?? null,
+                        'plan' => $plan,
+                        'insurance_card_front' => $frontInsurancePath,
+                        'insurance_card_back' => $backInsurancePath,
+                    ]);
+
+                    Notification::create([
+                        'user_id' => $patient_id,
+                        'user_type' => 'patient',
+                        'notification' => 'Using Medicare Payment, You\'ve booked an appointment at ' . date('g:i A', strtotime($request->time)) . ' on ' . date('j F, Y', strtotime($request->date)),
+                    ]);
+
+                    return response()->json([
+                        'type' => 'success',
+                        'message' => 'Payment and booking completed successfully!',
+                        'data' => [
+                            'appointment_id' => $appointment->id,
+                            'appointment_uid' => $appointment_uid,
+                            'date' => $request->date,
+                            'time' => $request->time,
+                            'plan' => $plan,
+                            'payment_details' => [
+                                'amount' => $amount,
+                                'currency' => $currency,
+                                'charge_id' => $paymentIntent->latest_charge
+                            ]
+                        ]
+                    ], 201);
+                } catch (\Stripe\Exception\CardException $e) {
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => $e->getError()->message
+                    ], 400);
+                } catch (\Stripe\Exception\RateLimitException $e) {
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Too many requests. Please try again later.'
+                    ], 429);
+                } catch (\Stripe\Exception\InvalidRequestException $e) {
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Invalid parameters were supplied to Stripe: ' . $e->getMessage()
+                    ], 400);
+                } catch (\Stripe\Exception\AuthenticationException $e) {
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Authentication with Stripe failed.'
+                    ], 500);
+                } catch (\Stripe\Exception\ApiConnectionException $e) {
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Network communication with Stripe failed.'
+                    ], 500);
+                } catch (\Stripe\Exception\ApiErrorException $e) {
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Stripe API error: ' . $e->getMessage()
+                    ], 500);
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => $e->getMessage()
+                    ], 500);
+                }
             }
-
-            // Create appointment
-            $appointment = Appointment::create($appointmentData);
-
-            // Create notification
-            Notification::create([
-                'user_id' => $patient_id,
-                'user_type' => 'patient',
-                'notification' => $notification,
-            ]);
-
-            $responseData = [
-                'appointment_id' => $appointment->id,
-                'appointment_uid' => $appointmentUid,
-                'date' => $appointment->date,
-                'time' => $appointment->time,
-                'plan' => $appointment->plan
-            ];
-
-            if ($charge) {
-                $responseData['payment_details'] = [
-                    'amount' => $amount,
-                    'currency' => $settings->currency,
-                    'charge_id' => $charge->id
-                ];
-            }
-
-            if ($subscription_created) {
-                $responseData['subscription_created'] = true;
-                $responseData['message'] = 'Your subscription has been automatically renewed!';
-            }
-
-            Log::info('Appointment booked successfully', [
-                'appointment_uid' => $appointmentUid,
-                'patient_id' => $patient_id,
-                'plan' => $request->plan,
-                'subscription_created' => $subscription_created
-            ]);
-
-            return response()->json([
-                'type' => 'success',
-                'message' => $subscription_created ?
-                    'Appointment booked successfully! Your subscription has been automatically renewed.' :
-                    'Appointment booked successfully!',
-                'data' => $responseData
-            ], 201);
         } catch (\Exception $e) {
             Log::error('Booking failed unexpectedly', [
                 'patient_id' => $patient_id ?? 'unknown',
@@ -666,7 +544,10 @@ class AppointmentBookingByPatientController extends Controller
         }
     }
 
-
+    /**
+     * Handle base64 image upload for API
+     * Converts base64 to file and uses the same upload method as web controller
+     */
     private function uploadBase64Image($base64String, $type)
     {
         try {
@@ -675,7 +556,8 @@ class AppointmentBookingByPatientController extends Controller
                 $extension = $matches[1];
                 $base64String = substr($base64String, strpos($base64String, ',') + 1);
             } else {
-                $extension = 'jpg'; // Default extension
+                // Try to detect extension from decoded data
+                $extension = 'jpg';
             }
 
             $imageData = base64_decode($base64String);
@@ -691,22 +573,26 @@ class AppointmentBookingByPatientController extends Controller
                 return null;
             }
 
-            $filename = 'insurance_' . $type . '_' . time() . '_' . rand(1000, 9999) . '.' . $extension;
-            $path = 'uploads/insurance/' . $type . '/';
+            // Create a temporary file to mimic uploaded file behavior
+            $tempFile = tempnam(sys_get_temp_dir(), 'upload_');
+            file_put_contents($tempFile, $imageData);
 
-            // Create directory if it doesn't exist
-            if (!file_exists(public_path($path))) {
-                mkdir(public_path($path), 0755, true);
-            }
+            // Create a mock UploadedFile object
+            $uploadedFile = new \Illuminate\Http\UploadedFile(
+                $tempFile,
+                'insurance_' . $type . '.' . $extension,
+                mime_content_type($tempFile),
+                null,
+                true
+            );
 
-            $fullPath = public_path($path . $filename);
+            // Use the same uploadFile method pattern from web controller
+            $result = $this->uploadFile($uploadedFile, $type);
 
-            if (file_put_contents($fullPath, $imageData) === false) {
-                Log::error('Failed to save image file', ['path' => $fullPath]);
-                return null;
-            }
+            // Clean up temp file
+            @unlink($tempFile);
 
-            return $path . $filename;
+            return $result;
         } catch (\Exception $e) {
             Log::error('Failed to upload base64 image', [
                 'type' => $type,
@@ -714,6 +600,21 @@ class AppointmentBookingByPatientController extends Controller
             ]);
             return null;
         }
+    }
+
+    /**
+     * Upload file - exact same method as web controller
+     */
+    private function uploadFile($file, $type)
+    {
+        if ($file) {
+            $extension = $file->getClientOriginalExtension();
+            $filename = 'insurance_' . $type . '_' . rand(1111111111, 9999999999) . '.' . $extension;
+            $path = $type . '/';
+            $file->move(public_path($path), $filename);
+            return $path . $filename;
+        }
+        return null;
     }
 
     public function paymentSuccess(Request $request)

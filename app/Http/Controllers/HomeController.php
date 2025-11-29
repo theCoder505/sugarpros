@@ -270,20 +270,6 @@ class HomeController extends Controller
             $plan = 'subscription';
         }
 
-        // if (!$current_subscription || !$is_valid_subscription) {
-        //     $message = 'You need to have an active subscription to book an appointment.';
-
-        //     if ($current_subscription && !$is_valid_subscription) {
-        //         $expiryDate = \Carbon\Carbon::parse(
-        //             $current_subscription->last_recurrent_date ?? $current_subscription->availed_date
-        //         )->format('F j, Y');
-
-        //         $message = "Your subscription expired on {$expiryDate}. Please renew your subscription to book appointments.";
-        //     }
-
-        //     return redirect()->route('patient.subscriptions')->with('error', $message);
-        // }
-
         $prefixcodes = Settings::where('id', 1)->value('prefixcode');
 
         $this_month_appointments = Appointment::where('patient_id', $patient_id)

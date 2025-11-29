@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\APIControllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
+use App\Models\ClaimsBillerFormData;
 use App\Models\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -43,6 +45,157 @@ class ProviderClaimMDPatientController extends Controller
                 'type' => 'error',
                 'message' => $e->getMessage()
             ], 400);
+        }
+    }
+
+    /**
+     * Get all claims from database
+     */
+    public function getClaims()
+    {
+        try {
+            $claims = ClaimsBillerFormData::with('appointment')
+                ->where('action', 'pcb')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($claim) {
+                    $responseData = json_decode($claim->claim_response, true) ?? [];
+                    $claimDetails = $responseData['claim'][0] ?? [];
+
+                    return [
+                        'id' => $claim->id,
+                        'appointment_uid' => $claim->appointment_uid,
+                        'claim_status' => $claim->claim_status,
+                        'claimmd_id' => $claim->claimmd_id,
+                        'created_at' => $claim->created_at,
+                        'claim_response' => $responseData,
+                        'patient_name' => $claim->name ?? 'N/A',
+                        'appointment_date' => $claim->appointment->date ?? null,
+                        'medicare_status' => $claim->appointment->medicare_status ?? 'pending',
+                        'done_by' => $claim->done_by ?? 'Unknown',
+                        'done_by_id' => $claim->done_by_id ?? null
+                    ];
+                });
+
+            return response()->json([
+                'type' => 'success',
+                'data' => $claims
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Failed to retrieve claims',
+                'reason' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get single claim details
+     */
+    public function getClaim($id)
+    {
+        try {
+            $claim = ClaimsBillerFormData::with('appointment')->findOrFail($id);
+            $responseData = json_decode($claim->claim_response, true) ?? [];
+
+            return response()->json([
+                'type' => 'success',
+                'data' => [
+                    'id' => $claim->id,
+                    'appointment_uid' => $claim->appointment_uid,
+                    'claim_status' => $claim->claim_status,
+                    'claimmd_id' => $claim->claimmd_id,
+                    'created_at' => $claim->created_at,
+                    'claim_response' => $responseData,
+                    'medicare_status' => $claim->appointment->medicare_status ?? 'pending',
+                    'done_by' => $claim->done_by ?? 'Unknown',
+                    'done_by_id' => $claim->done_by_id ?? null,
+                    'patient_info' => [
+                        'name' => $claim->name,
+                        'dob' => $claim->dob,
+                        'patient_id' => $claim->patient_id
+                    ],
+                    'insurance_info' => [
+                        'primary' => $claim->primary,
+                        'plan_name' => $claim->plan_name,
+                        'insurance_ID' => $claim->insurance_ID
+                    ],
+                    'appointment' => $claim->appointment
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Claim not found'
+            ], 404);
+        }
+    }
+
+    /**
+     * Delete claim from both local DB and ClaimMD
+     */
+    public function deleteClaim($id)
+    {
+        try {
+            $claim = ClaimsBillerFormData::findOrFail($id);
+            $claimmdId = $claim->claimmd_id;
+            $apiKey = Settings::value('CLAIM_MD_API_KEY');
+
+            // First delete from ClaimMD if we have a claimmd_id
+            if ($claimmdId && $apiKey) {
+                $response = Http::asForm()
+                    ->withHeaders(['Accept' => 'application/json'])
+                    ->post('https://svc.claim.md/services/upload/remove/', [
+                        'AccountKey' => $apiKey,
+                        'FileID' => $claimmdId
+                    ]);
+
+                if (!$response->successful()) {
+                    throw new \Exception("Failed to delete from ClaimMD: " . $response->body());
+                }
+            }
+
+            // Then delete from our database
+            $claim->delete();
+
+            return response()->json([
+                'type' => 'success',
+                'message' => 'Claim deleted successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error("Delete Claim Error: " . $e->getMessage());
+            return response()->json([
+                'type' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark appointment as proceed
+     */
+    public function markAppointmentProceed($appointment_uid)
+    {
+        try {
+            // Update appointment status
+            $appointment = Appointment::where('appointment_uid', $appointment_uid)->firstOrFail();
+            $appointment->update(['medicare_status' => 'completed']);
+
+            // Update claim status
+            ClaimsBillerFormData::where('appointment_uid', $appointment_uid)
+                ->update(['status' => 'processed']);
+
+            return response()->json([
+                'type' => 'success',
+                'message' => 'Appointment marked as completed and claim processed'
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error("Mark Appointment Proceed Error: " . $e->getMessage());
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Failed to update appointment status'
+            ], 500);
         }
     }
 

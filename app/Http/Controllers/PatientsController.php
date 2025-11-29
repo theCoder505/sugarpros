@@ -121,17 +121,6 @@ class PatientsController extends Controller
     // appointment purchasing 
     public function bookNewAppointment(Request $request)
     {
-        $check_if_exists = Appointment::where('booked_by', Auth::user()->id)
-            ->where('date', $request->date)
-            ->where('time', $request->time)
-            ->count();
-
-        if ($check_if_exists > 0) {
-            return back()->with('info', 'You already booked an appointment in the same date: ' . $request->date . ' and time: ' . $request->time)
-                ->with('date', $request->date)
-                ->with('time', $request->time);
-        }
-
         $plan = $request['plan'];
 
         // Validate subscription for subscription plan
@@ -155,6 +144,18 @@ class PatientsController extends Controller
 
                 return redirect()->route('patient.subscriptions')->with('error', $message);
             }
+        }
+
+        // Check for duplicate appointment
+        $check_if_exists = Appointment::where('booked_by', Auth::user()->id)
+            ->where('date', $request->date)
+            ->where('time', $request->time)
+            ->count();
+
+        if ($check_if_exists > 0) {
+            return back()->with('info', 'You already booked an appointment in the same date: ' . $request->date . ' and time: ' . $request->time)
+                ->with('date', $request->date)
+                ->with('time', $request->time);
         }
 
         // Handle file uploads if they exist
@@ -185,7 +186,7 @@ class PatientsController extends Controller
         $appointment_uid = $prefix . $year . $month . '-' . $sequence;
 
         if ($plan == 'subscription') {
-            $appointment = Appointment::create([
+            Appointment::create([
                 'appointment_uid' => $appointment_uid,
                 'fname' => $request->fname,
                 'lname' => $request->lname,
@@ -275,6 +276,41 @@ class PatientsController extends Controller
             return $path . $filename;
         }
         return null;
+    }
+
+    /**
+     * Validate subscription object for ability to book appointments.
+     * Returns true if subscription exists, has a valid stripe_status and is not expired (if expiry date available).
+     *
+     * @param  mixed $subscription
+     * @return bool
+     */
+    private function isValidSubscription($subscription)
+    {
+        if (!$subscription) {
+            return false;
+        }
+
+        $validStatuses = ['active', 'trialing', 'paid'];
+        if (!isset($subscription->stripe_status) || !in_array($subscription->stripe_status, $validStatuses)) {
+            return false;
+        }
+
+        // If there is an expiry date field, ensure it's not in the past
+        $expiry = $subscription->last_recurrent_date ?? $subscription->availed_date ?? null;
+        if ($expiry) {
+            try {
+                $expiryDate = \Carbon\Carbon::parse($expiry);
+                if ($expiryDate->isPast()) {
+                    return false;
+                }
+            } catch (\Exception $e) {
+                // If parsing fails, assume subscription is invalid
+                return false;
+            }
+        }
+
+        return true;
     }
 
 
