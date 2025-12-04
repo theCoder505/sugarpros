@@ -131,8 +131,6 @@ Route::middleware(['api', 'jwt.patient'])->get('/dashboard', [PatientPagesContro
 Route::middleware(['api', 'jwt.patient'])->get('/appointments/patient-details', [AppointmentBookingByPatientController::class, 'getPatientDetails']);
 Route::middleware(['api', 'jwt.patient'])->post('/appointments/initiate', [AppointmentBookingByPatientController::class, 'initiateBooking']);
 Route::middleware(['api', 'jwt.patient'])->post('/appointments/complete', [AppointmentBookingByPatientController::class, 'completeBooking']);
-Route::middleware(['api', 'jwt.patient'])->get('/appointments/payment/success', [AppointmentBookingByPatientController::class, 'paymentSuccess']);
-Route::middleware(['api', 'jwt.patient'])->get('/appointments/payment/cancel', [AppointmentBookingByPatientController::class, 'paymentCancel']);
 // End fixing API
 
 
